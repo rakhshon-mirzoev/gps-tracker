@@ -1,6 +1,9 @@
 package app
 
 import (
+	"context"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/rakhshon-mirzoev/gps-tracker/config"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/handler"
@@ -15,6 +18,7 @@ type App struct {
 	S      *service.Service
 	R      *repository.Repository
 	Router *gin.Engine
+	Server *http.Server
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -41,5 +45,14 @@ func New(cfg *config.Config) (*App, error) {
 func (a *App) Run(addr string) error {
 	a.registerRoutes()
 
-	return a.Router.Run(addr)
+	a.Server = &http.Server{
+		Addr:    addr,
+		Handler: a.Router,
+	}
+
+	return a.Server.ListenAndServe()
+}
+
+func (a *App) Shutdown(ctx context.Context) error {
+	return a.Server.Shutdown(ctx)
 }
