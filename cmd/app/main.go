@@ -1,7 +1,34 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+
+	"github.com/rakhshon-mirzoev/gps-tracker/config"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/app"
+)
 
 func main() {
-	fmt.Print("app started")
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
+	cfg, err := config.LoadConfig("config.json")
+	if err != nil {
+		return err
+	}
+
+	app, err := app.New(cfg)
+	if err != nil {
+		return err
+	}
+	defer app.DB.Close()
+
+	if err := app.Run(fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)); err != nil {
+		return err
+	}
+
+	return nil
 }
