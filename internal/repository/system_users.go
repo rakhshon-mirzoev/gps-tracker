@@ -4,22 +4,29 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 )
 
-type systemUsersRepository struct {
-	DB *pgxpool.Pool
+type systemUsers struct {
+	DB *db.DB
 }
 
-type SystemUsersRepo interface {
+type SystemUsersRepository interface {
+	Create(ctx context.Context, sysUser *model.SystemUser) error
+	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error)
+	GetByLogin(ctx context.Context, login string) (*model.SystemUser, error) // Для логина
+	Update(ctx context.Context, sysUser *model.SystemUser) error
+	Delete(ctx context.Context, id uuid.UUID) error
+	List(ctx context.Context) ([]model.SystemUser, error)
 }
 
-func InitSystemUsersRepository(db *pgxpool.Pool) SystemUsersRepo {
-	return &systemUsersRepository{DB: db}
+func InitSystemUsersRepository(db *db.DB) SystemUsersRepository {
+	return &systemUsers{DB: db}
 }
 
-func (s *systemUsersRepository) CreateSystemUser(ctx context.Context, sysUser *model.SystemUser) (err error) {
+func (s *systemUsers) Create(ctx context.Context, sysUser *model.SystemUser) (err error) {
 	sql := `
 		INSERT INTO system_users 
 		(
@@ -33,11 +40,91 @@ func (s *systemUsersRepository) CreateSystemUser(ctx context.Context, sysUser *m
 		RETURNING id, created_at;
 	`
 
-	err = s.DB.QueryRow(ctx, sql, sysUser.FullName, sysUser.Login, sysUser.PasswordHash, sysUser.Role, sysUser.IsActive).Scan(&sysUser.ID, &sysUser.CreatedAt)
+	err = s.DB.Pool.QueryRow(
+		ctx,
+		sql,
+		sysUser.FullName,
+		sysUser.Login,
+		sysUser.PasswordHash,
+		sysUser.Role,
+		sysUser.IsActive).Scan(&sysUser.ID, &sysUser.CreatedAt)
 
 	if err != nil {
-		return fmt.Errorf("failed to create sysUser: %v", err)
+		return err
 	}
 
 	return nil
+}
+
+func (s *systemUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error) {
+	u := &model.SystemUser{}
+	sql := `SELECT id, full_name, login, role, is_active, created_at FROM system_users WHERE id = $1`
+
+	err := s.DB.Pool.QueryRow(ctx, sql, id).Scan(
+		&u.ID, &u.FullName, &u.Login, &u.Role, &u.IsActive, &u.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get user by id: %w", err)
+	}
+	return u, nil
+}
+
+func (s *systemUsers) GetByLogin(ctx context.Context, login string) (*model.SystemUser, error) {
+	u := &model.SystemUser{}
+	sql := `SELECT id, full_name, login, password_hash, role, is_active FROM system_users WHERE login = $1`
+
+	err := s.DB.Pool.QueryRow(ctx, sql, login).Scan(
+		&u.ID, &u.FullName, &u.Login, &u.PasswordHash, &u.Role, &u.IsActive,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get user by login: %w", err)
+	}
+	return u, nil
+}
+
+func (s *systemUsers) Update(ctx context.Context, sysUser *model.SystemUser) error {
+	sql := `
+        UPDATE system_users 
+        SET full_name = $1, role = $2, is_active = $3 
+        WHERE id = $4`
+
+	_, err := s.DB.Pool.Exec(ctx, sql,
+		sysUser.FullName,
+		sysUser.Role,
+		sysUser.IsActive,
+		sysUser.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("update user: %w", err)
+	}
+	return nil
+}
+
+func (s *systemUsers) Delete(ctx context.Context, id uuid.UUID) error {
+	sql := `DELETE FROM system_users WHERE id = $1`
+	_, err := s.DB.Pool.Exec(ctx, sql, id)
+	if err != nil {
+		return fmt.Errorf("delete user: %w", err)
+	}
+	return nil
+}
+
+func (s *systemUsers) List(ctx context.Context) ([]model.SystemUser, error) {
+	sql := `SELECT id, full_name, login, role, is_active, created_at FROM system_users ORDER BY created_at DESC`
+
+	rows, err := s.DB.Pool.Query(ctx, sql)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []model.SystemUser
+	for rows.Next() {
+		var u model.SystemUser
+		if err := rows.Scan(&u.ID, &u.FullName, &u.Login, &u.Role, &u.IsActive, &u.CreatedAt); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, nil
 }

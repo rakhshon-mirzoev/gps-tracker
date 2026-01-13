@@ -18,3 +18,10 @@ type SystemUser struct {
 	DeactivationReason *string    `db:"deactivation_reason" json:"deactivation_reason"`
 	CreatedAt          time.Time  `db:"created_at" json:"created_at"`
 }
+
+type CreateSystemUser struct {
+	FullName string `json:"full_name" binding:"required"`
+	Login    string `json:"login" binding:"required"`
+	Password string `json:"password" binding:"required"`
+	Role     string `json:"role" binding:"required"`
+}

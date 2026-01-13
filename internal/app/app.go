@@ -27,15 +27,15 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
-	repo := repository.InitRepository(database)
-	service := service.InitService(repo)
+	repository := repository.InitRepository(database)
+	service := service.InitService(repository)
 	handler := handler.InitHandler(service)
 
 	router := gin.Default()
 
 	return &App{
 		DB:     database,
-		R:      repo,
+		R:      repository,
 		S:      service,
 		H:      handler,
 		Router: router,
