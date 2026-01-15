@@ -1,5 +1,6 @@
 package constants
 
 var (
-	AuthGroup = "/auth"
+	AuthGroup    = "/auth"
+	RequestIDKey = "request_id"
 )

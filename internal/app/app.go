@@ -2,7 +2,13 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rakhshon-mirzoev/gps-tracker/config"
@@ -39,7 +45,7 @@ func New(cfg *config.Config) (*App, error) {
 	handler := handler.InitHandler(service)
 	middleware := middleware.InitMiddleware(app.token)
 
-	router := gin.Default()
+	router := gin.New()
 
 	return &App{
 		DB:         database,
@@ -54,12 +60,35 @@ func New(cfg *config.Config) (*App, error) {
 func (a *App) Run(addr string) error {
 	a.registerRoutes()
 
-	a.Server = &http.Server{
+	server := &http.Server{
 		Addr:    addr,
 		Handler: a.Router,
 	}
 
-	return a.Server.ListenAndServe()
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		log.Printf("server started on %s", addr)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen error: %v", err)
+		}
+	}()
+
+	<-quit
+	log.Println("shutdown signal received")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		return fmt.Errorf("server shutdown failed: %w", err)
+	}
+
+	a.DB.Close()
+
+	log.Println("server exited gracefully")
+	return nil
 }
 
 func (a *App) Shutdown(ctx context.Context) error {

@@ -45,14 +45,12 @@ func (h *Handler) Registrate(c *gin.Context) {
 		user *model.CreateSystemUser
 	)
 
-	ctx := c.Request.Context()
-
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	existUser, err := h.s.SystemUsers.GetByLogin(ctx, user.Login)
+	existUser, err := h.s.SystemUsers.GetByLogin(c.Request.Context(), user.Login)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -63,12 +61,12 @@ func (h *Handler) Registrate(c *gin.Context) {
 		return
 	}
 
-	err = h.s.SystemUsers.Create(ctx, user)
+	err = h.s.SystemUsers.Create(c.Request.Context(), user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"ok": "created user"})
+	c.JSON(http.StatusCreated, gin.H{"ok": "created user"})
 
 }

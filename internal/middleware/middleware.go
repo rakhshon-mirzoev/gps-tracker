@@ -8,6 +8,9 @@ import (
 type Middleware interface {
 	CorsMiddleWare() gin.HandlerFunc
 	Auth() gin.HandlerFunc
+	Recovery() gin.HandlerFunc
+	Logger() gin.HandlerFunc
+	RequestID() gin.HandlerFunc
 }
 
 type MiddlewareService struct {

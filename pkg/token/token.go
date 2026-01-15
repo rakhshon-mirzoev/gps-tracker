@@ -13,7 +13,7 @@ import (
 )
 
 type Token interface {
-	ParseClaims(c *gin.Context) (uint, string, error)
+	ParseClaims(c *gin.Context) (uuid.UUID, string, error)
 	ExtractToken(c *gin.Context) string
 	GenerateToken(entityID uuid.UUID, entityRole string) (string, error)
 }
@@ -25,7 +25,7 @@ func InitTokenService() Token {
 	return &TokenService{}
 }
 
-func (s *TokenService) ParseClaims(c *gin.Context) (uint, string, error) {
+func (s *TokenService) ParseClaims(c *gin.Context) (uuid.UUID, string, error) {
 	tokenString := s.ExtractToken(c)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -34,25 +34,23 @@ func (s *TokenService) ParseClaims(c *gin.Context) (uint, string, error) {
 		return []byte(os.Getenv("SECRET_KEY")), nil
 	})
 	if err != nil {
-		return 0, "", fmt.Errorf("invalid token")
+		return uuid.Nil, "", fmt.Errorf("invalid token")
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if ok && token.Valid {
-		idFloat, ok := claims["id"].(float64)
+		idFloat, ok := claims["id"].(uuid.UUID)
 		if !ok {
-			return 0, "", fmt.Errorf("invalid id format")
+			return uuid.Nil, "", fmt.Errorf("invalid id format")
 		}
-		uid := uint(idFloat)
-
 		role, ok := claims["role"].(string)
 		if !ok {
-			return 0, "", fmt.Errorf("invalid role format")
+			return uuid.Nil, "", fmt.Errorf("invalid role format")
 		}
 
-		return uid, role, nil
+		return idFloat, role, nil
 	}
-	return 0, "", fmt.Errorf("invalid token")
+	return uuid.Nil, "", fmt.Errorf("invalid token")
 }
 
 func (s *TokenService) ExtractToken(c *gin.Context) string {

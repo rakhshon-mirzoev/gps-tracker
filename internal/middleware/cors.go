@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (m *MiddlewareService) CorsMiddleWare() gin.HandlerFunc {
+func (s *MiddlewareService) CorsMiddleWare() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 
