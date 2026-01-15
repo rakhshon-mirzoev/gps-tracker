@@ -2,30 +2,40 @@ package service
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	"golang.org/x/crypto/bcrypt"
+	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
-type SystemUsers struct {
+type SystemUsers interface {
+	Create(ctx context.Context, sysUser *model.CreateSystemUser) error
+	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+	Update(ctx context.Context, u *model.SystemUser) error
+	List(ctx context.Context) ([]model.SystemUser, error)
+	GetByLogin(ctx context.Context, login string) (*model.SystemUser, error)
+}
+
+type SystemUserService struct {
 	r repository.SystemUsersRepository
+	a Authorize
 }
 
-func InitSystemUsersService(r repository.SystemUsersRepository) *SystemUsers {
-	return &SystemUsers{r: r}
+func InitSystemUsersService(r repository.SystemUsersRepository) SystemUsers {
+	return &SystemUserService{r: r}
 }
 
-func (s *SystemUsers) Create(ctx context.Context, sysUser *model.CreateSystemUser) error {
-	if sysUser.FullName == "" || sysUser.Login == "" || sysUser.Password == "" {
-		return errors.New("full_name, login and password are required")
+func (s *SystemUserService) Create(ctx context.Context, sysUser *model.CreateSystemUser) error {
+
+	if sysUser.Password != sysUser.ConfirmPassword {
+		return errors.ErrorPasswordsDoNotMatch
 	}
+
 	hash, err := hashPassword(sysUser.Password)
 	if err != nil {
-		return fmt.Errorf("failed to hash password: %w", err)
+		return errors.ErrorPasswordHashError
 	}
 
 	u := &model.SystemUser{
@@ -43,36 +53,22 @@ func (s *SystemUsers) Create(ctx context.Context, sysUser *model.CreateSystemUse
 	return nil
 }
 
-func (s *SystemUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error) {
+func (s *SystemUserService) GetByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error) {
 	return s.r.GetByID(ctx, id)
 }
 
-func (s *SystemUsers) GetByLogin(ctx context.Context, login string) (*model.SystemUser, error) {
+func (s *SystemUserService) GetByLogin(ctx context.Context, login string) (*model.SystemUser, error) {
 	return s.r.GetByLogin(ctx, login)
 }
 
-func (s *SystemUsers) List(ctx context.Context) ([]model.SystemUser, error) {
+func (s *SystemUserService) List(ctx context.Context) ([]model.SystemUser, error) {
 	return s.r.List(ctx)
 }
 
-func (s *SystemUsers) Update(ctx context.Context, u *model.SystemUser) error {
+func (s *SystemUserService) Update(ctx context.Context, u *model.SystemUser) error {
 	return s.r.Update(ctx, u)
 }
 
-func (s *SystemUsers) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *SystemUserService) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.r.Delete(ctx, id)
-}
-
-func (s *SystemUsers) Authenticate(ctx context.Context, login, password string) (*model.SystemUser, error) {
-	u, err := s.r.GetByLogin(ctx, login)
-	if err != nil {
-		return nil, err
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
-	if err != nil {
-		return nil, err
-	}
-
-	return u, nil
 }

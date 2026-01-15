@@ -10,11 +10,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type StaffUsers interface {
+	Create(ctx context.Context, dto model.CreateStaffUser) error
+	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error)
+	Deactivate(ctx context.Context, id uuid.UUID) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error
+	List(ctx context.Context) ([]*model.StaffUser, error)
+}
 type StaffUserService struct {
 	r repository.StaffUsersRepository
 }
 
-func InitStaffUserService(r repository.StaffUsersRepository) *StaffUserService {
+func InitStaffUserService(r repository.StaffUsersRepository) StaffUsers {
 	return &StaffUserService{r: r}
 }
 

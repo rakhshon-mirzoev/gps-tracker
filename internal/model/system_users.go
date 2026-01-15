@@ -20,8 +20,9 @@ type SystemUser struct {
 }
 
 type CreateSystemUser struct {
-	FullName string `json:"full_name" binding:"required"`
-	Login    string `json:"login" binding:"required"`
-	Password string `json:"password" binding:"required"`
-	Role     string `json:"role" binding:"required"`
+	FullName        string `json:"full_name" binding:"required"`
+	Login           string `json:"login" binding:"required,alphanum"`
+	Password        string `json:"password" binding:"required,min=8,max=20"`
+	ConfirmPassword string `json:"confirm_password" binding:"required,min=8,max=20"`
+	Role            string `json:"role" binding:"required"`
 }

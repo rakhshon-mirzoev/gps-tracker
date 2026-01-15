@@ -6,7 +6,7 @@ CREATE TABLE system_users (
     password_hash TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT now(),
     login TEXT NOT NULL,
-    role UUID,
+    role TEXT NOT NULL,
     is_active BOOLEAN DEFAULT false,
     deactivated_at TIMESTAMP DEFAULT NULL,
     deactivated_by_id UUID DEFAULT NULL,

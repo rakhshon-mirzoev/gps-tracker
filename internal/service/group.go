@@ -7,11 +7,15 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 )
 
+type Group interface {
+	CreateGroup(ctx context.Context, group *model.Group) error
+}
+
 type GroupService struct {
 	r repository.GroupsRepository
 }
 
-func InitGroupService(r repository.GroupsRepository) *GroupService {
+func InitGroupService(r repository.GroupsRepository) Group {
 	return &GroupService{r: r}
 }
 

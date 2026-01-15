@@ -1,0 +1,29 @@
+package errors
+
+import (
+	"errors"
+
+	"github.com/jackc/pgx/v5"
+)
+
+var (
+	ErrorAlreadyExists       = errors.New("already exists")
+	ErrorInvalidLoginType    = errors.New("invalid login type")
+	ErrorNotFound            = pgx.ErrNoRows
+	ErrorInvalidFileFormat   = errors.New("invalid file format")
+	ErrorEmptyRequestBody    = errors.New("empty request body")
+	ErrorUnknownInstitute    = errors.New("unknown institution type")
+	ErrorPermissionDenied    = errors.New("permission denied")
+	ErrorInvalidHash         = errors.New("invalid hash format")
+	ErrorNoSecretKey         = errors.New("no secret key")
+	ErrorInvalidToken        = errors.New("invalid token")
+	ErrorEmptyBase64         = errors.New("empty base64 string")
+	ErrorNameIsNil           = errors.New("name is nil")
+	ErrorParseToken          = errors.New("parse token error")
+	ErrorInvalidIdFormat     = errors.New("invalid id format")
+	ErrorIdTokenNil          = errors.New("id token is nil")
+	ErrorInvalidMailFormat   = errors.New("invalid mail format")
+	ErrorWrongPasswordFormat = errors.New("wrong password format")
+	ErrorPasswordsDoNotMatch = errors.New("passwords do not match")
+	ErrorPasswordHashError   = errors.New("failed to hash password")
+)

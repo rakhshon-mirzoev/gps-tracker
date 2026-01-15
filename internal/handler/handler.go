@@ -5,14 +5,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 )
 
 type Handler struct {
-	S *service.Service
+	s *service.Service
+	t token.Token
 }
 
 func InitHandler(s *service.Service) *Handler {
-	return &Handler{S: s}
+	return &Handler{s: s}
 }
 
 func (h *Handler) Ping(c *gin.Context) {

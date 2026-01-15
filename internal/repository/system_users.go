@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
+	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type systemUsers struct {
@@ -77,6 +78,9 @@ func (s *systemUsers) GetByLogin(ctx context.Context, login string) (*model.Syst
 		&u.ID, &u.FullName, &u.Login, &u.PasswordHash, &u.Role, &u.IsActive,
 	)
 	if err != nil {
+		if err == errors.ErrorNotFound {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("get user by login: %w", err)
 	}
 	return u, nil

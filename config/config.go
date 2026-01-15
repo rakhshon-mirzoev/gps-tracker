@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -19,6 +21,10 @@ type Config struct {
 }
 
 func LoadConfig(path string) (*Config, error) {
+	if err := godotenv.Load(); err != nil {
+		return nil, err
+	}
+
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("error while open config file: %v", err)
