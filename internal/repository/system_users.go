@@ -3,8 +3,10 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
@@ -21,6 +23,7 @@ type SystemUsersRepository interface {
 	Update(ctx context.Context, sysUser *model.SystemUser) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context) ([]model.SystemUser, error)
+	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 }
 
 func InitSystemUsersRepository(db *db.DB) SystemUsersRepository {
@@ -65,7 +68,10 @@ func (s *systemUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.SystemU
 		&u.ID, &u.FullName, &u.Login, &u.Role, &u.IsActive, &u.CreatedAt,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("get user by id: %w", err)
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
 	}
 	return u, nil
 }
@@ -131,4 +137,21 @@ func (s *systemUsers) List(ctx context.Context) ([]model.SystemUser, error) {
 		users = append(users, u)
 	}
 	return users, nil
+}
+
+func (s *systemUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
+	sql := `
+		SET is_active = false,
+		 	deactivated_by_id = $1
+			deactivated_at = $2
+			deactivation_reason = $3
+		WHERE id = $4
+	`
+
+	_, err := s.DB.Pool.Exec(ctx, sql, dId, time.Now(), dReason, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

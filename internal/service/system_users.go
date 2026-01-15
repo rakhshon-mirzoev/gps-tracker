@@ -7,6 +7,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils.go"
 )
 
 type SystemUsers interface {
@@ -16,6 +17,7 @@ type SystemUsers interface {
 	Update(ctx context.Context, u *model.SystemUser) error
 	List(ctx context.Context) ([]model.SystemUser, error)
 	GetByLogin(ctx context.Context, login string) (*model.SystemUser, error)
+	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 }
 
 type SystemUserService struct {
@@ -33,7 +35,7 @@ func (s *SystemUserService) Create(ctx context.Context, sysUser *model.CreateSys
 		return errors.ErrorPasswordsDoNotMatch
 	}
 
-	hash, err := hashPassword(sysUser.Password)
+	hash, err := utils.HashPassword(sysUser.Password)
 	if err != nil {
 		return errors.ErrorPasswordHashError
 	}
@@ -71,4 +73,8 @@ func (s *SystemUserService) Update(ctx context.Context, u *model.SystemUser) err
 
 func (s *SystemUserService) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.r.Delete(ctx, id)
+}
+
+func (s *SystemUserService) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
+	return s.r.Deactivate(ctx, id, dId, dReason)
 }

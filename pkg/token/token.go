@@ -9,12 +9,13 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type Token interface {
 	ParseClaims(c *gin.Context) (uint, string, error)
 	ExtractToken(c *gin.Context) string
-	GenerateToken(entityID uuid.UUID) (string, error)
+	GenerateToken(entityID uuid.UUID, entityRole string) (string, error)
 }
 
 type TokenService struct {
@@ -66,21 +67,20 @@ func (s *TokenService) ExtractToken(c *gin.Context) string {
 	return ""
 }
 
-func (s *TokenService) generateToken(claims jwt.Claims) (string, error) {
-	secretKey := os.Getenv("SECRET_KEY")
-	if secretKey == "" {
-		return "", fmt.Errorf("no secret key")
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secretKey))
-}
-
-func (s *TokenService) GenerateToken(entityID uuid.UUID) (string, error) {
+func (s *TokenService) GenerateToken(entityID uuid.UUID, entityRole string) (string, error) {
 	claims := jwt.MapClaims{
 		"authorized": true,
 		"id":         entityID,
 		"exp":        time.Now().Add(15 * time.Minute).Unix(),
 		"status":     "OK",
+		"role":       entityRole,
 	}
-	return s.generateToken(claims)
+
+	secretKey := os.Getenv("SECRET_KEY")
+	if secretKey == "" {
+		return "", errors.ErrorNoSecretKey
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	return token.SignedString([]byte(secretKey))
 }

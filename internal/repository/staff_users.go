@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -15,6 +16,7 @@ type StaffUsersRepository interface {
 	List(ctx context.Context) ([]*model.StaffUser, error)
 	Update(ctx context.Context, user *model.StaffUser) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 }
 
 type staffUsers struct {
@@ -140,4 +142,22 @@ func (r *staffUsers) Delete(ctx context.Context, id uuid.UUID) error {
 
 	_, err := r.DB.Pool.Exec(ctx, query, id)
 	return err
+}
+
+func (s *staffUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
+	sql := `
+		UPDATE staff_users
+		SET is_active = false,
+		 	deactivated_by_id = $1
+			deactivated_at = $2
+			deactivation_reason = $3
+		WHERE id = $4
+	`
+
+	_, err := s.DB.Pool.Exec(ctx, sql, dId, time.Now(), dReason, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

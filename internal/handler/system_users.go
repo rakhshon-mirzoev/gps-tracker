@@ -25,7 +25,7 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.s.Authorize.Authenticate(ctx, auth.Login, auth.Password, u.PasswordHash, u.ID)
+	token, err := h.s.Authorize.Authenticate(ctx, auth.Login, auth.Password, u.PasswordHash, u.Role, u.ID)
 	if err != nil {
 		switch err {
 		case errors.New("not found"):

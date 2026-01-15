@@ -2,20 +2,21 @@ package service
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	"golang.org/x/crypto/bcrypt"
+	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils.go"
 )
 
 type StaffUsers interface {
 	Create(ctx context.Context, dto model.CreateStaffUser) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error)
-	Deactivate(ctx context.Context, id uuid.UUID) error
+	Delete(ctx context.Context, id uuid.UUID) error
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error
 	List(ctx context.Context) ([]*model.StaffUser, error)
+	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 }
 type StaffUserService struct {
 	r repository.StaffUsersRepository
@@ -27,13 +28,9 @@ func InitStaffUserService(r repository.StaffUsersRepository) StaffUsers {
 
 func (s *StaffUserService) Create(ctx context.Context, dto model.CreateStaffUser) error {
 
-	if dto.FullName == "" || dto.Login == "" || dto.Password == "" {
-		return errors.New("full_name, login and password are required")
-	}
-
-	hash, err := hashPassword(dto.Password)
+	hash, err := utils.HashPassword(dto.Password)
 	if err != nil {
-		return err
+		return errors.ErrorPasswordHashError
 	}
 
 	user := &model.StaffUser{
@@ -61,10 +58,6 @@ func (s *StaffUserService) GetByID(ctx context.Context, id uuid.UUID) (*model.St
 		return nil, err
 	}
 
-	if user == nil {
-		return nil, errors.New("staff user not found")
-	}
-
 	return user, nil
 }
 
@@ -78,8 +71,9 @@ func (s *StaffUserService) Update(ctx context.Context, id uuid.UUID, dto model.U
 	if err != nil {
 		return err
 	}
+
 	if user == nil {
-		return errors.New("staff user not found")
+		return errors.ErrorNotFound
 	}
 
 	if dto.FullName != nil {
@@ -95,23 +89,19 @@ func (s *StaffUserService) Update(ctx context.Context, id uuid.UUID, dto model.U
 	return s.r.Update(ctx, user)
 }
 
-func (s *StaffUserService) Deactivate(ctx context.Context, id uuid.UUID) error {
+func (s *StaffUserService) Delete(ctx context.Context, id uuid.UUID) error {
 
 	user, err := s.r.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
 	if user == nil {
-		return errors.New("staff user not found")
+		return errors.ErrorNotFound
 	}
 
 	return s.r.Delete(ctx, id)
 }
 
-func hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword(
-		[]byte(password),
-		bcrypt.DefaultCost,
-	)
-	return string(bytes), err
+func (s *StaffUserService) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
+	return s.r.Deactivate(ctx, id, dId, dReason)
 }

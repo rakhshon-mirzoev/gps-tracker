@@ -2,16 +2,16 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/uuid"
+	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Authorize interface {
 	ComparePasswordWithHash(input, hash string) (err error)
-	Authenticate(ctx context.Context, login, password, password_hash string, id uuid.UUID) (string, error)
+	Authenticate(ctx context.Context, login, password, password_hash, role string, id uuid.UUID) (string, error)
 }
 
 type AuthorizeService struct {
@@ -24,19 +24,19 @@ func InitAuthorizeService(t token.Token) Authorize {
 
 func (s *AuthorizeService) ComparePasswordWithHash(input, hash string) (err error) {
 	if len(hash) < 59 {
-		return fmt.Errorf("invalid hash")
+		return errors.ErrorInvalidHash
 	}
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(input))
 }
 
-func (s *AuthorizeService) Authenticate(ctx context.Context, login, password, password_hash string, id uuid.UUID) (string, error) {
+func (s *AuthorizeService) Authenticate(ctx context.Context, login, password, password_hash, role string, id uuid.UUID) (string, error) {
 
 	err := bcrypt.CompareHashAndPassword([]byte(password_hash), []byte(password))
 	if err != nil {
 		return "", err
 	}
 
-	token, err := s.t.GenerateToken(id)
+	token, err := s.t.GenerateToken(id, role)
 	if err != nil {
 		return "", err
 	}
