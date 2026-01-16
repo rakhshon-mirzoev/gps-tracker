@@ -25,4 +25,5 @@ var (
 	ErrorPasswordsDoNotMatch = errors.New("passwords do not match")
 	ErrorPasswordHashError   = errors.New("failed to hash password")
 	ErrorSignMethod          = errors.New("unexpected signing method")
+	ErrorInvalidUserType     = errors.New("invalid user type")
 )

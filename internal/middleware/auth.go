@@ -6,6 +6,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type ctxKey string
+
+const (
+	CtxUserID  ctxKey = "user_id"
+	CtxRole    ctxKey = "role"
+	CtxGroupID ctxKey = "group_id"
+)
+
 func (s *MiddlewareService) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -29,8 +37,11 @@ func (s *MiddlewareService) Auth() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user_id", claims.UserID)
-		c.Set("role", claims.Role)
+		c.Set(string(CtxUserID), claims.UserID)
+		c.Set(string(CtxRole), claims.Role)
+		if claims.GroupID != nil {
+			c.Set(string(CtxGroupID), *claims.GroupID)
+		}
 
 		c.Next()
 	}

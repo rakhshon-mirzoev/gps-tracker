@@ -11,15 +11,16 @@ import (
 )
 
 type Claims struct {
-	UserID uuid.UUID `json:"user_id"`
-	Role   string    `json:"role"`
+	UserID  uuid.UUID  `json:"user_id"`
+	Role    string     `json:"role"`
+	GroupID *uuid.UUID `json:"group_id,omitempty"`
 	jwt.RegisteredClaims
 }
 
 type Token interface {
 	ParseToken(token string) (*Claims, error)
 	ExtractToken(c *gin.Context) string
-	GenerateToken(entityID uuid.UUID, entityRole string) (string, error)
+	GenerateToken(userID uuid.UUID, group_id *uuid.UUID, role string) (string, error)
 }
 
 type jwtService struct {
@@ -67,10 +68,11 @@ func (s *jwtService) ExtractToken(c *gin.Context) string {
 	return ""
 }
 
-func (s *jwtService) GenerateToken(userID uuid.UUID, role string) (string, error) {
+func (s *jwtService) GenerateToken(userID uuid.UUID, group_id *uuid.UUID, role string) (string, error) {
 	claims := Claims{
-		UserID: userID,
-		Role:   role,
+		UserID:  userID,
+		Role:    role,
+		GroupID: group_id,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.ttl)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

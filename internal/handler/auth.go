@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
+	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 func (h *Handler) Login(c *gin.Context) {
@@ -19,38 +19,39 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	u, err := h.s.SystemUsers.GetByLogin(ctx, auth.Login)
+	u, err := h.s.Authorize.GetByLogin(ctx, auth.Login)
 	if err != nil {
+		if err == errs.ErrorNotFound {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	token, err := h.s.Authorize.Authenticate(ctx, auth.Login, auth.Password, u.PasswordHash, u.Role, u.ID)
+	token, err := h.s.Authorize.Authenticate(auth.Password, u)
 	if err != nil {
-		switch err {
-		case errors.New("not found"):
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"access_token": token})
+
 }
 
 func (h *Handler) Registrate(c *gin.Context) {
 	var (
-		user *model.CreateSystemUser
+		user *model.CreateUser
 	)
+
+	utype := c.Param("type")
 
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	existUser, err := h.s.SystemUsers.GetByLogin(c.Request.Context(), user.Login)
+	existUser, err := h.s.Authorize.GetByLogin(c.Request.Context(), user.Login)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -61,7 +62,7 @@ func (h *Handler) Registrate(c *gin.Context) {
 		return
 	}
 
-	err = h.s.SystemUsers.Create(c.Request.Context(), user)
+	err = h.s.Authorize.Create(c.Request.Context(), user, utype)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
