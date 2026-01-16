@@ -7,7 +7,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils.go"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
 type StaffUsers interface {

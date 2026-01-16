@@ -7,7 +7,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils.go"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
