@@ -15,7 +15,7 @@ type StaffUsers interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error
-	List(ctx context.Context) ([]*model.StaffUser, error)
+	List(ctx context.Context) ([]model.StaffUser, error)
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 }
 type StaffUserService struct {
@@ -61,7 +61,7 @@ func (s *StaffUserService) GetByID(ctx context.Context, id uuid.UUID) (*model.St
 	return user, nil
 }
 
-func (s *StaffUserService) List(ctx context.Context) ([]*model.StaffUser, error) {
+func (s *StaffUserService) List(ctx context.Context) ([]model.StaffUser, error) {
 	return s.r.List(ctx)
 }
 

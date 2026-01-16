@@ -2,18 +2,20 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
+	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type StaffUsersRepository interface {
 	Create(ctx context.Context, user *model.StaffUser) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error)
-	List(ctx context.Context) ([]*model.StaffUser, error)
+	List(ctx context.Context) ([]model.StaffUser, error)
 	Update(ctx context.Context, user *model.StaffUser) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
@@ -70,8 +72,8 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 	)
 
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, nil
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errs.ErrorNotFound
 		}
 		return nil, err
 	}
@@ -79,7 +81,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 	return &u, nil
 }
 
-func (r *staffUsers) List(ctx context.Context) ([]*model.StaffUser, error) {
+func (r *staffUsers) List(ctx context.Context) ([]model.StaffUser, error) {
 	query := `
 		SELECT id, full_name, login, is_active, created_at
 		FROM staff_users
@@ -92,7 +94,7 @@ func (r *staffUsers) List(ctx context.Context) ([]*model.StaffUser, error) {
 	}
 	defer rows.Close()
 
-	var users []*model.StaffUser
+	var users []model.StaffUser
 
 	for rows.Next() {
 		var u model.StaffUser
@@ -105,7 +107,11 @@ func (r *staffUsers) List(ctx context.Context) ([]*model.StaffUser, error) {
 		); err != nil {
 			return nil, err
 		}
-		users = append(users, &u)
+		users = append(users, u)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return users, nil
@@ -120,7 +126,7 @@ func (r *staffUsers) Update(ctx context.Context, u *model.StaffUser) error {
 		WHERE id = $4
 	`
 
-	_, err := r.DB.Pool.Exec(
+	ct, err := r.DB.Pool.Exec(
 		ctx,
 		query,
 		u.FullName,
@@ -129,19 +135,33 @@ func (r *staffUsers) Update(ctx context.Context, u *model.StaffUser) error {
 		u.ID,
 	)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	if ct.RowsAffected() == 0 {
+		return errs.ErrorNotFound
+	}
+
+	return nil
 }
 
 func (r *staffUsers) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `
-		UPDATE staff_users
-		SET is_active = false,
-		    deactivated_at = now()
+		DELETE FROM staff_users
 		WHERE id = $1
 	`
 
-	_, err := r.DB.Pool.Exec(ctx, query, id)
-	return err
+	ct, err := r.DB.Pool.Exec(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	if ct.RowsAffected() == 0 {
+		return errs.ErrorNotFound
+	}
+
+	return nil
 }
 
 func (s *staffUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
@@ -154,9 +174,13 @@ func (s *staffUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason 
 		WHERE id = $4
 	`
 
-	_, err := s.DB.Pool.Exec(ctx, sql, dId, time.Now(), dReason, id)
+	ct, err := s.DB.Pool.Exec(ctx, sql, dId, time.Now(), dReason, id)
 	if err != nil {
 		return err
+	}
+
+	if ct.RowsAffected() == 0 {
+		return errs.ErrorNotFound
 	}
 
 	return nil

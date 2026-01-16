@@ -1,15 +1,13 @@
-package errors
+package errs
 
 import (
 	"errors"
-
-	"github.com/jackc/pgx/v5"
 )
 
 var (
 	ErrorAlreadyExists       = errors.New("already exists")
 	ErrorInvalidLoginType    = errors.New("invalid login type")
-	ErrorNotFound            = pgx.ErrNoRows
+	ErrorNotFound            = errors.New("not found")
 	ErrorInvalidFileFormat   = errors.New("invalid file format")
 	ErrorEmptyRequestBody    = errors.New("empty request body")
 	ErrorUnknownInstitute    = errors.New("unknown institution type")

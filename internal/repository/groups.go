@@ -2,11 +2,15 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
+	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type groupsRepository struct {
@@ -14,14 +18,18 @@ type groupsRepository struct {
 }
 
 type GroupsRepository interface {
-	CreateGroup(context.Context, *model.Group) error
+	Create(context.Context, *model.Group) error
+	List(ctx context.Context, supervisorID *uuid.UUID) ([]model.Group, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*model.Group, error)
+	Update(ctx context.Context, gr *model.Group) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 func InitGroupsRepository(db *db.DB) GroupsRepository {
 	return &groupsRepository{DB: db}
 }
 
-func (g *groupsRepository) CreateGroup(ctx context.Context, group *model.Group) error {
+func (g *groupsRepository) Create(ctx context.Context, group *model.Group) error {
 	sql := `
 		INSERT INTO groups
 		(
@@ -39,7 +47,7 @@ func (g *groupsRepository) CreateGroup(ctx context.Context, group *model.Group) 
 	return nil
 }
 
-func (g *groupsRepository) GetGroups(ctx context.Context, supervisorID *int64) ([]model.Group, error) {
+func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID) ([]model.Group, error) {
 	query := `
 		SELECT 
 			g.id, 
@@ -89,5 +97,74 @@ func (g *groupsRepository) GetGroups(ctx context.Context, supervisorID *int64) (
 		groups = append(groups, g)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return groups, nil
+}
+
+func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Group, error) {
+	sql := `
+		SELECT 
+			g.id,
+			g.name,
+			s.full_name as supervisor_name,
+			g.created_at
+		FROM groups g
+		LEFT JOIN system_users s ON g.supervisor_id = s.id
+		WHERE g.id = $1
+	`
+
+	var gr model.Group
+
+	err := g.DB.Pool.QueryRow(ctx, sql, id).Scan(
+		&gr.ID,
+		&gr.Name,
+		&gr.SupervisorName,
+		&gr.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errs.ErrorNotFound
+		}
+		return nil, err
+	}
+
+	return &gr, nil
+}
+
+func (g *groupsRepository) Update(ctx context.Context, gr *model.Group) error {
+	sql := `
+		UPDATE groups 
+		SET name = $1,
+			supervisor_id = $2
+		WHERE id = $3
+	`
+	ct, err := g.DB.Pool.Exec(ctx, sql, gr.Name, gr.SupervisorID, gr.ID)
+
+	if err != nil {
+		return err
+	}
+
+	if ct.RowsAffected() == 0 {
+		return errs.ErrorNotFound
+	}
+
+	return nil
+}
+
+func (g *groupsRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	sql := `DELETE FROM groups WHERE id = $1`
+
+	ct, err := g.DB.Pool.Exec(ctx, sql, id)
+	if err != nil {
+		return err
+	}
+
+	if ct.RowsAffected() == 0 {
+		return errs.ErrorNotFound
+	}
+
+	return nil
 }

@@ -15,6 +15,7 @@ type Claims struct {
 	Role   string    `json:"role"`
 	jwt.RegisteredClaims
 }
+
 type Token interface {
 	ParseToken(token string) (*Claims, error)
 	ExtractToken(c *gin.Context) string
@@ -34,15 +35,12 @@ func InitTokenService(secret string, ttl time.Duration) Token {
 }
 
 func (s *jwtService) ParseToken(tokenStr string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(
-		tokenStr,
-		&Claims{},
-		func(token *jwt.Token) (any, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, errors.ErrorSignMethod
-			}
-			return s.secret, nil
-		},
+	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.ErrorSignMethod
+		}
+		return s.secret, nil
+	},
 	)
 
 	if err != nil {

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
-	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
+	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type systemUsers struct {
@@ -84,8 +85,8 @@ func (s *systemUsers) GetByLogin(ctx context.Context, login string) (*model.Syst
 		&u.ID, &u.FullName, &u.Login, &u.PasswordHash, &u.Role, &u.IsActive,
 	)
 	if err != nil {
-		if err == errors.ErrorNotFound {
-			return nil, nil
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errs.ErrorNotFound
 		}
 		return nil, fmt.Errorf("get user by login: %w", err)
 	}
@@ -98,24 +99,34 @@ func (s *systemUsers) Update(ctx context.Context, sysUser *model.SystemUser) err
         SET full_name = $1, role = $2, is_active = $3 
         WHERE id = $4`
 
-	_, err := s.DB.Pool.Exec(ctx, sql,
+	ct, err := s.DB.Pool.Exec(ctx, sql,
 		sysUser.FullName,
 		sysUser.Role,
 		sysUser.IsActive,
 		sysUser.ID,
 	)
 	if err != nil {
-		return fmt.Errorf("update user: %w", err)
+		return err
 	}
+
+	if ct.RowsAffected() == 0 {
+		return errs.ErrorNotFound
+	}
+
 	return nil
 }
 
 func (s *systemUsers) Delete(ctx context.Context, id uuid.UUID) error {
 	sql := `DELETE FROM system_users WHERE id = $1`
-	_, err := s.DB.Pool.Exec(ctx, sql, id)
+	ct, err := s.DB.Pool.Exec(ctx, sql, id)
 	if err != nil {
-		return fmt.Errorf("delete user: %w", err)
+		return err
 	}
+
+	if ct.RowsAffected() == 0 {
+		return errs.ErrorNotFound
+	}
+
 	return nil
 }
 
@@ -129,6 +140,7 @@ func (s *systemUsers) List(ctx context.Context) ([]model.SystemUser, error) {
 	defer rows.Close()
 
 	var users []model.SystemUser
+
 	for rows.Next() {
 		var u model.SystemUser
 		if err := rows.Scan(&u.ID, &u.FullName, &u.Login, &u.Role, &u.IsActive, &u.CreatedAt); err != nil {
@@ -136,6 +148,11 @@ func (s *systemUsers) List(ctx context.Context) ([]model.SystemUser, error) {
 		}
 		users = append(users, u)
 	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return users, nil
 }
 
@@ -148,9 +165,13 @@ func (s *systemUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason
 		WHERE id = $4
 	`
 
-	_, err := s.DB.Pool.Exec(ctx, sql, dId, time.Now(), dReason, id)
+	ct, err := s.DB.Pool.Exec(ctx, sql, dId, time.Now(), dReason, id)
 	if err != nil {
 		return err
+	}
+
+	if ct.RowsAffected() == 0 {
+		return errs.ErrorNotFound
 	}
 
 	return nil
