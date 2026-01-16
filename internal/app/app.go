@@ -45,7 +45,7 @@ func New(cfg *config.Config) (*App, error) {
 	handler := handler.InitHandler(service)
 	middleware := middleware.InitMiddleware(app.token)
 
-	router := gin.New()
+	router := gin.Default()
 
 	return &App{
 		DB:         database,

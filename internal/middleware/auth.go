@@ -38,7 +38,9 @@ func (s *MiddlewareService) Auth() gin.HandlerFunc {
 		}
 
 		c.Set(string(CtxUserID), claims.UserID)
-		c.Set(string(CtxRole), claims.Role)
+		if claims.Role != "" {
+			c.Set(string(CtxRole), claims.Role)
+		}
 		if claims.GroupID != nil {
 			c.Set(string(CtxGroupID), *claims.GroupID)
 		}

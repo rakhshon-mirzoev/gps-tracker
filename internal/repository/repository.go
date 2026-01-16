@@ -7,6 +7,7 @@ type Repository struct {
 	SystemUsers SystemUsersRepository
 	Groups      GroupsRepository
 	StaffUsers  StaffUsersRepository
+	Auth        Auth
 }
 
 func InitRepository(db *db.DB) *Repository {
@@ -15,5 +16,6 @@ func InitRepository(db *db.DB) *Repository {
 		SystemUsers: InitSystemUsersRepository(db),
 		Groups:      InitGroupsRepository(db),
 		StaffUsers:  InitStaffUsersRepository(db),
+		Auth:        InitAuthRepository(db),
 	}
 }

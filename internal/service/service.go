@@ -17,6 +17,6 @@ func InitService(r *repository.Repository, t token.Token) *Service {
 		SystemUsers: InitSystemUsersService(r.SystemUsers),
 		Group:       InitGroupService(r.Groups),
 		StaffUser:   InitStaffUserService(r.StaffUsers),
-		Authorize:   InitAuthorizeService(t),
+		Authorize:   InitAuthorizeService(t, r.Auth, r.SystemUsers, r.StaffUsers),
 	}
 }

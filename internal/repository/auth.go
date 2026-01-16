@@ -23,17 +23,20 @@ func InitAuthRepository(db *db.DB) Auth {
 
 func (r *authRepository) GetByLoginUnified(ctx context.Context, login string) (*model.User, error) {
 
-	sql := `
-	SELECT id, password_hash, role, group_id, 'staff' AS user_type
-	FROM staff_users
-	WHERE login = $1
+	sql := `SELECT *
+	FROM (
+		SELECT id, password_hash, NULL AS role, group_id, 'staff' AS user_type
+		FROM staff_users
+		WHERE login = $1
 
-	UNION ALL
+		UNION ALL
 
-	SELECT id, password_hash, role, NULL AS group_id, 'system' AS user_type
-	FROM system_users
-	WHERE login = $1
-	LIMIT 1
+		SELECT id, password_hash, role, NULL AS group_id, 'system' AS user_type
+		FROM system_users
+		WHERE login = $1
+	) u
+	LIMIT 1;
+
 	`
 
 	var u model.User
@@ -46,8 +49,11 @@ func (r *authRepository) GetByLoginUnified(ctx context.Context, login string) (*
 		&u.Type,
 	)
 
-	if err == pgx.ErrNoRows {
-		return nil, errs.ErrorNotFound
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, errs.ErrorNotFound
+		}
+		return nil, err
 	}
 
 	return &u, nil

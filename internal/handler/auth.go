@@ -9,9 +9,7 @@ import (
 )
 
 func (h *Handler) Login(c *gin.Context) {
-	var (
-		auth model.Auth
-	)
+	var auth model.Auth
 
 	ctx := c.Request.Context()
 	if err := c.ShouldBindJSON(&auth); err != nil {
@@ -40,9 +38,7 @@ func (h *Handler) Login(c *gin.Context) {
 }
 
 func (h *Handler) Registrate(c *gin.Context) {
-	var (
-		user *model.CreateUser
-	)
+	var user model.CreateUser
 
 	utype := c.Param("type")
 
@@ -52,7 +48,7 @@ func (h *Handler) Registrate(c *gin.Context) {
 	}
 
 	existUser, err := h.s.Authorize.GetByLogin(c.Request.Context(), user.Login)
-	if err != nil {
+	if err != nil && err != errs.ErrorNotFound {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -62,7 +58,7 @@ func (h *Handler) Registrate(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Authorize.Create(c.Request.Context(), user, utype)
+	err = h.s.Authorize.Create(c.Request.Context(), &user, utype)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

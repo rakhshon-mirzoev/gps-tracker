@@ -5,7 +5,6 @@ import (
 
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils.go"
@@ -26,19 +25,18 @@ type authorizeService struct {
 	staff repository.StaffUsersRepository
 }
 
-func InitAuthorizeService(t token.Token) Authorize {
-	return &authorizeService{t: t}
+func InitAuthorizeService(t token.Token, r repository.Auth, sys repository.SystemUsersRepository, staff repository.StaffUsersRepository) Authorize {
+	return &authorizeService{t: t, r: r, sys: sys, staff: staff}
 }
 
 func (s *authorizeService) ComparePasswordWithHash(input, hash string) (err error) {
 	if len(hash) < 59 {
-		return errors.ErrorInvalidHash
+		return errs.ErrorInvalidHash
 	}
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(input))
 }
 
 func (s *authorizeService) Authenticate(password string, user *model.User) (string, error) {
-
 	err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
 		return "", err
@@ -59,12 +57,12 @@ func (s *authorizeService) GetByLogin(ctx context.Context, login string) (*model
 func (s *authorizeService) Create(ctx context.Context, u *model.CreateUser, utype string) error {
 
 	if u.Password != u.ConfirmPassword {
-		return errors.ErrorPasswordsDoNotMatch
+		return errs.ErrorPasswordsDoNotMatch
 	}
 
 	hash, err := utils.HashPassword(u.Password)
 	if err != nil {
-		return errors.ErrorPasswordHashError
+		return errs.ErrorPasswordHashError
 	}
 
 	switch utype {
@@ -83,7 +81,7 @@ func (s *authorizeService) Create(ctx context.Context, u *model.CreateUser, utyp
 		return nil
 	case "staff":
 		user := &model.StaffUser{
-			GroupID:             u.GroupID,
+			GroupID:             *u.GroupID,
 			FullName:            u.FullName,
 			Login:               u.Login,
 			PhoneNumber:         u.PhoneNumber,
