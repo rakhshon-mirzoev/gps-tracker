@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -9,26 +8,29 @@ import (
 
 func (s *MiddlewareService) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		auth := c.GetHeader("Authorization")
-		if auth == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "missing authorization header",
-			})
+
+		header := c.GetHeader("Authorization")
+		if header == "" {
+			c.AbortWithStatusJSON(401, gin.H{"error": "missing token"})
 			return
 		}
 
-		parts := strings.Split(auth, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "invalid authorization header",
-			})
+		const prefix = "Bearer "
+		if !strings.HasPrefix(header, prefix) {
+			c.AbortWithStatusJSON(401, gin.H{"error": "invalid auth header"})
 			return
 		}
 
-		token := parts[1]
+		tokenStr := strings.TrimPrefix(header, prefix)
 
-		// TODO: validate JWT here
-		_ = token
+		claims, err := s.t.ParseToken(tokenStr)
+		if err != nil {
+			c.AbortWithStatusJSON(401, gin.H{"error": "invalid token"})
+			return
+		}
+
+		c.Set("user_id", claims.UserID)
+		c.Set("role", claims.Role)
 
 		c.Next()
 	}

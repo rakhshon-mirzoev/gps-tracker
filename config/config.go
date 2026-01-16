@@ -9,15 +9,16 @@ import (
 )
 
 type Config struct {
-	Host     string `json:"host"`
-	Port     string `json:"port"`
-	User     string `json:"username"`
-	Password string `json:"password"`
-	Dbname   string `json:"db_name"`
-	Ssl      string `json:"ssl"`
-	TimeZone string `json:"time_zone"`
-	DbHost   string `json:"db_host"`
-	DbPort   string `json:"db_port"`
+	Host       string `json:"host"`
+	Port       string `json:"port"`
+	User       string `json:"username"`
+	Password   string `json:"password"`
+	Dbname     string `json:"db_name"`
+	Ssl        string `json:"ssl"`
+	TimeZone   string `json:"time_zone"`
+	DbHost     string `json:"db_host"`
+	DbPort     string `json:"db_port"`
+	TTLMinutes int    `json:"ttl_minutes"`
 }
 
 func LoadConfig(path string) (*Config, error) {

@@ -39,7 +39,7 @@ func New(cfg *config.Config) (*App, error) {
 
 	app := &App{}
 	app.DB = database
-	app.token = token.InitTokenService()
+	app.token = token.InitTokenService(os.Getenv("SECRET_KEY"), time.Duration(cfg.TTLMinutes)*time.Minute)
 	repository := repository.InitRepository(app.DB)
 	service := service.InitService(repository, app.token)
 	handler := handler.InitHandler(service)
