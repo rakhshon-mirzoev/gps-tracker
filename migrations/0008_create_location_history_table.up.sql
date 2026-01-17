@@ -1,5 +1,5 @@
 CREATE TABLE location_history(
-    id UUID PRIMARY KEY gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     staff_id UUID
         REFERENCES staff_users(id)
         ON DELETE RESTRICT,
