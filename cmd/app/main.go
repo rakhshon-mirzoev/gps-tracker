@@ -25,5 +25,5 @@ func run() error {
 		return err
 	}
 
-	return app.Run(fmt.Sprintf("%s:%s", cfg.Host, cfg.Port))
+	return app.Run(fmt.Sprintf("%s:%s", cfg.Core.Host, cfg.Core.Port))
 }

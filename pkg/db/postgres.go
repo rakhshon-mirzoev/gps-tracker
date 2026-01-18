@@ -20,11 +20,11 @@ func ConnectToDb(cfg *config.Config) (*DB, error) {
 
 	dsn := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		cfg.User,
+		cfg.Username,
 		cfg.Password,
 		cfg.DbHost,
 		cfg.DbPort,
-		cfg.Dbname,
+		cfg.DbName,
 	)
 
 	config, err := pgxpool.ParseConfig(dsn)

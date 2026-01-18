@@ -3,7 +3,7 @@ package app
 import "github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 
 func (a *App) registerRoutes() {
-	api := a.Router.Group("/api-v1")
+	api := a.router.Group("/api/v1")
 
 	api.Use(a.middleware.CorsMiddleWare()) /*,
 		a.middleware.Recovery(),
@@ -11,15 +11,18 @@ func (a *App) registerRoutes() {
 		a.middleware.Logger(),
 	) */
 	{
-		api.GET("/ping", a.H.Ping)
-		api.POST("/refresh", a.H.Refresh)
-		api.POST("/logout", a.H.Logout)
+		api.GET("/ping", a.h.Ping)
+		api.POST("/refresh", a.h.Refresh)
+		api.POST("/logout", a.h.Logout)
+		api.GET("/storage/upload-url", a.h.GetUploadURL)
+		api.GET("/storage/download-url", a.h.GetDownloadURL)
+
 	}
 
 	auth := api.Group(constants.AuthGroup)
 	{
-		auth.POST("/login", a.H.Login)
-		auth.POST("/register/:type", a.H.Register)
+		auth.POST("/login", a.h.Login)
+		auth.POST("/register/:type", a.h.Register)
 	}
 
 	// system.Use(a.middleware.Auth())

@@ -8,12 +8,17 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type GeneralConfig struct {
+	Core  Config      `json:"core"`
+	Minio MinioConfig `json:"minio"`
+}
+
 type Config struct {
 	Host       string `json:"host"`
 	Port       string `json:"port"`
-	User       string `json:"username"`
+	Username   string `json:"username"`
 	Password   string `json:"password"`
-	Dbname     string `json:"db_name"`
+	DbName     string `json:"db_name"`
 	Ssl        string `json:"ssl"`
 	TimeZone   string `json:"time_zone"`
 	DbHost     string `json:"db_host"`
@@ -21,10 +26,16 @@ type Config struct {
 	TTLMinutes int    `json:"ttl_minutes"`
 }
 
-func LoadConfig(path string) (*Config, error) {
-	if err := godotenv.Load(); err != nil {
-		return nil, err
-	}
+type MinioConfig struct {
+	Endpoint  string `json:"endpoint"`
+	AccessKey string `json:"access_key"`
+	SecretKey string `json:"secret_key"`
+	Bucket    string `json:"bucket"`
+	UseSSL    bool   `json:"use_ssl"` // Исправлено с uss_ssl
+}
+
+func LoadConfig(path string) (*GeneralConfig, error) {
+	_ = godotenv.Load() // Ошибка тут не критична, если файла .env нет
 
 	file, err := os.Open(path)
 	if err != nil {
@@ -32,8 +43,7 @@ func LoadConfig(path string) (*Config, error) {
 	}
 	defer file.Close()
 
-	var cfg Config
-
+	var cfg GeneralConfig
 	decoder := json.NewDecoder(file)
 	if err := decoder.Decode(&cfg); err != nil {
 		return nil, fmt.Errorf("error to decode config: %v", err)
