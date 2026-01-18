@@ -10,13 +10,17 @@ func (a *App) registerRoutes() {
 		a.middleware.RequestID(),
 		a.middleware.Logger(),
 	) */
+	{
+		api.GET("/ping", a.H.Ping)
+		api.POST("/refresh", a.H.Refresh)
+		api.POST("/logout", a.H.Logout)
+	}
 
-	api.GET("/ping", a.H.Ping)
-
-	system := api.Group("/system")
+	auth := api.Group(constants.AuthGroup)
+	{
+		auth.POST("/login", a.H.Login)
+		auth.POST("/register/:type", a.H.Register)
+	}
 
 	// system.Use(a.middleware.Auth())
-
-	system.POST(constants.AuthGroup+"/login", a.H.Login)
-	system.POST(constants.AuthGroup+"/register/:type", a.H.Registrate)
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
@@ -17,10 +18,17 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+type ClaimsRefresh struct {
+	UserID   uuid.UUID `json:"user_id"`
+	UserType string    `json:"user_type"`
+	jwt.RegisteredClaims
+}
+
 type Token interface {
 	ParseToken(token string) (*Claims, error)
 	ExtractToken(c *gin.Context) string
 	GenerateToken(userID uuid.UUID, group_id *uuid.UUID, role string) (string, error)
+	GenerateRefreshToken(userID uuid.UUID, user_type string) (*model.Refresh, error)
 }
 
 type jwtService struct {
@@ -82,4 +90,30 @@ func (s *jwtService) GenerateToken(userID uuid.UUID, group_id *uuid.UUID, role s
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	return token.SignedString(s.secret)
+}
+
+func (s *jwtService) GenerateRefreshToken(userID uuid.UUID, user_type string) (*model.Refresh, error) {
+	claims := ClaimsRefresh{
+		UserID:   userID,
+		UserType: user_type,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour * 30)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	refresh, err := token.SignedString(s.secret)
+	if err != nil {
+		return nil, err
+	}
+
+	r := &model.Refresh{
+		UserID:    userID,
+		UserType:  user_type,
+		Token:     refresh,
+		ExpiresAt: time.Now().Add(time.Hour * 24 * 30),
+	}
+	return r, nil
 }

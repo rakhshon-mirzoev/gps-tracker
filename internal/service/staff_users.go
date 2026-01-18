@@ -66,27 +66,7 @@ func (s *StaffUserService) List(ctx context.Context) ([]model.StaffUser, error) 
 }
 
 func (s *StaffUserService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error {
-
-	user, err := s.r.GetByID(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if user == nil {
-		return errors.ErrorNotFound
-	}
-
-	if dto.FullName != nil {
-		user.FullName = *dto.FullName
-	}
-	if dto.PhoneNumber != nil {
-		user.PhoneNumber = *dto.PhoneNumber
-	}
-	if dto.IsActive != nil {
-		user.IsActive = *dto.IsActive
-	}
-
-	return s.r.Update(ctx, user)
+	return s.r.Update(ctx, id, dto)
 }
 
 func (s *StaffUserService) Delete(ctx context.Context, id uuid.UUID) error {

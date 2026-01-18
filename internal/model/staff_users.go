@@ -30,9 +30,10 @@ type StaffUser struct {
 }
 
 type UpdateStaffUser struct {
-	FullName    *string `json:"full_name"`
-	PhoneNumber *string `json:"phone_number"`
-	IsActive    *bool   `json:"is_active"`
+	FullName    *string    `json:"full_name"`
+	PhoneNumber *string    `json:"phone_number"`
+	IsActive    *bool      `json:"is_active"`
+	GroupID     *uuid.UUID `json:"group_id"`
 }
 
 type CreateStaffUser struct {

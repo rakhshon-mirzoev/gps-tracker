@@ -16,7 +16,7 @@ type User struct {
 	PasswordHash string     `db:"password_hash"`
 	Role         string     `db:"role"`
 	GroupID      *uuid.UUID `db:"group_id"`
-	Type         string     `db:"type"`
+	Type         string     `db:"user_type"`
 }
 
 type CreateUser struct {

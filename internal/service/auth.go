@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
@@ -12,10 +14,12 @@ import (
 )
 
 type Authorize interface {
-	ComparePasswordWithHash(input, hash string) (err error)
-	Authenticate(password string, user *model.User) (string, error)
+	Authenticate(password string, user *model.User) (string, string, error)
 	GetByLogin(ctx context.Context, login string) (*model.User, error)
 	Create(ctx context.Context, u *model.CreateUser, utype string) error
+	UpsertRefreshToken(ctx context.Context, id uuid.UUID, user_type, token string) error
+	Refresh(ctx context.Context, oldRefreshToken string) (accessToken string, refreshToken string, err error)
+	Logout(ctx context.Context, token string) error
 }
 
 type authorizeService struct {
@@ -29,25 +33,23 @@ func InitAuthorizeService(t token.Token, r repository.Auth, sys repository.Syste
 	return &authorizeService{t: t, r: r, sys: sys, staff: staff}
 }
 
-func (s *authorizeService) ComparePasswordWithHash(input, hash string) (err error) {
-	if len(hash) < 59 {
-		return errs.ErrorInvalidHash
-	}
-	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(input))
-}
-
-func (s *authorizeService) Authenticate(password string, user *model.User) (string, error) {
+func (s *authorizeService) Authenticate(password string, user *model.User) (string, string, error) {
 	err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	token, err := s.t.GenerateToken(user.ID, user.GroupID, user.Role)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return token, nil
+	refresh_token, err := s.t.GenerateRefreshToken(user.ID, user.Type)
+	if err != nil {
+		return "", "", err
+	}
+
+	return token, refresh_token.Token, nil
 }
 
 func (s *authorizeService) GetByLogin(ctx context.Context, login string) (*model.User, error) {
@@ -100,4 +102,66 @@ func (s *authorizeService) Create(ctx context.Context, u *model.CreateUser, utyp
 		return errs.ErrorInvalidLoginType
 	}
 
+}
+
+func (s *authorizeService) UpsertRefreshToken(ctx context.Context, id uuid.UUID, user_type, token string) error {
+	refresh := &model.Refresh{
+		UserID:    id,
+		UserType:  user_type,
+		Token:     token,
+		ExpiresAt: time.Now().Add(time.Hour * 24 * 30),
+	}
+
+	return s.r.UpsertRefreshToken(ctx, refresh)
+
+}
+
+func (s *authorizeService) Refresh(ctx context.Context, oldRefreshToken string) (accessToken string, refreshToken string, err error) {
+	var gId *uuid.UUID
+
+	ref, err := s.r.GetRefreshByToken(ctx, oldRefreshToken)
+	if err != nil {
+		return "", "", err
+	}
+
+	if time.Now().After(ref.ExpiresAt) {
+		_ = s.r.DeleteRefreshByID(ctx, ref.ID)
+		return "", "", errs.ErrorInvalidToken
+	}
+
+	if err := s.r.DeleteRefreshByID(ctx, ref.ID); err != nil {
+		return "", "", err
+	}
+
+	if ref.UserType == "staff" {
+		user, err := s.staff.GetByID(ctx, ref.ID)
+		if err != nil {
+			return "", "", err
+		}
+		gId = &user.GroupID
+	}
+
+	accessToken, err = s.t.GenerateToken(
+		ref.UserID,
+		gId,
+		ref.Role,
+	)
+	if err != nil {
+		return "", "", err
+	}
+
+	refresh_token, err := s.t.GenerateRefreshToken(ref.UserID, ref.UserType)
+	if err != nil {
+		return "", "", err
+	}
+
+	if err := s.r.UpsertRefreshToken(ctx, refresh_token); err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refresh_token.Token, nil
+}
+
+func (s *authorizeService) Logout(ctx context.Context, token string) error {
+	return s.r.DeleteRefreshByToken(ctx, token)
 }

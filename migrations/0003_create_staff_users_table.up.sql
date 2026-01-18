@@ -9,6 +9,7 @@ CREATE TABLE staff_users (
     login VARCHAR(100) NOT NULL UNIQUE,
     phone_number VARCHAR(50),
     inn VARCHAR(20),
+    role TEXT NOT NULL DEFAULT 'staff',
 
     birthday DATE,
 

@@ -3,11 +3,11 @@ CREATE TABLE schedules (
 
     staff_id UUID NOT NULL
         REFERENCES staff_users(id)
-        ON DELETE SET NULL,
+        ON DELETE RESTRICT,
 
     store_id UUID NOT NULL
         REFERENCES stores(id)
-        ON DELETE SET NULL,
+        ON DELETE RESTRICT,
 
     planned_date TIMESTAMP,
     description TEXT,
@@ -21,5 +21,5 @@ CREATE TABLE schedules (
 
     created_by_admin_id UUID
         REFERENCES system_users(id)
-        ON DELETE RESTRICT,
+        ON DELETE RESTRICT
 );

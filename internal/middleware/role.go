@@ -22,11 +22,14 @@ func (s *MiddlewareService) Role() gin.HandlerFunc {
 			c.Abort()
 		}
 
-		if role == "administrator" {
+		switch role {
+		case "administrator":
 			c.Next()
-		} else if role == "supervisor" {
+		case "supervisor":
+
 			c.Next()
-		} else {
+
+		default:
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "not admin or supervisor"})
 
 			c.Abort()

@@ -176,3 +176,48 @@ func (s *systemUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason
 
 	return nil
 }
+
+func (s *systemUsers) GetGroupList(ctx context.Context, groupId uuid.UUID) ([]*model.StaffUser, error) {
+	sql := `
+		SELECT	s.id, s.full_name, s.phone_number, s.inn, s.birthday, s.password_updated_at, s.device_id, s.fcm_token, s.app_version, 
+				s.last_battery_level, s.last_seen_at, s.is_active, s.created_at
+		FROM staff_users s 
+		WHERE s.group_id = $1 AND s.deactivated_by_id IS NULL;
+	`
+
+	rows, err := s.DB.Pool.Query(ctx, sql, groupId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []*model.StaffUser
+
+	for rows.Next() {
+		var su = &model.StaffUser{}
+		if err := rows.Scan(
+			&su.ID,
+			&su.FullName,
+			&su.PhoneNumber,
+			&su.Inn,
+			&su.Birthday,
+			&su.PasswordUpdatedAt,
+			&su.DeviceID,
+			&su.FcmToken,
+			&su.AppVersion,
+			&su.LastBatteryLevel,
+			&su.LastSeenAt,
+			&su.IsActive,
+			&su.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, su)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}

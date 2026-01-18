@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,7 +18,7 @@ type StaffUsersRepository interface {
 	Create(ctx context.Context, user *model.StaffUser) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error)
 	List(ctx context.Context) ([]model.StaffUser, error)
-	Update(ctx context.Context, user *model.StaffUser) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 }
@@ -117,24 +119,44 @@ func (r *staffUsers) List(ctx context.Context) ([]model.StaffUser, error) {
 	return users, nil
 }
 
-func (r *staffUsers) Update(ctx context.Context, u *model.StaffUser) error {
-	query := `
-		UPDATE staff_users
-		SET full_name = $1,
-		    phone_number = $2,
-		    is_active = $3
-		WHERE id = $4
-	`
+func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error {
 
-	ct, err := r.DB.Pool.Exec(
-		ctx,
-		query,
-		u.FullName,
-		u.PhoneNumber,
-		u.IsActive,
-		u.ID,
-	)
+	query := `UPDATE staff_users SET `
+	args := []any{}
+	n := 1
 
+	if dto.FullName != nil {
+		query += fmt.Sprintf("full_name = $%d, ", n)
+		args = append(args, *dto.FullName)
+		n++
+	}
+
+	if dto.PhoneNumber != nil {
+		query += fmt.Sprintf("phone_number = $%d, ", n)
+		args = append(args, *dto.PhoneNumber)
+		n++
+	}
+
+	if dto.IsActive != nil {
+		query += fmt.Sprintf("is_active = $%d, ", n)
+		args = append(args, *dto.IsActive)
+		n++
+	}
+	if dto.GroupID != nil {
+		query += fmt.Sprintf("group_id = $%d, ", n)
+		args = append(args, *dto.GroupID)
+		n++
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query = strings.TrimSuffix(query, ", ")
+	query += fmt.Sprintf(" WHERE id = $%d", n)
+	args = append(args, id)
+
+	ct, err := r.DB.Pool.Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
