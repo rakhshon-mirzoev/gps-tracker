@@ -9,29 +9,41 @@ import (
 )
 
 type GeneralConfig struct {
-	Core  Config      `json:"core"`
-	Minio MinioConfig `json:"minio"`
+	Admin  Admin       `json:"core"`
+	Minio  MinioConfig `json:"minio"`
+	Mobile Mobile      `json:"mobile"`
+	DB     DB          `json:"db"`
 }
 
-type Config struct {
+type Admin struct {
 	Host       string `json:"host"`
 	Port       string `json:"port"`
-	Username   string `json:"username"`
-	Password   string `json:"password"`
-	DbName     string `json:"db_name"`
-	Ssl        string `json:"ssl"`
-	TimeZone   string `json:"time_zone"`
-	DbHost     string `json:"db_host"`
-	DbPort     string `json:"db_port"`
+	TTLMinutes int    `json:"ttl_minutes"`
+}
+
+type Mobile struct {
+	Host       string `json:"host"`
+	Port       string `json:"port"`
 	TTLMinutes int    `json:"ttl_minutes"`
 }
 
 type MinioConfig struct {
-	Endpoint  string `json:"endpoint"`
-	AccessKey string `json:"access_key"`
-	SecretKey string `json:"secret_key"`
-	Bucket    string `json:"bucket"`
-	UseSSL    bool   `json:"use_ssl"` // Исправлено с uss_ssl
+	Endpoint   string `json:"endpoint"`
+	AccessKey  string `json:"access_key"`
+	SecretKey  string `json:"secret_key"`
+	Bucket     string `json:"bucket"`
+	UseSSL     bool   `json:"use_ssl"`
+	TTLMinutes int    `json:"ttl_minutes"`
+}
+
+type DB struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	DbName   string `json:"db_name"`
+	Ssl      string `json:"ssl"`
+	TimeZone string `json:"time_zone"`
+	DbHost   string `json:"db_host"`
+	DbPort   string `json:"db_port"`
 }
 
 func LoadConfig(path string) (*GeneralConfig, error) {

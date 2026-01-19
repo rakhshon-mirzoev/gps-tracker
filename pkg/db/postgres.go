@@ -15,7 +15,7 @@ type DB struct {
 	Cancel context.CancelFunc
 }
 
-func ConnectToDb(cfg *config.Config) (*DB, error) {
+func ConnectToDb(cfg *config.DB) (*DB, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	dsn := fmt.Sprintf(

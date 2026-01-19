@@ -5,12 +5,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/storage"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 )
 
 type Handler struct {
-	s *service.Service
-	t token.Token
+	s     *service.Service
+	t     token.Token
+	minio storage.Minio
 }
 
 func InitHandler(s *service.Service) *Handler {
