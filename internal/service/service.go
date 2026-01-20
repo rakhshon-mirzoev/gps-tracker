@@ -13,10 +13,14 @@ type Service struct {
 }
 
 func InitService(r *repository.Repository, t token.Token) *Service {
+	sys := InitSystemUsersService(r.SystemUsers)
+	group := InitGroupService(r.Groups)
+	staff := InitStaffUserService(r.StaffUsers)
+	authorize := InitAuthorizeService(t, r.Auth, sys, staff)
 	return &Service{
-		SystemUsers: InitSystemUsersService(r.SystemUsers),
-		Group:       InitGroupService(r.Groups),
-		StaffUser:   InitStaffUserService(r.StaffUsers),
-		Authorize:   InitAuthorizeService(t, r.Auth, r.SystemUsers, r.StaffUsers),
+		SystemUsers: sys,
+		Group:       group,
+		StaffUser:   staff,
+		Authorize:   authorize,
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
+	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
@@ -27,6 +28,9 @@ func InitStaffUserService(r repository.StaffUsersRepository) StaffUsers {
 }
 
 func (s *StaffUserService) Create(ctx context.Context, dto model.CreateStaffUser) error {
+	if dto.Password != dto.ConfirmPassword {
+		return errs.ErrorPasswordsDoNotMatch
+	}
 
 	hash, err := utils.HashPassword(dto.Password)
 	if err != nil {

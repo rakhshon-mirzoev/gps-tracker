@@ -4,9 +4,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/handler"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/middleware"
+	miniohandler "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/handler"
 )
 
-func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Handler, m *handler.MinioHandler) {
+func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Handler, m *miniohandler.MinioHandler) {
 	api := r.Group("/api/v1")
 
 	api.Use(mw.CorsMiddleWare()) /*,

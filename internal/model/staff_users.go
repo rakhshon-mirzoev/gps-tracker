@@ -37,13 +37,14 @@ type UpdateStaffUser struct {
 }
 
 type CreateStaffUser struct {
-	GroupID     uuid.UUID  `json:"group_id" binding:"required"`
-	FullName    string     `json:"full_name" binding:"required"`
-	Login       string     `json:"login" binding:"required"`
-	PhoneNumber string     `json:"phone_number"`
-	Inn         string     `json:"inn"`
-	Birthday    *time.Time `json:"birthday"`
-	Password    string     `json:"password" binding:"required"`
+	GroupID         uuid.UUID  `json:"group_id" binding:"required"`
+	FullName        string     `json:"full_name" binding:"required"`
+	Login           string     `json:"login" binding:"required"`
+	PhoneNumber     string     `json:"phone_number"`
+	Inn             string     `json:"inn"`
+	Birthday        *time.Time `json:"birthday"`
+	Password        string     `json:"password" binding:"required"`
+	ConfirmPassword string     `json:"confirm_password" binding:"required"`
 }
 
 type StaffUserResponse struct {

@@ -1,18 +1,18 @@
-package handler
+package miniohandler
 
 import (
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/storage"
+	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 )
 
 type MinioHandler struct {
-	minio storage.Minio
+	minio minioservice.Minio
 }
 
-func NewMinioHandler(minio storage.Minio) *MinioHandler {
+func NewMinioHandler(minio minioservice.Minio) *MinioHandler {
 	return &MinioHandler{minio: minio}
 }
 

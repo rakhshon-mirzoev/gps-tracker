@@ -18,7 +18,8 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/storage"
+	miniohandler "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/handler"
+	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 )
 
@@ -39,7 +40,7 @@ func run() error {
 		return err
 	}
 
-	client, err := storage.NewMinio(cfg.Minio)
+	client, err := minioservice.NewMinio(cfg.Minio)
 	if err != nil {
 		return err
 	}
@@ -48,7 +49,7 @@ func run() error {
 
 	repository := repository.InitRepository(db)
 	service := service.InitService(repository, token)
-	minio := handler.NewMinioHandler(storage.InitMinioService(client, cfg.Minio.Bucket))
+	minio := miniohandler.NewMinioHandler(client)
 	handler := handler.InitHandler(service)
 
 	mw := middleware.InitMiddleware(token)

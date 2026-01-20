@@ -1,8 +1,7 @@
-package storage
+package minioservice
 
 import (
 	"context"
-	"io"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -10,8 +9,18 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/config"
 )
 
-func NewMinio(cfg config.MinioConfig) (*minio.Client, error) {
-	return minio.New(cfg.Endpoint, &minio.Options{
+type minioService struct {
+	minio  *minio.Client
+	bucket string
+}
+
+type Minio interface {
+	PresignedUpload(ctx context.Context, objectName string, exp time.Duration) (string, error)
+	PresignedDownload(ctx context.Context, objectName string, exp time.Duration) (string, error)
+}
+
+func NewMinio(cfg config.MinioConfig) (Minio, error) {
+	client, err := minio.New(cfg.Endpoint, &minio.Options{
 		Creds: credentials.NewStaticV4(
 			cfg.AccessKey,
 			cfg.SecretKey,
@@ -19,17 +28,14 @@ func NewMinio(cfg config.MinioConfig) (*minio.Client, error) {
 		),
 		Secure: cfg.UseSSL,
 	})
-}
 
-type minioService struct {
-	minio  *minio.Client
-	bucket string
-}
+	if err != nil {
+		return nil, err
+	}
 
-type Minio interface {
-	Upload(ctx context.Context, name string, r io.Reader, size int64, contentType string) error
-	PresignedUpload(ctx context.Context, objectName string, exp time.Duration) (string, error)
-	PresignedDownload(ctx context.Context, objectName string, exp time.Duration) (string, error)
+	minio := InitMinioService(client, cfg.Bucket)
+
+	return minio, nil
 }
 
 func InitMinioService(client *minio.Client, bucket string) Minio {
@@ -37,20 +43,6 @@ func InitMinioService(client *minio.Client, bucket string) Minio {
 		minio:  client,
 		bucket: bucket,
 	}
-}
-
-func (s *minioService) Upload(ctx context.Context, name string, r io.Reader, size int64, contentType string) error {
-	_, err := s.minio.PutObject(
-		ctx,
-		s.bucket,
-		name,
-		r,
-		size,
-		minio.PutObjectOptions{
-			ContentType: contentType,
-		},
-	)
-	return err
 }
 
 func (s *minioService) PresignedUpload(ctx context.Context, objectName string, exp time.Duration) (string, error) {
