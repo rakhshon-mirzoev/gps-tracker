@@ -12,11 +12,11 @@ type Service struct {
 	Authorize   Authorize
 }
 
-func InitService(r *repository.Repository, t token.Token) *Service {
-	sys := InitSystemUsersService(r.SystemUsers)
-	group := InitGroupService(r.Groups)
-	staff := InitStaffUserService(r.StaffUsers)
-	authorize := InitAuthorizeService(t, r.Auth, sys, staff)
+func New(r *repository.Repository, t token.Token) *Service {
+	sys := NewSystemUsersService(r.SystemUsers)
+	group := NewGroupService(r.Groups)
+	staff := NewStaffUserService(r.StaffUsers)
+	authorize := NewAuthorizeService(t, r.Auth, sys, staff)
 	return &Service{
 		SystemUsers: sys,
 		Group:       group,

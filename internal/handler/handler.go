@@ -15,7 +15,7 @@ type Handler struct {
 	minio minioservice.Minio
 }
 
-func InitHandler(s *service.Service) *Handler {
+func New(s *service.Service) *Handler {
 	return &Handler{s: s}
 }
 

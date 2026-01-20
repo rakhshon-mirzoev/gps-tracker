@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 	"golang.org/x/crypto/bcrypt"
@@ -28,7 +29,7 @@ type authorizeService struct {
 	staff StaffUsers
 }
 
-func InitAuthorizeService(t token.Token, r repository.Auth, sys SystemUsers, staff StaffUsers) Authorize {
+func NewAuthorizeService(t token.Token, r repository.Auth, sys SystemUsers, staff StaffUsers) Authorize {
 	return &authorizeService{t: t, r: r, sys: sys, staff: staff}
 }
 
@@ -58,7 +59,7 @@ func (s *authorizeService) GetByLogin(ctx context.Context, login string) (*model
 func (s *authorizeService) Create(ctx context.Context, u *model.CreateUser, utype string) error {
 
 	switch utype {
-	case "system":
+	case constants.UserTypeSystem:
 		user := &model.CreateSystemUser{
 			FullName:        u.FullName,
 			Login:           u.Login,
@@ -71,7 +72,7 @@ func (s *authorizeService) Create(ctx context.Context, u *model.CreateUser, utyp
 		}
 
 		return nil
-	case "staff":
+	case constants.UserTypeStaff:
 		user := &model.CreateStaffUser{
 			GroupID:         *u.GroupID,
 			FullName:        u.FullName,
@@ -123,8 +124,8 @@ func (s *authorizeService) Refresh(ctx context.Context, oldRefreshToken string) 
 		return "", "", err
 	}
 
-	if ref.UserType == "staff" {
-		user, err := s.staff.GetByID(ctx, ref.ID)
+	if ref.UserType == constants.UserTypeStaff {
+		user, err := s.staff.GetByID(ctx, ref.UserID)
 		if err != nil {
 			return "", "", err
 		}

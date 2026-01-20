@@ -52,11 +52,12 @@ func run() error {
 		time.Duration(cfg.Mobile.TTLMinutes)*time.Minute,
 	)
 
-	repo := repository.InitRepository(dbConn)
-	services := service.InitService(repo, tokenService)
-	handlers := handler.InitHandler(services)
-	minioHandler := miniohandler.NewMinioHandler(client)
-	mw := middleware.InitMiddleware(tokenService)
+	repo := repository.New(dbConn)
+	services := service.New(repo, tokenService)
+	handlers := handler.New(services)
+	minioHandler := miniohandler.New(client)
+
+	mw := middleware.New(tokenService)
 
 	router := gin.Default()
 	registerMobileRoutes(router, mw, handlers, minioHandler)

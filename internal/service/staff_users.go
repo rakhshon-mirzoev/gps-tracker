@@ -19,15 +19,15 @@ type StaffUsers interface {
 	List(ctx context.Context) ([]model.StaffUser, error)
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 }
-type StaffUserService struct {
+type staffUserService struct {
 	r repository.StaffUsersRepository
 }
 
-func InitStaffUserService(r repository.StaffUsersRepository) StaffUsers {
-	return &StaffUserService{r: r}
+func NewStaffUserService(r repository.StaffUsersRepository) StaffUsers {
+	return &staffUserService{r: r}
 }
 
-func (s *StaffUserService) Create(ctx context.Context, dto model.CreateStaffUser) error {
+func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser) error {
 	if dto.Password != dto.ConfirmPassword {
 		return errs.ErrorPasswordsDoNotMatch
 	}
@@ -55,7 +55,7 @@ func (s *StaffUserService) Create(ctx context.Context, dto model.CreateStaffUser
 	return nil
 }
 
-func (s *StaffUserService) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error) {
+func (s *staffUserService) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error) {
 
 	user, err := s.r.GetByID(ctx, id)
 	if err != nil {
@@ -65,15 +65,15 @@ func (s *StaffUserService) GetByID(ctx context.Context, id uuid.UUID) (*model.St
 	return user, nil
 }
 
-func (s *StaffUserService) List(ctx context.Context) ([]model.StaffUser, error) {
+func (s *staffUserService) List(ctx context.Context) ([]model.StaffUser, error) {
 	return s.r.List(ctx)
 }
 
-func (s *StaffUserService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error {
+func (s *staffUserService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error {
 	return s.r.Update(ctx, id, dto)
 }
 
-func (s *StaffUserService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *staffUserService) Delete(ctx context.Context, id uuid.UUID) error {
 
 	user, err := s.r.GetByID(ctx, id)
 	if err != nil {
@@ -86,6 +86,6 @@ func (s *StaffUserService) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.r.Delete(ctx, id)
 }
 
-func (s *StaffUserService) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
+func (s *staffUserService) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
 	return s.r.Deactivate(ctx, id, dId, dReason)
 }

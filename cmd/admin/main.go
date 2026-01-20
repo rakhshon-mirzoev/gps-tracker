@@ -47,12 +47,12 @@ func run() error {
 
 	token := token.InitTokenService(os.Getenv("SECRET_KEY"), time.Duration(cfg.Admin.TTLMinutes))
 
-	repository := repository.InitRepository(db)
-	service := service.InitService(repository, token)
-	minio := miniohandler.NewMinioHandler(client)
-	handler := handler.InitHandler(service)
+	repository := repository.New(db)
+	service := service.New(repository, token)
+	minio := miniohandler.New(client)
+	handler := handler.New(service)
 
-	mw := middleware.InitMiddleware(token)
+	mw := middleware.New(token)
 
 	router := gin.Default()
 

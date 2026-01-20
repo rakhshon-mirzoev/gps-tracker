@@ -10,7 +10,7 @@ type Repository struct {
 	Auth        Auth
 }
 
-func InitRepository(db *db.DB) *Repository {
+func New(db *db.DB) *Repository {
 	return &Repository{
 		DB:          db,
 		SystemUsers: InitSystemUsersRepository(db),

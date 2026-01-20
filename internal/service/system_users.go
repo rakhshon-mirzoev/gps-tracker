@@ -20,16 +20,15 @@ type SystemUsers interface {
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 }
 
-type SystemUserService struct {
+type systemUserService struct {
 	r repository.SystemUsersRepository
-	a Authorize
 }
 
-func InitSystemUsersService(r repository.SystemUsersRepository) SystemUsers {
-	return &SystemUserService{r: r}
+func NewSystemUsersService(r repository.SystemUsersRepository) SystemUsers {
+	return &systemUserService{r: r}
 }
 
-func (s *SystemUserService) Create(ctx context.Context, sysUser *model.CreateSystemUser) error {
+func (s *systemUserService) Create(ctx context.Context, sysUser *model.CreateSystemUser) error {
 
 	if sysUser.Password != sysUser.ConfirmPassword {
 		return errors.ErrorPasswordsDoNotMatch
@@ -55,26 +54,26 @@ func (s *SystemUserService) Create(ctx context.Context, sysUser *model.CreateSys
 	return nil
 }
 
-func (s *SystemUserService) GetByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error) {
+func (s *systemUserService) GetByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error) {
 	return s.r.GetByID(ctx, id)
 }
 
-func (s *SystemUserService) GetByLogin(ctx context.Context, login string) (*model.SystemUser, error) {
+func (s *systemUserService) GetByLogin(ctx context.Context, login string) (*model.SystemUser, error) {
 	return s.r.GetByLogin(ctx, login)
 }
 
-func (s *SystemUserService) List(ctx context.Context) ([]model.SystemUser, error) {
+func (s *systemUserService) List(ctx context.Context) ([]model.SystemUser, error) {
 	return s.r.List(ctx)
 }
 
-func (s *SystemUserService) Update(ctx context.Context, u *model.SystemUser) error {
+func (s *systemUserService) Update(ctx context.Context, u *model.SystemUser) error {
 	return s.r.Update(ctx, u)
 }
 
-func (s *SystemUserService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *systemUserService) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.r.Delete(ctx, id)
 }
 
-func (s *SystemUserService) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
+func (s *systemUserService) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
 	return s.r.Deactivate(ctx, id, dId, dReason)
 }

@@ -20,7 +20,7 @@ type GroupService struct {
 	r repository.GroupsRepository
 }
 
-func InitGroupService(r repository.GroupsRepository) Group {
+func NewGroupService(r repository.GroupsRepository) Group {
 	return &GroupService{r: r}
 }
 

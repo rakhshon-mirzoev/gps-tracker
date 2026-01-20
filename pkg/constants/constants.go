@@ -1,6 +1,8 @@
 package constants
 
-var (
-	AuthGroup    = "/auth"
-	RequestIDKey = "request_id"
+const (
+	AuthGroup      = "/auth"
+	RequestIDKey   = "request_id"
+	UserTypeSystem = "system"
+	UserTypeStaff  = "staff"
 )

@@ -12,7 +12,7 @@ type MinioHandler struct {
 	minio minioservice.Minio
 }
 
-func NewMinioHandler(minio minioservice.Minio) *MinioHandler {
+func New(minio minioservice.Minio) *MinioHandler {
 	return &MinioHandler{minio: minio}
 }
 

@@ -17,6 +17,6 @@ type MiddlewareService struct {
 	t token.Token
 }
 
-func InitMiddleware(t token.Token) Middleware {
+func New(t token.Token) Middleware {
 	return &MiddlewareService{t: t}
 }
