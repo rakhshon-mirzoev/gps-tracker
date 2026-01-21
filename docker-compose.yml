@@ -13,16 +13,23 @@ services:
     volumes:
       - minio_data:/data
 
-  core:
+  admin:
     image: ghcr.io/rakhshon-mirzoev/gps-tracker:latest
-    container_name: core
-    restart: unless-stopped
+    container_name: admin
+    command: ["/app/admin"]
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./config.json:/app/config.json
+
+  mobile:
+    image: ghcr.io/rakhshon-mirzoev/gps-tracker:latest
+    container_name: mobile
+    command: ["/app/mobile"]
     ports:
       - "8080:8080"
     volumes:
-      - ./config.json:/cmd/config.json
-    networks:
-      - app_network
+      - ./config.json:/app/config.json"
 
 volumes:
   minio_data:

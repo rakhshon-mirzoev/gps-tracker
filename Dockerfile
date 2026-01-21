@@ -10,18 +10,15 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o core ./cmd/app
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o admin ./cmd/admin/
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o mobile ./cmd/mobile/
 
 FROM alpine
 
 WORKDIR /cmd
 
-COPY --from=builder /app/core /cmd/
+COPY --from=builder /app/admin ./admin
+COPY --from=builder /app/mobile ./mobile
 
-RUN chmod +x core
-
-EXPOSE 8080
-
-CMD ["./core"]
-
-#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
+RUN chmod +x ./admin
+RUN chmod +x ./mobile
