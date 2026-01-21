@@ -23,3 +23,5 @@ RUN chmod +x core
 EXPOSE 8080
 
 CMD ["./core"]
+
+#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
