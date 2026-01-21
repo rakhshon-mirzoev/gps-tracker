@@ -39,7 +39,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /projects/gps-tracker
-            docker compose pull core
+            cd ~/projects/gps-tracker
+            docker pull ghcr.io/rakhshon-mirzoev/gps-tracker:latest
             docker compose up -d
             docker image prune -f
