@@ -13,5 +13,20 @@ services:
     volumes:
       - minio_data:/data
 
+  core:
+    image: ghcr.io/rakhshon-mirzoev/gps-tracker
+    container_name: core
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.json:/cmd/config.json
+    networks:
+      - app_network
+
 volumes:
   minio_data:
+
+networks:
+  app_network:
+    driver: bridge
