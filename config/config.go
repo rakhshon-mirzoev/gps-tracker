@@ -9,7 +9,7 @@ import (
 )
 
 type GeneralConfig struct {
-	Admin  Admin       `json:"core"`
+	Admin  Admin       `json:"admin"`
 	Minio  MinioConfig `json:"minio"`
 	Mobile Mobile      `json:"mobile"`
 	DB     DB          `json:"db"`
@@ -47,7 +47,7 @@ type DB struct {
 }
 
 func LoadConfig(path string) (*GeneralConfig, error) {
-	_ = godotenv.Load() // Ошибка тут не критична, если файла .env нет
+	_ = godotenv.Load()
 
 	file, err := os.Open(path)
 	if err != nil {
