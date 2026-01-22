@@ -11,14 +11,13 @@ RUN go mod download
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o admin ./cmd/admin/
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o mobile ./cmd/mobile/
 
 FROM alpine
 
 WORKDIR /cmd
 
 COPY --from=builder /app/admin ./admin
-COPY --from=builder /app/mobile ./mobile
 
 RUN chmod +x ./admin
-RUN chmod +x ./mobile
+
+CMD ["./admin"]

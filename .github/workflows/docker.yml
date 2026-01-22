@@ -23,14 +23,33 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Build and push image
+      - name: Detect changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            admin:
+              - 'cmd/admin/**'
+            mobile:
+              - 'cmd/mobile/**'
+
+      - name: Build and push image Admin
+        if: steps.changes.outputs.admin == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: Dockerfile.admin
           push: true
-          tags: ghcr.io/rakhshon-mirzoev/gps-tracker:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ghcr.io/rakhshon-mirzoev/gps-tracker-admin:latest
+
+      - name: Build and push image Mobile
+        if: steps.changes.outputs.mobile == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.mobile
+          push: true
+          tags: ghcr.io/rakhshon-mirzoev/gps-tracker-mobile:latest
 
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -40,6 +59,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd ~/projects/gps-tracker
-            docker pull ghcr.io/rakhshon-mirzoev/gps-tracker:latest
-            docker compose up -d
-            docker image prune -f
+            docker pull ghcr.io/rakhshon-mirzoev/gps-tracker-admin:latest
+            docker pull ghcr.io/rakhshon-mirzoev/gps-tracker-mobile:latest
+            docker compose up -d admin
+            docker compose up -d mobile
