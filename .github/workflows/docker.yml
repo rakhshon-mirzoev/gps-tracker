@@ -30,26 +30,40 @@ jobs:
           filters: |
             admin:
               - 'cmd/admin/**'
+              - 'Dockerfile.admin'
             mobile:
               - 'cmd/mobile/**'
+              - 'Dockerfile.mobile'
+            shared:
+              - 'internal/**'
+              - 'pkg/**'
+              - 'config/**'
+              - 'migrations/**'
+              - 'go.mod'
+              - 'go.sum'
 
       - name: Build and push image Admin
-        if: steps.changes.outputs.admin == 'true'
+        if: steps.changes.outputs.admin == 'true' || steps.changes.outputs.shared == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile.admin
           push: true
           tags: ghcr.io/rakhshon-mirzoev/gps-tracker-admin:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
 
       - name: Build and push image Mobile
-        if: steps.changes.outputs.mobile == 'true'
+        if: steps.changes.outputs.mobile == 'true' || steps.changes.outputs.shared == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile.mobile
           push: true
           tags: ghcr.io/rakhshon-mirzoev/gps-tracker-mobile:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1.0.3
