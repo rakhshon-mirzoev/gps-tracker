@@ -14,6 +14,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/config"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/app"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/handler"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/middleware"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
@@ -24,8 +25,13 @@ import (
 )
 
 func main() {
+	if err := logger.Init(); err != nil {
+		log.Fatalf("failed to init logger: %v", err)
+	}
+	defer logger.Log.Sync()
+
 	if err := run(); err != nil {
-		log.Fatal(err)
+		logger.Log.Fatalf("failed to run: %v", err)
 	}
 }
 
@@ -35,7 +41,6 @@ func run() error {
 		return err
 	}
 
-	// init infra
 	dbConn, err := db.ConnectToDb(&cfg.DB)
 	if err != nil {
 		return err

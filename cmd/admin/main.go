@@ -14,6 +14,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/config"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/app"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/handler"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/middleware"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
@@ -24,8 +25,13 @@ import (
 )
 
 func main() {
+	if err := logger.Init(); err != nil {
+		log.Fatalf("failed to init logger: %v", err)
+	}
+	defer logger.Log.Sync()
+
 	if err := run(); err != nil {
-		log.Fatal(err)
+		logger.Log.Fatalf("failed to run: %v", err)
 	}
 }
 
@@ -70,12 +76,12 @@ func run() error {
 	go func() {
 		addr := fmt.Sprintf("%s:%s", cfg.Mobile.Host, cfg.Mobile.Port)
 		if err := app.Run(addr); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			logger.Log.Fatalf("server error: %v", err)
 		}
 	}()
 
 	<-ctx.Done()
-	log.Println("shutdown signal received")
+	logger.Log.Info("shutdown signal received")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -84,6 +90,6 @@ func run() error {
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
 
-	log.Println("server exited gracefully")
+	logger.Log.Info("server exited gracefully")
 	return nil
 }
