@@ -1,5 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS postgis;
-
 CREATE TABLE stores
 (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -7,7 +5,8 @@ CREATE TABLE stores
     name VARCHAR(200)        NOT NULL,
     address TEXT                NOT NULL,
 
-    location geography(POINT, 4326)   NOT NULL,
+    latitude DECIMAL(9,6)   NOT NULL,
+    longitude DECIMAL(9,6) NOT NULL,
 
     owner_full_name VARCHAR(160)        NOT NULL,
     owner_inn     CHAR(12)            NOT NULL,
@@ -34,18 +33,9 @@ CREATE TABLE stores
 
     created_at  TIMESTAMPTZ         NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT stores_latitude_check  
-        CHECK (ST_Y(location::geometry) BETWEEN -90 AND 90),
-        
-    CONSTRAINT stores_longitude_check 
-        CHECK (ST_X(location::geometry) BETWEEN -180 AND 180),
-
     CONSTRAINT stores_status_check    
         CHECK (status IN ('new', 'pending', 'approved', 'rejected', 'deactivated'))
 );
-
-CREATE INDEX idx_stores_location_gist 
-    ON stores USING GIST (location);
 
 CREATE INDEX idx_stores_status_active 
     ON stores (status, is_active)

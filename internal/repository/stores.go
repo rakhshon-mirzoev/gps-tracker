@@ -35,7 +35,8 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 		INSERT INTO stores (
 			name,
 			address,
-			location,
+			latitude,
+			longitude,
 			owner_full_name,
 			owner_inn,
 			owner_passport,
@@ -54,7 +55,8 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 		sql,
 		store.Name,
 		store.Address,
-		store.Location,
+		store.Latitude,
+		store.Longitude,
 		store.OwnerFullName,
 		store.OwnerINN,
 		store.OwnerPassport,
@@ -77,7 +79,7 @@ func (r *stores) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error
 
 	sql := `
 		SELECT 
-			id, name, address, location,
+			id, name, address, latitude, longitude,
 			owner_full_name, owner_inn, owner_passport,
 			status, rejection_comment,
 			created_by_staff_id, created_by_admin_id,
@@ -91,7 +93,8 @@ func (r *stores) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error
 		&store.ID,
 		&store.Name,
 		&store.Address,
-		&store.Location,
+		&store.Latitude,
+		&store.Longitude,
 		&store.OwnerFullName,
 		&store.OwnerINN,
 		&store.OwnerPassport,
@@ -225,7 +228,7 @@ func (r *stores) List(ctx context.Context, f model.StoreListFilter) ([]*model.St
 		}
 	}
 
-	limit := 20
+	limit := 5
 	offset := 0
 	if f.Limit > 0 {
 		limit = f.Limit
@@ -236,7 +239,7 @@ func (r *stores) List(ctx context.Context, f model.StoreListFilter) ([]*model.St
 
 	baseSQL := `
 		SELECT 
-			id, name, address, location,
+			id, name, address, latitude, longitude,
 			owner_full_name, owner_inn, owner_passport,
 			status, rejection_comment,
 			created_by_staff_id, created_by_admin_id,
@@ -248,14 +251,12 @@ func (r *stores) List(ctx context.Context, f model.StoreListFilter) ([]*model.St
 
 	countSQL := `SELECT COUNT(*) FROM stores ` + whereClause
 
-	// Считаем общее количество
 	var total int
 	err := r.DB.Pool.QueryRow(ctx, countSQL, args...).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count stores: %w", err)
 	}
 
-	// Добавляем limit/offset
 	args = append(args, limit, offset)
 
 	query := fmt.Sprintf(baseSQL, whereClause, orderBy, argNum, argNum+1)
@@ -271,7 +272,7 @@ func (r *stores) List(ctx context.Context, f model.StoreListFilter) ([]*model.St
 	for rows.Next() {
 		s := &model.Store{}
 		if err := rows.Scan(
-			&s.ID, &s.Name, &s.Address, &s.Location,
+			&s.ID, &s.Name, &s.Address, &s.Latitude, &s.Longitude,
 			&s.OwnerFullName, &s.OwnerINN, &s.OwnerPassport,
 			&s.Status, &s.RejectionComment,
 			&s.CreatedByStaffID, &s.CreatedByAdminID,

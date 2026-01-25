@@ -20,7 +20,7 @@ type systemUsers struct {
 type SystemUsersRepository interface {
 	Create(ctx context.Context, sysUser *model.SystemUser) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error)
-	GetByLogin(ctx context.Context, login string) (*model.SystemUser, error) // Для логина
+	GetByLogin(ctx context.Context, login string) (*model.SystemUser, error)
 	Update(ctx context.Context, sysUser *model.SystemUser) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context) ([]model.SystemUser, error)

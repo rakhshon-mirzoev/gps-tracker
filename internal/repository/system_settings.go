@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
@@ -12,7 +14,7 @@ type SystemSettingsRepository interface {
 	Create(ctx context.Context, ss *model.SystemSettings) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemSettings, error)
 	List(ctx context.Context) ([]model.SystemSettings, error)
-	Update(ctx context.Context, ss *model.SystemSettings) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateSystemSettings) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -98,14 +100,38 @@ func (r *systemSettings) List(ctx context.Context) ([]model.SystemSettings, erro
 	return settings, nil
 }
 
-func (r *systemSettings) Update(ctx context.Context, ss *model.SystemSettings) error {
-	sql := `
-        UPDATE system_settings
-        SET key = $1, value = $2, description = $3
-        WHERE id = $4
-    `
+func (r *systemSettings) Update(ctx context.Context, id uuid.UUID, dto model.UpdateSystemSettings) error {
+	sql := `UPDATE system_settings SET `
+	args := []interface{}{}
+	n := 1
 
-	_, err := r.DB.Pool.Exec(ctx, sql, ss.Key, ss.Value, ss.Description, ss.ID)
+	if dto.Key != nil {
+		sql += fmt.Sprintf("key = $%d, ", n)
+		args = append(args, *dto.Key)
+		n++
+	}
+
+	if dto.Value != nil {
+		sql += fmt.Sprintf("value = $%d, ", n)
+		args = append(args, *dto.Value)
+		n++
+	}
+
+	if dto.Description != nil {
+		sql += fmt.Sprintf("description = $%d, ", n)
+		args = append(args, *dto.Description)
+		n++
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	sql = strings.TrimSuffix(sql, ", ")
+	sql += fmt.Sprintf(" WHERE id = $%d", n)
+	args = append(args, id)
+
+	_, err := r.DB.Pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}

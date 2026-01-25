@@ -6,10 +6,12 @@ import (
 )
 
 type Service struct {
-	SystemUsers SystemUsers
-	Group       Group
-	StaffUser   StaffUsers
-	Authorize   Authorize
+	SystemUsers        SystemUsers
+	Group              Group
+	StaffUser          StaffUsers
+	Authorize          Authorize
+	Schedule           Schedule
+	StaffStoresMapping StaffStoresMapping
 }
 
 func New(r *repository.Repository, t token.Token) *Service {

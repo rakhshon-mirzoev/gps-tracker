@@ -11,6 +11,7 @@ type Middleware interface {
 	Recovery() gin.HandlerFunc
 	Logger() gin.HandlerFunc
 	RequestID() gin.HandlerFunc
+	Role() gin.HandlerFunc
 }
 
 type MiddlewareService struct {

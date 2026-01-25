@@ -10,3 +10,9 @@ type SystemSettings struct {
 	Value       string    `json:"value" db:"value"`
 	Description *string   `json:"description" db:"description"`
 }
+
+type UpdateSystemSettings struct {
+	Key         *string `json:"key"`
+	Value       *string `json:"value"`
+	Description *string `json:"description"`
+}

@@ -142,9 +142,22 @@ func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateS
 		args = append(args, *dto.IsActive)
 		n++
 	}
+
 	if dto.GroupID != nil {
 		query += fmt.Sprintf("group_id = $%d, ", n)
 		args = append(args, *dto.GroupID)
+		n++
+	}
+
+	if dto.FcmToken != nil {
+		query += fmt.Sprintf("fcm_token = $%d, ", n)
+		args = append(args, *dto.FcmToken)
+		n++
+	}
+
+	if dto.DeviceId != nil {
+		query += fmt.Sprintf("device_id = $%d, ", n)
+		args = append(args, *dto.DeviceId)
 		n++
 	}
 

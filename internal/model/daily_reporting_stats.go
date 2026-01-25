@@ -19,3 +19,16 @@ type DailyReportingStats struct {
 	WorkEndAt      *time.Time `json:"work_end_at" db:"work_end_at"`
 	TotalKm        *float64   `json:"total_km" db:"total_km"`
 }
+
+type UpdateDailyReportingStats struct {
+	Date           *time.Time `json:"date"`
+	StaffID        *uuid.UUID `json:"staff_id"`
+	GroupID        *uuid.UUID `json:"group_id"`
+	PlannedCount   *int       `json:"planned_count"`
+	CompletedCount *int       `json:"completed_count"`
+	RejectedCount  *int       `json:"rejected_count"`
+	MissedCount    *int       `json:"missed_count"`
+	WorkStartAt    *time.Time `json:"work_start_at"`
+	WorkEndAt      *time.Time `json:"work_end_at"`
+	TotalKm        *float64   `json:"total_km"`
+}

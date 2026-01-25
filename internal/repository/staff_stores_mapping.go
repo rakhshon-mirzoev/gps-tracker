@@ -14,6 +14,7 @@ type StaffStoresMappingRepository interface {
 	List(ctx context.Context, staffID uuid.UUID) ([]model.StaffStoresMapping, error)
 	Update(ctx context.Context, ssm *model.StaffStoresMapping) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]*model.Store, error)
 }
 
 type staffStoresMapping struct {
@@ -121,4 +122,71 @@ func (r *staffStoresMapping) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]*model.Store, error) {
+	defaultLim := 5
+
+	if lim <= 0 {
+		lim = defaultLim
+	}
+
+	if off < 0 {
+		off = 0
+	}
+
+	sqlStores := `
+		SELECT s.id, s.name, s.address, s.latitude, s.longitude, s.owner_full_name, s.owner_inn, 
+		       s.owner_passport, s.status, s.rejection_comment, s.created_by_staff_id, s.created_by_admin_id, 
+		       s.is_active, s.is_frozen, s.deactivated_at, s.deactivated_by_id, s.deactivation_reason, s.created_at
+		FROM stores s
+		JOIN staff_stores_mapping ssm ON s.id = ssm.store_id
+		WHERE ssm.staff_id = $1
+		ORDER BY s.created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.DB.Pool.Query(ctx, sqlStores, id, lim, off)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var stores []*model.Store
+
+	for rows.Next() {
+		var store model.Store
+
+		err := rows.Scan(
+			&store.ID,
+			&store.Name,
+			&store.Address,
+			&store.Latitude,
+			&store.Longitude,
+			&store.OwnerFullName,
+			&store.OwnerINN,
+			&store.OwnerPassport,
+			&store.Status,
+			&store.RejectionComment,
+			&store.CreatedByStaffID,
+			&store.CreatedByAdminID,
+			&store.IsActive,
+			&store.IsFrozen,
+			&store.DeactivatedAt,
+			&store.DeactivatedByID,
+			&store.DeactivationReason,
+			&store.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		stores = append(stores, &store)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return stores, nil
 }

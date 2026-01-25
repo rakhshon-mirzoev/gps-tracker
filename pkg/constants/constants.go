@@ -5,4 +5,5 @@ const (
 	RequestIDKey   = "request_id"
 	UserTypeSystem = "system"
 	UserTypeStaff  = "staff"
+	MobilePrefix   = "mobile"
 )

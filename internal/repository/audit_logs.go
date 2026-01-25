@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
@@ -12,7 +14,7 @@ type AuditLogsRepository interface {
 	Create(ctx context.Context, al *model.AuditLogs) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.AuditLogs, error)
 	List(ctx context.Context, actorID uuid.UUID) ([]model.AuditLogs, error)
-	Update(ctx context.Context, al *model.AuditLogs) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateAuditLogs) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -104,18 +106,68 @@ func (r *auditLogs) List(ctx context.Context, actorID uuid.UUID) ([]model.AuditL
 	return logs, nil
 }
 
-func (r *auditLogs) Update(ctx context.Context, al *model.AuditLogs) error {
-	sql := `
-        UPDATE audit_logs
-        SET actor_id = $1, actor_type = $2, action = $3, target_table = $4,
-            target_id = $5, old_value = $6, new_value = $7, ip_address = $8
-        WHERE id = $9
-    `
+func (r *auditLogs) Update(ctx context.Context, id uuid.UUID, dto model.UpdateAuditLogs) error {
+	sql := `UPDATE audit_logs SET `
+	args := []interface{}{}
+	n := 1
 
-	_, err := r.DB.Pool.Exec(ctx, sql,
-		al.ActorID, al.ActorType, al.Action, al.TargetTable, al.TargetID,
-		al.OldValue, al.NewValue, al.IPAddress, al.ID,
-	)
+	if dto.ActorID != nil {
+		sql += fmt.Sprintf("actor_id = $%d, ", n)
+		args = append(args, *dto.ActorID)
+		n++
+	}
+
+	if dto.ActorType != nil {
+		sql += fmt.Sprintf("actor_type = $%d, ", n)
+		args = append(args, *dto.ActorType)
+		n++
+	}
+
+	if dto.Action != nil {
+		sql += fmt.Sprintf("action = $%d, ", n)
+		args = append(args, *dto.Action)
+		n++
+	}
+
+	if dto.TargetTable != nil {
+		sql += fmt.Sprintf("target_table = $%d, ", n)
+		args = append(args, *dto.TargetTable)
+		n++
+	}
+
+	if dto.TargetID != nil {
+		sql += fmt.Sprintf("target_id = $%d, ", n)
+		args = append(args, *dto.TargetID)
+		n++
+	}
+
+	if dto.OldValue != nil {
+		sql += fmt.Sprintf("old_value = $%d, ", n)
+		args = append(args, dto.OldValue)
+		n++
+	}
+
+	if dto.NewValue != nil {
+		sql += fmt.Sprintf("new_value = $%d, ", n)
+		args = append(args, dto.NewValue)
+		n++
+	}
+
+	if dto.IPAddress != nil {
+		sql += fmt.Sprintf("ip_address = $%d, ", n)
+		args = append(args, *dto.IPAddress)
+		n++
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	sql = strings.TrimSuffix(sql, ", ")
+	sql += fmt.Sprintf(" WHERE id = $%d", n)
+	args = append(args, id)
+
+	_, err := r.DB.Pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}

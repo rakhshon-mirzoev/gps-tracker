@@ -13,7 +13,7 @@ type DailyReportingStats interface {
 	Create(ctx context.Context, drs *model.DailyReportingStats) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.DailyReportingStats, error)
 	List(ctx context.Context, staffID uuid.UUID) ([]model.DailyReportingStats, error)
-	Update(ctx context.Context, drs *model.DailyReportingStats) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateDailyReportingStats) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -64,30 +64,8 @@ func (s *dailyReportingStatsService) List(ctx context.Context, staffID uuid.UUID
 	return s.repo.List(ctx, staffID)
 }
 
-func (s *dailyReportingStatsService) Update(ctx context.Context, drs *model.DailyReportingStats) error {
-	if drs.ID == uuid.Nil {
-		return errors.New("id is required")
-	}
-	if drs.StaffID == uuid.Nil {
-		return errors.New("staff_id is required")
-	}
-	if drs.GroupID == uuid.Nil {
-		return errors.New("group_id is required")
-	}
-	if drs.PlannedCount < 0 {
-		return errors.New("planned_count must be non-negative")
-	}
-	if drs.CompletedCount < 0 {
-		return errors.New("completed_count must be non-negative")
-	}
-	if drs.RejectedCount < 0 {
-		return errors.New("rejected_count must be non-negative")
-	}
-	if drs.MissedCount < 0 {
-		return errors.New("missed_count must be non-negative")
-	}
-
-	return s.repo.Update(ctx, drs)
+func (s *dailyReportingStatsService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateDailyReportingStats) error {
+	return s.repo.Update(ctx, id, dto)
 }
 
 func (s *dailyReportingStatsService) Delete(ctx context.Context, id uuid.UUID) error {

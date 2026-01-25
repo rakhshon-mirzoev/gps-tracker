@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
@@ -12,7 +14,7 @@ type VisitPhotosRepository interface {
 	Create(ctx context.Context, v *model.VisitPhotos) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.VisitPhotos, error)
 	List(ctx context.Context, visitID uuid.UUID) ([]model.VisitPhotos, error)
-	Update(ctx context.Context, v *model.VisitPhotos) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisitPhotos) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -100,14 +102,38 @@ func (r *visitPhotos) GetByID(ctx context.Context, id uuid.UUID) (*model.VisitPh
 	return &v, nil
 }
 
-func (r *visitPhotos) Update(ctx context.Context, v *model.VisitPhotos) error {
-	sql := `
-        UPDATE visit_photos
-        SET visit_id = $1, photo_url = $2, captured_at = $3
-        WHERE id = $4
-    `
+func (r *visitPhotos) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisitPhotos) error {
+	sql := `UPDATE visit_photos SET `
+	args := []interface{}{}
+	n := 1
 
-	_, err := r.DB.Pool.Exec(ctx, sql, v.VisitID, v.PhotoURL, v.CapturedAt, v.ID)
+	if dto.VisitID != nil {
+		sql += fmt.Sprintf("visit_id = $%d, ", n)
+		args = append(args, *dto.VisitID)
+		n++
+	}
+
+	if dto.PhotoURL != nil {
+		sql += fmt.Sprintf("photo_url = $%d, ", n)
+		args = append(args, *dto.PhotoURL)
+		n++
+	}
+
+	if dto.CapturedAt != nil {
+		sql += fmt.Sprintf("captured_at = $%d, ", n)
+		args = append(args, *dto.CapturedAt)
+		n++
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	sql = strings.TrimSuffix(sql, ", ")
+	sql += fmt.Sprintf(" WHERE id = $%d", n)
+	args = append(args, id)
+
+	_, err := r.DB.Pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}

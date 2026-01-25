@@ -13,7 +13,7 @@ type SystemSettingsService interface {
 	Create(ctx context.Context, ss *model.SystemSettings) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemSettings, error)
 	List(ctx context.Context) ([]model.SystemSettings, error)
-	Update(ctx context.Context, ss *model.SystemSettings) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateSystemSettings) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -48,18 +48,8 @@ func (s *systemSettingsService) List(ctx context.Context) ([]model.SystemSetting
 	return s.repo.List(ctx)
 }
 
-func (s *systemSettingsService) Update(ctx context.Context, ss *model.SystemSettings) error {
-	if ss.ID == uuid.Nil {
-		return errors.New("id is required")
-	}
-	if ss.Key == "" {
-		return errors.New("key is required")
-	}
-	if ss.Value == "" {
-		return errors.New("value is required")
-	}
-
-	return s.repo.Update(ctx, ss)
+func (s *systemSettingsService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateSystemSettings) error {
+	return s.repo.Update(ctx, id, dto)
 }
 
 func (s *systemSettingsService) Delete(ctx context.Context, id uuid.UUID) error {

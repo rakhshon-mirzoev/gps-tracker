@@ -56,13 +56,7 @@ func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser
 }
 
 func (s *staffUserService) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error) {
-
-	user, err := s.r.GetByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
+	return s.r.GetByID(ctx, id)
 }
 
 func (s *staffUserService) List(ctx context.Context) ([]model.StaffUser, error) {

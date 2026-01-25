@@ -24,3 +24,20 @@ type Visit struct {
 	ReviewedAt        *time.Time `json:"reviewed_at" db:"reviewed_at"`
 	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
 }
+
+type UpdateVisit struct {
+	ScheduleID        *uuid.UUID `json:"schedule_id"`
+	StaffID           *uuid.UUID `json:"staff_id"`
+	StoreID           *uuid.UUID `json:"store_id"`
+	CheckInAt         *time.Time `json:"check_in_at"`
+	CheckOutAt        *time.Time `json:"check_out_at"`
+	CheckInLocation   *string    `json:"check_in_location"`
+	DistanceDeviation *int       `json:"distance_deviation"`
+	SelfieURL         *string    `json:"selfie_url"`
+	Comment           *string    `json:"comment"`
+	IsOffline         *bool      `json:"is_offline"`
+	ReviewStatus      *string    `json:"review_status"`
+	ReviewComment     *string    `json:"review_comment"`
+	ReviewerID        *uuid.UUID `json:"reviewer_id"`
+	ReviewedAt        *time.Time `json:"reviewed_at"`
+}

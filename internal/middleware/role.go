@@ -8,7 +8,7 @@ import (
 
 func (s *MiddlewareService) Role() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, ok := c.Get("id")
+		_, ok := c.Get("user_id")
 		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "id problem in token"})
 
@@ -26,13 +26,15 @@ func (s *MiddlewareService) Role() gin.HandlerFunc {
 		case "administrator":
 			c.Next()
 		case "supervisor":
-
 			c.Next()
-
+		case "staff":
+			_, ok := c.Get("group_id")
+			if !ok {
+				c.AbortWithStatus(http.StatusForbidden)
+			}
+			c.Next()
 		default:
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "not admin or supervisor"})
-
-			c.Abort()
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "no role user"})
 		}
 
 	}

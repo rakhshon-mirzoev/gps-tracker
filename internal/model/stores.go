@@ -4,35 +4,35 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Store struct {
-	ID uuid.UUID `json:"id"`
+	ID uuid.UUID `json:"id" db:"id"`
 
-	Name    string `json:"name"`
-	Address string `json:"address"`
+	Name    string `json:"name" db:"name"`
+	Address string `json:"address" db:"address"`
 
-	Location pgtype.Point `json:"location"`
+	Latitude  float32 `json:"latitude" db:"latitude"`
+	Longitude float32 `json:"longitude" db:"longitude"`
 
-	OwnerFullName string  `json:"owner_full_name"`
-	OwnerINN      string  `json:"owner_inn"`
-	OwnerPassport *string `json:"owner_passport,omitempty"`
+	OwnerFullName string  `json:"owner_full_name" db:"owner_full_name"`
+	OwnerINN      string  `json:"owner_inn" db:"owner_inn"`
+	OwnerPassport *string `json:"owner_passport,omitempty" db:"owner_passport"`
 
-	Status           string  `json:"status"`
-	RejectionComment *string `json:"rejection_comment,omitempty"`
+	Status           string  `json:"status" db:"status"`
+	RejectionComment *string `json:"rejection_comment,omitempty" db:"rejection_comment"`
 
-	CreatedByStaffID uuid.UUID `json:"created_by_staff_id"`
-	CreatedByAdminID uuid.UUID `json:"created_by_admin_id"`
+	CreatedByStaffID uuid.UUID `json:"created_by_staff_id" db:"created_by_staff_id"`
+	CreatedByAdminID uuid.UUID `json:"created_by_admin_id" db:"created_by_admin_id"`
 
-	IsActive bool `json:"is_active"`
-	IsFrozen bool `json:"is_frozen"`
+	IsActive bool `json:"is_active" db:"is_active"`
+	IsFrozen bool `json:"is_frozen" db:"is_frozen"`
 
-	DeactivatedAt      *time.Time `json:"deactivated_at,omitempty"`
-	DeactivatedByID    *uuid.UUID `json:"deactivated_by_id,omitempty"`
-	DeactivationReason *string    `json:"deactivation_reason,omitempty"`
+	DeactivatedAt      *time.Time `json:"deactivated_at,omitempty" db:"deactivated_at"`
+	DeactivatedByID    *uuid.UUID `json:"deactivated_by_id,omitempty" db:"deactivated_by_id"`
+	DeactivationReason *string    `json:"deactivation_reason,omitempty" db:"deactivation_reason"`
 
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
 type CreateStore struct {

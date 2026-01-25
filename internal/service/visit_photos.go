@@ -13,7 +13,7 @@ type VisitPhotosService interface {
 	Create(ctx context.Context, vp *model.VisitPhotos) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.VisitPhotos, error)
 	List(ctx context.Context, visitID uuid.UUID) ([]model.VisitPhotos, error)
-	Update(ctx context.Context, vp *model.VisitPhotos) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisitPhotos) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -52,18 +52,9 @@ func (s *visitPhotosService) List(ctx context.Context, visitID uuid.UUID) ([]mod
 	return s.repo.List(ctx, visitID)
 }
 
-func (s *visitPhotosService) Update(ctx context.Context, vp *model.VisitPhotos) error {
-	if vp.ID == uuid.Nil {
-		return errors.New("id is required")
-	}
-	if vp.VisitID == uuid.Nil {
-		return errors.New("visit_id is required")
-	}
-	if vp.PhotoURL == "" {
-		return errors.New("photo_url is required")
-	}
+func (s *visitPhotosService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisitPhotos) error {
 
-	return s.repo.Update(ctx, vp)
+	return s.repo.Update(ctx, id, dto)
 }
 
 func (s *visitPhotosService) Delete(ctx context.Context, id uuid.UUID) error {

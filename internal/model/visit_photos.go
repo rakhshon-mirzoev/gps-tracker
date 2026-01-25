@@ -12,3 +12,9 @@ type VisitPhotos struct {
 	PhotoURL   string    `json:"photo_url" db:"photo_url"`
 	CapturedAt time.Time `json:"captured_at" db:"captured_at"`
 }
+
+type UpdateVisitPhotos struct {
+	VisitID    *uuid.UUID `json:"visit_id"`
+	PhotoURL   *string    `json:"photo_url"`
+	CapturedAt *time.Time `json:"captured_at"`
+}

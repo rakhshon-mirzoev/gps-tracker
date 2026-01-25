@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
@@ -12,7 +14,7 @@ type VisitRepository interface {
 	Create(ctx context.Context, v *model.Visit) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
-	Update(ctx context.Context, v *model.Visit) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -119,21 +121,104 @@ func (r *visit) List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, 
 	return visits, nil
 }
 
-func (r *visit) Update(ctx context.Context, v *model.Visit) error {
-	sql := `
-        UPDATE visits
-        SET schedule_id = $1, staff_id = $2, store_id = $3, check_in_at = $4,
-            check_out_at = $5, check_in_location = ST_GeomFromText($6, 4326), distance_deviation = $7,
-            selfie_url = $8, comment = $9, is_offline = $10, review_status = $11,
-            review_comment = $12, reviewer_id = $13, reviewed_at = $14
-        WHERE id = $15
-    `
+func (r *visit) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error {
+	sql := `UPDATE visits SET `
+	args := []interface{}{}
+	n := 1
 
-	_, err := r.DB.Pool.Exec(ctx, sql,
-		v.ScheduleID, v.StaffID, v.StoreID, v.CheckInAt, v.CheckOutAt,
-		v.CheckInLocation, v.DistanceDeviation, v.SelfieURL, v.Comment,
-		v.IsOffline, v.ReviewStatus, v.ReviewComment, v.ReviewerID, v.ReviewedAt, v.ID,
-	)
+	if dto.ScheduleID != nil {
+		sql += fmt.Sprintf("schedule_id = $%d, ", n)
+		args = append(args, *dto.ScheduleID)
+		n++
+	}
+
+	if dto.StaffID != nil {
+		sql += fmt.Sprintf("staff_id = $%d, ", n)
+		args = append(args, *dto.StaffID)
+		n++
+	}
+
+	if dto.StoreID != nil {
+		sql += fmt.Sprintf("store_id = $%d, ", n)
+		args = append(args, *dto.StoreID)
+		n++
+	}
+
+	if dto.CheckInAt != nil {
+		sql += fmt.Sprintf("check_in_at = $%d, ", n)
+		args = append(args, *dto.CheckInAt)
+		n++
+	}
+
+	if dto.CheckOutAt != nil {
+		sql += fmt.Sprintf("check_out_at = $%d, ", n)
+		args = append(args, *dto.CheckOutAt)
+		n++
+	}
+
+	if dto.CheckInLocation != nil {
+		sql += fmt.Sprintf("check_in_location = ST_GeomFromText($%d, 4326), ", n)
+		args = append(args, *dto.CheckInLocation)
+		n++
+	}
+
+	if dto.DistanceDeviation != nil {
+		sql += fmt.Sprintf("distance_deviation = $%d, ", n)
+		args = append(args, *dto.DistanceDeviation)
+		n++
+	}
+
+	if dto.SelfieURL != nil {
+		sql += fmt.Sprintf("selfie_url = $%d, ", n)
+		args = append(args, *dto.SelfieURL)
+		n++
+	}
+
+	if dto.Comment != nil {
+		sql += fmt.Sprintf("comment = $%d, ", n)
+		args = append(args, *dto.Comment)
+		n++
+	}
+
+	if dto.IsOffline != nil {
+		sql += fmt.Sprintf("is_offline = $%d, ", n)
+		args = append(args, *dto.IsOffline)
+		n++
+	}
+
+	if dto.ReviewStatus != nil {
+		sql += fmt.Sprintf("review_status = $%d, ", n)
+		args = append(args, *dto.ReviewStatus)
+		n++
+	}
+
+	if dto.ReviewComment != nil {
+		sql += fmt.Sprintf("review_comment = $%d, ", n)
+		args = append(args, *dto.ReviewComment)
+		n++
+	}
+
+	if dto.ReviewerID != nil {
+		sql += fmt.Sprintf("reviewer_id = $%d, ", n)
+		args = append(args, *dto.ReviewerID)
+		n++
+	}
+
+	if dto.ReviewedAt != nil {
+		sql += fmt.Sprintf("reviewed_at = $%d, ", n)
+		args = append(args, *dto.ReviewedAt)
+		n++
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	sql = strings.TrimSuffix(sql, ", ")
+	sql += fmt.Sprintf(" WHERE id = $%d", n)
+	args = append(args, id)
+
+	_, err := r.DB.Pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}

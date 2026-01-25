@@ -34,6 +34,8 @@ type UpdateStaffUser struct {
 	PhoneNumber *string    `json:"phone_number"`
 	IsActive    *bool      `json:"is_active"`
 	GroupID     *uuid.UUID `json:"group_id"`
+	FcmToken    *string    `json:"fcm_token"`
+	DeviceId    *string    `json:"device_id"`
 }
 
 type CreateStaffUser struct {
@@ -53,4 +55,10 @@ type StaffUserResponse struct {
 	Login      string     `json:"login"`
 	IsActive   bool       `json:"is_active"`
 	LastSeenAt *time.Time `json:"last_seen_at"`
+}
+
+type StaffUserProfile struct {
+	User       *StaffUser  `json:"user"`
+	Schedules  []*Schedule `json:"schedules"`
+	TotalCount int         `json:"total_count"`
 }

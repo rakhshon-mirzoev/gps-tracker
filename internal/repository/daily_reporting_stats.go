@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
@@ -12,7 +14,7 @@ type DailyReportingStatsRepository interface {
 	Create(ctx context.Context, drs *model.DailyReportingStats) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.DailyReportingStats, error)
 	List(ctx context.Context, staffID uuid.UUID) ([]model.DailyReportingStats, error)
-	Update(ctx context.Context, drs *model.DailyReportingStats) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateDailyReportingStats) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -106,19 +108,80 @@ func (r *dailyReportingStats) List(ctx context.Context, staffID uuid.UUID) ([]mo
 	return stats, nil
 }
 
-func (r *dailyReportingStats) Update(ctx context.Context, drs *model.DailyReportingStats) error {
-	sql := `
-        UPDATE daily_reporting_stats
-        SET date = $1, staff_id = $2, group_id = $3, planned_count = $4,
-            completed_count = $5, rejected_count = $6, missed_count = $7,
-            work_start_at = $8, work_end_at = $9, total_km = $10
-        WHERE id = $11
-    `
+func (r *dailyReportingStats) Update(ctx context.Context, id uuid.UUID, dto model.UpdateDailyReportingStats) error {
+	sql := `UPDATE daily_reporting_stats SET `
+	args := []interface{}{}
+	n := 1
 
-	_, err := r.DB.Pool.Exec(ctx, sql,
-		drs.Date, drs.StaffID, drs.GroupID, drs.PlannedCount, drs.CompletedCount,
-		drs.RejectedCount, drs.MissedCount, drs.WorkStartAt, drs.WorkEndAt, drs.TotalKm, drs.ID,
-	)
+	if dto.Date != nil {
+		sql += fmt.Sprintf("date = $%d, ", n)
+		args = append(args, *dto.Date)
+		n++
+	}
+
+	if dto.StaffID != nil {
+		sql += fmt.Sprintf("staff_id = $%d, ", n)
+		args = append(args, *dto.StaffID)
+		n++
+	}
+
+	if dto.GroupID != nil {
+		sql += fmt.Sprintf("group_id = $%d, ", n)
+		args = append(args, *dto.GroupID)
+		n++
+	}
+
+	if dto.PlannedCount != nil {
+		sql += fmt.Sprintf("planned_count = $%d, ", n)
+		args = append(args, *dto.PlannedCount)
+		n++
+	}
+
+	if dto.CompletedCount != nil {
+		sql += fmt.Sprintf("completed_count = $%d, ", n)
+		args = append(args, *dto.CompletedCount)
+		n++
+	}
+
+	if dto.RejectedCount != nil {
+		sql += fmt.Sprintf("rejected_count = $%d, ", n)
+		args = append(args, *dto.RejectedCount)
+		n++
+	}
+
+	if dto.MissedCount != nil {
+		sql += fmt.Sprintf("missed_count = $%d, ", n)
+		args = append(args, *dto.MissedCount)
+		n++
+	}
+
+	if dto.WorkStartAt != nil {
+		sql += fmt.Sprintf("work_start_at = $%d, ", n)
+		args = append(args, *dto.WorkStartAt)
+		n++
+	}
+
+	if dto.WorkEndAt != nil {
+		sql += fmt.Sprintf("work_end_at = $%d, ", n)
+		args = append(args, *dto.WorkEndAt)
+		n++
+	}
+
+	if dto.TotalKm != nil {
+		sql += fmt.Sprintf("total_km = $%d, ", n)
+		args = append(args, *dto.TotalKm)
+		n++
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	sql = strings.TrimSuffix(sql, ", ")
+	sql += fmt.Sprintf(" WHERE id = $%d", n)
+	args = append(args, id)
+
+	_, err := r.DB.Pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}

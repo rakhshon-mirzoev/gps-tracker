@@ -3,7 +3,8 @@ CREATE TABLE location_history(
     staff_id UUID
         REFERENCES staff_users(id)
         ON DELETE RESTRICT,
-    location geography(POINT, 4326)   NOT NULL,
+    latitude DECIMAL(9,6)  NOT NULL,
+    longitude DECIMAL(9,6) NOT NULL,
     battery_level INTEGER,
     captured_at TIMESTAMP
 );

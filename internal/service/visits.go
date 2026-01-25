@@ -13,7 +13,7 @@ type VisitsService interface {
 	Create(ctx context.Context, v *model.Visit) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
-	Update(ctx context.Context, v *model.Visit) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -55,21 +55,8 @@ func (s *visitsService) List(ctx context.Context, scheduleID uuid.UUID) ([]model
 	return s.repo.List(ctx, scheduleID)
 }
 
-func (s *visitsService) Update(ctx context.Context, v *model.Visit) error {
-	if v.ID == uuid.Nil {
-		return errors.New("id is required")
-	}
-	if v.StaffID == uuid.Nil {
-		return errors.New("staff_id is required")
-	}
-	if v.StoreID == uuid.Nil {
-		return errors.New("store_id is required")
-	}
-	if v.ReviewStatus == "" {
-		return errors.New("review_status is required")
-	}
-
-	return s.repo.Update(ctx, v)
+func (s *visitsService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error {
+	return s.repo.Update(ctx, id, dto)
 }
 
 func (s *visitsService) Delete(ctx context.Context, id uuid.UUID) error {

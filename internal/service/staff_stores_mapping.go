@@ -9,20 +9,21 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 )
 
-type StaffStoresMappingService interface {
+type StaffStoresMapping interface {
 	Create(ctx context.Context, ssm *model.StaffStoresMapping) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffStoresMapping, error)
 	List(ctx context.Context, staffID uuid.UUID) ([]model.StaffStoresMapping, error)
 	Update(ctx context.Context, ssm *model.StaffStoresMapping) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]*model.Store, error)
 }
 
 type staffStoresMappingService struct {
-	repo repository.StaffStoresMappingRepository
+	r repository.StaffStoresMappingRepository
 }
 
-func NewStaffStoresMappingService(repo repository.StaffStoresMappingRepository) StaffStoresMappingService {
-	return &staffStoresMappingService{repo: repo}
+func NewStaffStoresMappingService(r repository.StaffStoresMappingRepository) StaffStoresMapping {
+	return &staffStoresMappingService{r: r}
 }
 
 func (s *staffStoresMappingService) Create(ctx context.Context, ssm *model.StaffStoresMapping) error {
@@ -33,7 +34,7 @@ func (s *staffStoresMappingService) Create(ctx context.Context, ssm *model.Staff
 		return errors.New("store_id is required")
 	}
 
-	return s.repo.Create(ctx, ssm)
+	return s.r.Create(ctx, ssm)
 }
 
 func (s *staffStoresMappingService) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffStoresMapping, error) {
@@ -41,7 +42,7 @@ func (s *staffStoresMappingService) GetByID(ctx context.Context, id uuid.UUID) (
 		return nil, errors.New("id is required")
 	}
 
-	return s.repo.GetByID(ctx, id)
+	return s.r.GetByID(ctx, id)
 }
 
 func (s *staffStoresMappingService) List(ctx context.Context, staffID uuid.UUID) ([]model.StaffStoresMapping, error) {
@@ -49,7 +50,7 @@ func (s *staffStoresMappingService) List(ctx context.Context, staffID uuid.UUID)
 		return nil, errors.New("staff_id is required")
 	}
 
-	return s.repo.List(ctx, staffID)
+	return s.r.List(ctx, staffID)
 }
 
 func (s *staffStoresMappingService) Update(ctx context.Context, ssm *model.StaffStoresMapping) error {
@@ -63,7 +64,7 @@ func (s *staffStoresMappingService) Update(ctx context.Context, ssm *model.Staff
 		return errors.New("store_id is required")
 	}
 
-	return s.repo.Update(ctx, ssm)
+	return s.r.Update(ctx, ssm)
 }
 
 func (s *staffStoresMappingService) Delete(ctx context.Context, id uuid.UUID) error {
@@ -71,5 +72,9 @@ func (s *staffStoresMappingService) Delete(ctx context.Context, id uuid.UUID) er
 		return errors.New("id is required")
 	}
 
-	return s.repo.Delete(ctx, id)
+	return s.r.Delete(ctx, id)
+}
+
+func (s *staffStoresMappingService) ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]*model.Store, error) {
+	return s.r.ListByStaffID(ctx, id, lim, off)
 }

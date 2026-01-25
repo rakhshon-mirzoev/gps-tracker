@@ -11,7 +11,8 @@ CREATE TABLE visits(
         ON DELETE RESTRICT,
     check_in_at TIMESTAMP,
     check_out_at TIMESTAMP,
-    check_in_location   geography(POINT, 4326),
+    check_in_lat DECIMAL(9,6),
+    check_in_lon DECIMAL(9,6),
 
     distance_deviation  INTEGER   DEFAULT 0,
     selfie_url   VARCHAR(512),

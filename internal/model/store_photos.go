@@ -13,3 +13,9 @@ type StorePhotos struct {
 	Type      string    `json:"type" db:"type"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
+
+type UpdateStorePhotos struct {
+	StoreID  *uuid.UUID `json:"store_id"`
+	PhotoURL *string    `json:"photo_url"`
+	Type     *string    `json:"type"`
+}
