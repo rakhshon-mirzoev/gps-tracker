@@ -18,12 +18,10 @@ type Schedule interface {
 	ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]*model.Schedule, int, error)
 	ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]*model.Schedule, int, error)
 	ListByStatus(ctx context.Context, status string, limit, offset int) ([]*model.Schedule, int, error)
-	GetProfile(ctx context.Context, id uuid.UUID) (*model.StaffUserProfile, error)
 }
 
 type scheduleService struct {
-	r     repository.ScheduleRepository
-	staff StaffUsers
+	r repository.ScheduleRepository
 }
 
 func NewScheduleService(r repository.ScheduleRepository) Schedule {
@@ -32,28 +30,6 @@ func NewScheduleService(r repository.ScheduleRepository) Schedule {
 
 func (s *scheduleService) Create(ctx context.Context, schedule *model.Schedule) error {
 	return s.r.Create(ctx, schedule)
-}
-
-func (s *scheduleService) GetProfile(ctx context.Context, id uuid.UUID) (*model.StaffUserProfile, error) {
-	if id == uuid.Nil {
-		return nil, fmt.Errorf("id is required")
-	}
-
-	user, err := s.staff.GetByID(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("user not found: %w", err)
-	}
-
-	schedules, total, err := s.r.ListByStaffID(ctx, id, 50, 0)
-	if err != nil {
-		return nil, fmt.Errorf("get schedules: %w", err)
-	}
-
-	return &model.StaffUserProfile{
-		User:       user,
-		Schedules:  schedules,
-		TotalCount: total,
-	}, nil
 }
 
 func (s *scheduleService) GetByID(ctx context.Context, id uuid.UUID) (*model.Schedule, error) {

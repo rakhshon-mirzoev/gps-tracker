@@ -25,7 +25,7 @@ type GroupsRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
-func InitGroupsRepository(db *db.DB) GroupsRepository {
+func NewGroupsRepository(db *db.DB) GroupsRepository {
 	return &groupsRepository{DB: db}
 }
 

@@ -8,14 +8,18 @@ type Repository struct {
 	Groups      GroupsRepository
 	StaffUsers  StaffUsersRepository
 	Auth        Auth
+	Schedules   ScheduleRepository
+	Visit       VisitRepository
 }
 
 func New(db *db.DB) *Repository {
 	return &Repository{
 		DB:          db,
-		SystemUsers: InitSystemUsersRepository(db),
-		Groups:      InitGroupsRepository(db),
-		StaffUsers:  InitStaffUsersRepository(db),
-		Auth:        InitAuthRepository(db),
+		SystemUsers: NewSystemUsersRepository(db),
+		Groups:      NewGroupsRepository(db),
+		StaffUsers:  NewStaffUsersRepository(db),
+		Auth:        NewAuthRepository(db),
+		Schedules:   NewScheduleRepository(db),
+		Visit:       NewVisitRepository(db),
 	}
 }

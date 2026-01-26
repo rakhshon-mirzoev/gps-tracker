@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
@@ -17,9 +18,17 @@ func (h *Handler) Profile(c *gin.Context) {
 		return
 	}
 
-	bio, err := h.s.Schedule.GetProfile(c.Request.Context(), user_id)
+	lim, off, err := getLimitOffset(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		logger.Log.Errorf("failed to get lim and off: %w", err)
+		return
+	}
+
+	bio, err := h.s.StaffUser.GetProfile(c.Request.Context(), user_id, lim, off)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Log.Errorf("failed to get profile: %w", err)
 		return
 	}
 
@@ -46,6 +55,7 @@ func (h *Handler) AttachDevice(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		logger.Log.Errorf("error in staff update: %w", err)
 		return
 	}
 	c.Status(http.StatusOK)

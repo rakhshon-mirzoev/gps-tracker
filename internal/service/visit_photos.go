@@ -9,7 +9,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 )
 
-type VisitPhotosService interface {
+type VisitPhotos interface {
 	Create(ctx context.Context, vp *model.VisitPhotos) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.VisitPhotos, error)
 	List(ctx context.Context, visitID uuid.UUID) ([]model.VisitPhotos, error)
@@ -21,7 +21,7 @@ type visitPhotosService struct {
 	repo repository.VisitPhotosRepository
 }
 
-func NewVisitPhotosService(repo repository.VisitPhotosRepository) VisitPhotosService {
+func NewVisitPhotosService(repo repository.VisitPhotosRepository) VisitPhotos {
 	return &visitPhotosService{repo: repo}
 }
 

@@ -27,7 +27,7 @@ type staffUsers struct {
 	DB *db.DB
 }
 
-func InitStaffUsersRepository(db *db.DB) StaffUsersRepository {
+func NewStaffUsersRepository(db *db.DB) StaffUsersRepository {
 	return &staffUsers{DB: db}
 }
 

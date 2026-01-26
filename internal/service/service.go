@@ -12,17 +12,22 @@ type Service struct {
 	Authorize          Authorize
 	Schedule           Schedule
 	StaffStoresMapping StaffStoresMapping
+	Visit              Visits
 }
 
 func New(r *repository.Repository, t token.Token) *Service {
+	sch := NewScheduleService(r.Schedules)
 	sys := NewSystemUsersService(r.SystemUsers)
 	group := NewGroupService(r.Groups)
-	staff := NewStaffUserService(r.StaffUsers)
+	staff := NewStaffUserService(r.StaffUsers, sch)
 	authorize := NewAuthorizeService(t, r.Auth, sys, staff)
+	visit := NewVisitsService(r.Visit)
 	return &Service{
 		SystemUsers: sys,
 		Group:       group,
 		StaffUser:   staff,
 		Authorize:   authorize,
+		Schedule:    sch,
+		Visit:       visit,
 	}
 }

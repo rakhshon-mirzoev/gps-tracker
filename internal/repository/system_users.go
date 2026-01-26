@@ -27,7 +27,7 @@ type SystemUsersRepository interface {
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 }
 
-func InitSystemUsersRepository(db *db.DB) SystemUsersRepository {
+func NewSystemUsersRepository(db *db.DB) SystemUsersRepository {
 	return &systemUsers{DB: db}
 }
 

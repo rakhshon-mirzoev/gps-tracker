@@ -22,7 +22,7 @@ type visit struct {
 	DB *db.DB
 }
 
-func InitVisitRepository(db *db.DB) VisitRepository {
+func NewVisitRepository(db *db.DB) VisitRepository {
 	return &visit{DB: db}
 }
 
@@ -33,25 +33,16 @@ func (r *visit) Create(ctx context.Context, v *model.Visit) error {
             staff_id,
             store_id,
             check_in_at,
-            check_out_at,
-            check_in_location,
-            distance_deviation,
-            selfie_url,
-            comment,
-            is_offline,
-            review_status,
-            review_comment,
-            reviewer_id,
-            reviewed_at
+            check_in_lat,
+			check_in_lon,
         ) VALUES (
-            $1, $2, $3, $4, $5, ST_GeomFromText($6, 4326), $7, $8, $9, $10, $11, $12, $13, $14
-        ) RETURNING id, created_at;
+            $1, $2, $3, $4, $5, $6
+    	) RETURNING id, created_at;
     `
 
 	err := r.DB.Pool.QueryRow(ctx, sql,
-		v.ScheduleID, v.StaffID, v.StoreID, v.CheckInAt, v.CheckOutAt,
-		v.CheckInLocation, v.DistanceDeviation, v.SelfieURL, v.Comment,
-		v.IsOffline, v.ReviewStatus, v.ReviewComment, v.ReviewerID, v.ReviewedAt,
+		v.ScheduleID, v.StaffID, v.StoreID, v.CheckInAt,
+		v.CheckInLat, v.CheckInLon,
 	).Scan(&v.ID, &v.CreatedAt)
 	if err != nil {
 		return err
@@ -62,8 +53,8 @@ func (r *visit) Create(ctx context.Context, v *model.Visit) error {
 
 func (r *visit) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error) {
 	sql := `
-        SELECT id, schedule_id, staff_id, store_id, check_in_at, check_out_at,
-               ST_AsText(check_in_location) AS check_in_location, distance_deviation, selfie_url, comment,
+        SELECT id, schedule_id, staff_id, store_id, check_in_at, check_out_at, 
+			   check_in_lat, check_in_lon,, distance_deviation, selfie_url, comment,
                is_offline, review_status, review_comment, reviewer_id,
                reviewed_at, created_at
         FROM visits WHERE id = $1
@@ -72,7 +63,7 @@ func (r *visit) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	var v model.Visit
 	err := r.DB.Pool.QueryRow(ctx, sql, id).Scan(
 		&v.ID, &v.ScheduleID, &v.StaffID, &v.StoreID, &v.CheckInAt, &v.CheckOutAt,
-		&v.CheckInLocation, &v.DistanceDeviation, &v.SelfieURL, &v.Comment,
+		&v.CheckInLat, &v.CheckInLon, &v.DistanceDeviation, &v.SelfieURL, &v.Comment,
 		&v.IsOffline, &v.ReviewStatus, &v.ReviewComment, &v.ReviewerID,
 		&v.ReviewedAt, &v.CreatedAt,
 	)
@@ -86,7 +77,7 @@ func (r *visit) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 func (r *visit) List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error) {
 	sql := `
         SELECT id, schedule_id, staff_id, store_id, check_in_at, check_out_at,
-               ST_AsText(check_in_location) AS check_in_location, distance_deviation, selfie_url, comment,
+               check_in_lat, check_in_lon, distance_deviation, selfie_url, comment,
                is_offline, review_status, review_comment, reviewer_id,
                reviewed_at, created_at
         FROM visits WHERE schedule_id = $1
@@ -104,7 +95,7 @@ func (r *visit) List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, 
 
 		if err := rows.Scan(
 			&v.ID, &v.ScheduleID, &v.StaffID, &v.StoreID, &v.CheckInAt, &v.CheckOutAt,
-			&v.CheckInLocation, &v.DistanceDeviation, &v.SelfieURL, &v.Comment,
+			&v.CheckInLat, &v.CheckInLon, &v.DistanceDeviation, &v.SelfieURL, &v.Comment,
 			&v.IsOffline, &v.ReviewStatus, &v.ReviewComment, &v.ReviewerID,
 			&v.ReviewedAt, &v.CreatedAt,
 		); err != nil {

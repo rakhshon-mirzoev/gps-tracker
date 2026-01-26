@@ -9,7 +9,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 )
 
-type StoresService interface {
+type Stores interface {
 	Create(ctx context.Context, s *model.Store) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error)
 	List(ctx context.Context, filter model.StoreListFilter) ([]*model.Store, int, error)
@@ -21,7 +21,7 @@ type storesService struct {
 	repo repository.StoreRepository
 }
 
-func NewStoresService(repo repository.StoreRepository) StoresService {
+func NewStoresService(repo repository.StoreRepository) Stores {
 	return &storesService{repo: repo}
 }
 

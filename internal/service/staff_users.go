@@ -18,13 +18,34 @@ type StaffUsers interface {
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error
 	List(ctx context.Context) ([]model.StaffUser, error)
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
+	GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error)
 }
 type staffUserService struct {
-	r repository.StaffUsersRepository
+	r         repository.StaffUsersRepository
+	schedules Schedule
 }
 
-func NewStaffUserService(r repository.StaffUsersRepository) StaffUsers {
-	return &staffUserService{r: r}
+func NewStaffUserService(r repository.StaffUsersRepository, sch Schedule) StaffUsers {
+	return &staffUserService{r: r, schedules: sch}
+}
+
+func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error) {
+
+	user, err := s.r.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	schedules, total, err := s.schedules.ListByStaffID(ctx, id, lim, off)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.StaffUserProfile{
+		User:       user,
+		Schedules:  schedules,
+		TotalCount: total,
+	}, nil
 }
 
 func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser) error {

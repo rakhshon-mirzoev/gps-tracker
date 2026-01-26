@@ -3,6 +3,6 @@ CREATE TABLE visit_photos (
     visit_id UUID
         REFERENCES visits(id)
         ON DELETE CASCADE,
-    photo_url TEXT,
-    captured_at TIMESTAMP
+    photo_url TEXT NOT NULL,
+    captured_at TIMESTAMP NOT NULL DEFAULT now()
 );

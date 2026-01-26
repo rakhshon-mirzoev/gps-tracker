@@ -13,7 +13,8 @@ type Visit struct {
 	StoreID           uuid.UUID  `json:"store_id" db:"store_id"`
 	CheckInAt         *time.Time `json:"check_in_at" db:"check_in_at"`
 	CheckOutAt        *time.Time `json:"check_out_at" db:"check_out_at"`
-	CheckInLocation   *string    `json:"check_in_location" db:"check_in_location"`
+	CheckInLat        *float64   `json:"check_in_lat" db:"check_in_lat"`
+	CheckInLon        *float64   `json:"check_in_lon" db:"check_in_lon"`
 	DistanceDeviation int        `json:"distance_deviation" db:"distance_deviation"`
 	SelfieURL         *string    `json:"selfie_url" db:"selfie_url"`
 	Comment           *string    `json:"comment" db:"comment"`
@@ -40,4 +41,12 @@ type UpdateVisit struct {
 	ReviewComment     *string    `json:"review_comment"`
 	ReviewerID        *uuid.UUID `json:"reviewer_id"`
 	ReviewedAt        *time.Time `json:"reviewed_at"`
+}
+
+type CreateVisit struct {
+	ScheduleID uuid.UUID `json:"schedule_id"`
+	StoreID    uuid.UUID `json:"store_id"`
+	Lat        float64   `json:"lat"`
+	Lon        float64   `json:"lon"`
+	CheckInAt  time.Time `json:"check_in_at"`
 }

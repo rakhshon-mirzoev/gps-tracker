@@ -26,4 +26,5 @@ var (
 	ErrorPasswordHashError   = errors.New("failed to hash password")
 	ErrorSignMethod          = errors.New("unexpected signing method")
 	ErrorInvalidUserType     = errors.New("invalid user type")
+	ErrorUnprocessable       = errors.New("unprocessable entity")
 )

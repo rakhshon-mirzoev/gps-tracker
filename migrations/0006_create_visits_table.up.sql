@@ -40,9 +40,6 @@ CREATE INDEX idx_visits_store_id        ON visits(store_id);
 CREATE INDEX idx_visits_check_in_at     ON visits(check_in_at);
 CREATE INDEX idx_visits_review_status   ON visits(review_status);
 
-CREATE INDEX idx_visits_check_in_location_gist 
-    ON visits USING GIST (check_in_location);
-
 CREATE INDEX idx_visits_staff_date 
     ON visits (staff_id, check_in_at);
 

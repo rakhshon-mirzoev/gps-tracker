@@ -12,8 +12,8 @@ type Store struct {
 	Name    string `json:"name" db:"name"`
 	Address string `json:"address" db:"address"`
 
-	Latitude  float32 `json:"latitude" db:"latitude"`
-	Longitude float32 `json:"longitude" db:"longitude"`
+	Latitude  float64 `json:"latitude" db:"latitude"`
+	Longitude float64 `json:"longitude" db:"longitude"`
 
 	OwnerFullName string  `json:"owner_full_name" db:"owner_full_name"`
 	OwnerINN      string  `json:"owner_inn" db:"owner_inn"`
