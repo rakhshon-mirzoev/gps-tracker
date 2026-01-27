@@ -9,8 +9,8 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 )
 
-type LocationHistoryService interface {
-	Create(ctx context.Context, lh *model.LocationHistory) error
+type LocationHistory interface {
+	Create(ctx context.Context, lh *model.LocationHistory, user_id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.LocationHistory, error)
 	List(ctx context.Context, staffID uuid.UUID) ([]model.LocationHistory, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateLocationHistory) error
@@ -18,15 +18,16 @@ type LocationHistoryService interface {
 }
 
 type locationHistoryService struct {
-	repo repository.LocationHistoryRepository
+	r repository.LocationHistoryRepository
 }
 
-func NewLocationHistoryService(repo repository.LocationHistoryRepository) LocationHistoryService {
-	return &locationHistoryService{repo: repo}
+func NewLocationHistoryService(r repository.LocationHistoryRepository) LocationHistory {
+	return &locationHistoryService{r: r}
 }
 
-func (s *locationHistoryService) Create(ctx context.Context, lh *model.LocationHistory) error {
-	return s.repo.Create(ctx, lh)
+func (s *locationHistoryService) Create(ctx context.Context, lh *model.LocationHistory, user_id uuid.UUID) error {
+	lh.StaffID = user_id
+	return s.r.Create(ctx, lh)
 }
 
 func (s *locationHistoryService) GetByID(ctx context.Context, id uuid.UUID) (*model.LocationHistory, error) {
@@ -34,7 +35,7 @@ func (s *locationHistoryService) GetByID(ctx context.Context, id uuid.UUID) (*mo
 		return nil, errors.New("id is required")
 	}
 
-	return s.repo.GetByID(ctx, id)
+	return s.r.GetByID(ctx, id)
 }
 
 func (s *locationHistoryService) List(ctx context.Context, staffID uuid.UUID) ([]model.LocationHistory, error) {
@@ -42,11 +43,11 @@ func (s *locationHistoryService) List(ctx context.Context, staffID uuid.UUID) ([
 		return nil, errors.New("staff_id is required")
 	}
 
-	return s.repo.List(ctx, staffID)
+	return s.r.List(ctx, staffID)
 }
 
 func (s *locationHistoryService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateLocationHistory) error {
-	return s.repo.Update(ctx, id, dto)
+	return s.r.Update(ctx, id, dto)
 }
 
 func (s *locationHistoryService) Delete(ctx context.Context, id uuid.UUID) error {
@@ -54,5 +55,5 @@ func (s *locationHistoryService) Delete(ctx context.Context, id uuid.UUID) error
 		return errors.New("id is required")
 	}
 
-	return s.repo.Delete(ctx, id)
+	return s.r.Delete(ctx, id)
 }

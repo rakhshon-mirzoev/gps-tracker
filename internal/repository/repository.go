@@ -11,6 +11,7 @@ type Repository struct {
 	Schedules   ScheduleRepository
 	Visit       VisitRepository
 	Store       StoreRepository
+	Location    LocationHistoryRepository
 }
 
 func New(db *db.DB) *Repository {
@@ -23,5 +24,6 @@ func New(db *db.DB) *Repository {
 		Schedules:   NewScheduleRepository(db),
 		Visit:       NewVisitRepository(db),
 		Store:       NewStoreRepository(db),
+		Location:    NewLocationHistoryRepository(db),
 	}
 }

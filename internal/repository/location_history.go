@@ -22,7 +22,7 @@ type locationHistory struct {
 	DB *db.DB
 }
 
-func InitLocationHistoryRepository(db *db.DB) LocationHistoryRepository {
+func NewLocationHistoryRepository(db *db.DB) LocationHistoryRepository {
 	return &locationHistory{DB: db}
 }
 
