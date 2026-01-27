@@ -83,6 +83,7 @@ func (s *visitsService) VisitComplete(ctx context.Context, id string, dto model.
 	if err != nil {
 		return err
 	}
+	*dto.ReviewStatus = "pending"
 	return s.repo.Update(ctx, uid, dto)
 }
 

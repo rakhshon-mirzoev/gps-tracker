@@ -10,7 +10,7 @@ import (
 )
 
 type Stores interface {
-	Create(ctx context.Context, s *model.Store) error
+	Create(ctx context.Context, s *model.CreateStore, user_id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error)
 	List(ctx context.Context, filter model.StoreListFilter) ([]*model.Store, int, error)
 	Update(ctx context.Context, s *model.Store) error
@@ -18,19 +18,27 @@ type Stores interface {
 }
 
 type storesService struct {
-	repo repository.StoreRepository
+	r repository.StoreRepository
 }
 
 func NewStoresService(repo repository.StoreRepository) Stores {
-	return &storesService{repo: repo}
+	return &storesService{r: repo}
 }
 
-func (s *storesService) Create(ctx context.Context, store *model.Store) error {
-	if store.Name == "" {
-		return errors.New("name is required")
+func (s *storesService) Create(ctx context.Context, store *model.CreateStore, user_id uuid.UUID) error {
+
+	st := &model.Store{
+		Name:             store.Name,
+		Address:          store.Address,
+		Latitude:         store.Latitude,
+		Longitude:        store.Longitude,
+		OwnerFullName:    store.OwnerFullName,
+		OwnerINN:         store.OwnerINN,
+		OwnerPassport:    store.OwnerPassport,
+		CreatedByStaffID: user_id,
 	}
 
-	return s.repo.Create(ctx, store)
+	return s.r.Create(ctx, st)
 }
 
 func (s *storesService) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error) {
@@ -38,22 +46,15 @@ func (s *storesService) GetByID(ctx context.Context, id uuid.UUID) (*model.Store
 		return nil, errors.New("id is required")
 	}
 
-	return s.repo.GetByID(ctx, id)
+	return s.r.GetByID(ctx, id)
 }
 
 func (s *storesService) List(ctx context.Context, filter model.StoreListFilter) ([]*model.Store, int, error) {
-	return s.repo.List(ctx, filter)
+	return s.r.List(ctx, filter)
 }
 
 func (s *storesService) Update(ctx context.Context, store *model.Store) error {
-	if store.ID == uuid.Nil {
-		return errors.New("id is required")
-	}
-	if store.Name == "" {
-		return errors.New("name is required")
-	}
-
-	return s.repo.Update(ctx, store)
+	return s.r.Update(ctx, store)
 }
 
 func (s *storesService) Delete(ctx context.Context, id uuid.UUID) error {
@@ -61,5 +62,5 @@ func (s *storesService) Delete(ctx context.Context, id uuid.UUID) error {
 		return errors.New("id is required")
 	}
 
-	return s.repo.Delete(ctx, id)
+	return s.r.Delete(ctx, id)
 }

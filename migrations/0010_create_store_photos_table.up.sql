@@ -5,5 +5,5 @@ CREATE TABLE store_photos (
         ON DELETE CASCADE,
     photo_url TEXT NOT NULL,
     type TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

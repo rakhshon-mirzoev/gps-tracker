@@ -8,5 +8,5 @@ CREATE TABLE audit_logs (
     old_value JSONB,
     new_value JSONB,
     ip_address TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

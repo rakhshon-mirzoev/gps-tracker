@@ -23,9 +23,9 @@ CREATE TABLE visits(
 
     review_comment  TEXT,
     reviewer_id     UUID,
-    reviewed_at   TIMESTAMPTZ,
+    reviewed_at   TIMESTAMP,
 
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at  TIMESTAMP  NOT NULL DEFAULT now(),
 
     CONSTRAINT visits_review_status_check
         CHECK (review_status IN ('new','pending', 'approved', 'rejected')),

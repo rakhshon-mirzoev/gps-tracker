@@ -14,6 +14,7 @@ type Service struct {
 	Schedule           Schedule
 	StaffStoresMapping StaffStoresMapping
 	Visit              Visits
+	Store              Stores
 }
 
 func New(r *repository.Repository, t token.Token, minio minioservice.Minio) *Service {
@@ -23,6 +24,7 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio) *Ser
 	staff := NewStaffUserService(r.StaffUsers, sch)
 	authorize := NewAuthorizeService(t, r.Auth, sys, staff)
 	visit := NewVisitsService(r.Visit, minio)
+	store := NewStoresService(r.Store)
 	return &Service{
 		SystemUsers: sys,
 		Group:       group,
@@ -30,5 +32,6 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio) *Ser
 		Authorize:   authorize,
 		Schedule:    sch,
 		Visit:       visit,
+		Store:       store,
 	}
 }

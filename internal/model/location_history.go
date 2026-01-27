@@ -9,16 +9,16 @@ import (
 type LocationHistory struct {
 	ID           uuid.UUID `json:"id" db:"id"`
 	StaffID      uuid.UUID `json:"staff_id" db:"staff_id"`
-	Latitude     float32   `json:"latitude" db:"latitude"`
-	Longitude    float32   `json:"longitude" db:"longitude"`
+	Latitude     float64   `json:"latitude" db:"latitude"`
+	Longitude    float64   `json:"longitude" db:"longitude"`
 	BatteryLevel *int      `json:"battery_level" db:"battery_level"`
 	CapturedAt   time.Time `json:"captured_at" db:"captured_at"`
 }
 
 type UpdateLocationHistory struct {
 	StaffID      *uuid.UUID `json:"staff_id"`
-	Latitude     *float32   `json:"latitude"`
-	Longitude    *float32   `json:"longitude"`
+	Latitude     *float64   `json:"latitude"`
+	Longitude    *float64   `json:"longitude"`
 	BatteryLevel *int       `json:"battery_level"`
 	CapturedAt   *time.Time `json:"captured_at"`
 }

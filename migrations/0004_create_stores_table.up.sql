@@ -12,7 +12,7 @@ CREATE TABLE stores
     owner_inn     CHAR(12)            NOT NULL,
     owner_passport VARCHAR(25),
 
-    status   VARCHAR(40)         NOT NULL DEFAULT 'new',
+    status   VARCHAR(40)         NOT NULL DEFAULT 'pending',
     rejection_comment  TEXT,
 
     created_by_staff_id UUID NOT NULL 
@@ -25,16 +25,16 @@ CREATE TABLE stores
     is_active  BOOLEAN             NOT NULL DEFAULT TRUE,
     is_frozen    BOOLEAN             NOT NULL DEFAULT FALSE,
 
-    deactivated_at    TIMESTAMPTZ,
+    deactivated_at    TIMESTAMP,
     deactivated_by_id  UUID NOT NULL 
         REFERENCES system_users(id)
         ON DELETE RESTRICT,
     deactivation_reason TEXT,
 
-    created_at  TIMESTAMPTZ         NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at  TIMESTAMP         NOT NULL DEFAULT now(),
 
     CONSTRAINT stores_status_check    
-        CHECK (status IN ('new', 'pending', 'approved', 'rejected', 'deactivated'))
+        CHECK (status IN ('pending', 'approved', 'rejected', 'deactivated', 'frozen'))
 );
 
 CREATE INDEX idx_stores_status_active 

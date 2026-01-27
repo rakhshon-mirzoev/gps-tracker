@@ -10,6 +10,7 @@ type Repository struct {
 	Auth        Auth
 	Schedules   ScheduleRepository
 	Visit       VisitRepository
+	Store       StoreRepository
 }
 
 func New(db *db.DB) *Repository {
@@ -21,5 +22,6 @@ func New(db *db.DB) *Repository {
 		Auth:        NewAuthRepository(db),
 		Schedules:   NewScheduleRepository(db),
 		Visit:       NewVisitRepository(db),
+		Store:       NewStoreRepository(db),
 	}
 }

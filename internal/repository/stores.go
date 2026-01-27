@@ -40,15 +40,9 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 			owner_full_name,
 			owner_inn,
 			owner_passport,
-			status,
-			created_by_staff_id,
-			created_by_admin_id,
-			is_active,
-			is_frozen,
-			created_at
+			created_by_staff_id
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
-		RETURNING id, created_at;
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 	`
 	err := r.DB.Pool.QueryRow(
 		ctx,
@@ -60,11 +54,7 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 		store.OwnerFullName,
 		store.OwnerINN,
 		store.OwnerPassport,
-		store.Status,
 		store.CreatedByStaffID,
-		store.CreatedByAdminID,
-		store.IsActive,
-		store.IsFrozen,
 	).Scan(&store.ID, &store.CreatedAt)
 
 	if err != nil {
