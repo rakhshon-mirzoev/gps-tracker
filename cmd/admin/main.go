@@ -54,7 +54,7 @@ func run() error {
 	token := token.InitTokenService(os.Getenv("SECRET_KEY"), time.Duration(cfg.Admin.TTLMinutes))
 
 	repository := repository.New(db)
-	service := service.New(repository, token)
+	service := service.New(repository, token, client)
 	minio := miniohandler.New(client)
 	handler := handler.New(service)
 

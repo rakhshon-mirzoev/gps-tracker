@@ -58,7 +58,7 @@ func run() error {
 	)
 
 	repo := repository.New(dbConn)
-	services := service.New(repo, tokenService)
+	services := service.New(repo, tokenService, client)
 	handlers := handler.New(services)
 	minioHandler := miniohandler.New(client)
 

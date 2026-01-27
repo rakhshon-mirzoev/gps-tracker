@@ -27,4 +27,7 @@ var (
 	ErrorSignMethod          = errors.New("unexpected signing method")
 	ErrorInvalidUserType     = errors.New("invalid user type")
 	ErrorUnprocessable       = errors.New("unprocessable entity")
+	ErrorExceedsFileSize     = errors.New("file size exceeds maximum allowed size")
+	ErrorFileEmpty           = errors.New("file size is empty")
+	ErrorFileExt             = errors.New("ext file error")
 )

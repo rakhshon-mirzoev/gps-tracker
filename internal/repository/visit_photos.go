@@ -31,15 +31,17 @@ func (r *visitPhotos) Create(ctx context.Context, v *model.VisitPhotos) error {
 		INSERT INTO visit_photos (
 			visit_id,
 			photo_url,
+			original_name,
 			captured_at
 		) VALUES (
 			$1,
 			$2,
-			$3 
+			$3,
+			$4
 		) RETURNING id;
 	`
 
-	err := r.DB.Pool.QueryRow(ctx, sql, v.VisitID, v.PhotoURL, v.CapturedAt).Scan(&v.ID)
+	err := r.DB.Pool.QueryRow(ctx, sql, v.VisitID, v.PhotoURL, v.OriginalName, v.CapturedAt).Scan(&v.ID)
 	if err != nil {
 		return err
 	}
@@ -49,7 +51,7 @@ func (r *visitPhotos) Create(ctx context.Context, v *model.VisitPhotos) error {
 
 func (r *visitPhotos) List(ctx context.Context, id uuid.UUID) ([]model.VisitPhotos, error) {
 	sql := `
-		SELECT id, visit_id, photo_url, captured_at
+		SELECT id, visit_id, photo_url, original_name, captured_at
 		FROM visit_photos WHERE visit_id = $1
 	`
 
@@ -67,6 +69,7 @@ func (r *visitPhotos) List(ctx context.Context, id uuid.UUID) ([]model.VisitPhot
 			&vPh.ID,
 			&vPh.VisitID,
 			&vPh.PhotoURL,
+			&vPh.OriginalName,
 			&vPh.CapturedAt,
 		); err != nil {
 			return nil, err
@@ -84,7 +87,7 @@ func (r *visitPhotos) List(ctx context.Context, id uuid.UUID) ([]model.VisitPhot
 
 func (r *visitPhotos) GetByID(ctx context.Context, id uuid.UUID) (*model.VisitPhotos, error) {
 	sql := `
-        SELECT id, visit_id, photo_url, captured_at
+        SELECT id, visit_id, photo_url, original_name, captured_at
         FROM visit_photos WHERE id = $1
     `
 
@@ -93,6 +96,7 @@ func (r *visitPhotos) GetByID(ctx context.Context, id uuid.UUID) (*model.VisitPh
 		&v.ID,
 		&v.VisitID,
 		&v.PhotoURL,
+		&v.OriginalName,
 		&v.CapturedAt,
 	)
 	if err != nil {

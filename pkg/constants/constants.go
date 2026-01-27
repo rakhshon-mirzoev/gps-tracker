@@ -1,9 +1,13 @@
 package constants
 
 const (
-	AuthGroup      = "/auth"
+	AuthGroup      = "auth"
 	RequestIDKey   = "request_id"
 	UserTypeSystem = "system"
 	UserTypeStaff  = "staff"
-	MobilePrefix   = "mobile"
+	MobileGroup    = "mobile"
+	VisitDir       = "visit_media"
+	ShelfDir       = "shelf"
+	SelfieDir      = "selfie"
+	VisitGroup     = "visit"
 )

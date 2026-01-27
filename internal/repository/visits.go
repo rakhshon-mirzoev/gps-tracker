@@ -147,9 +147,15 @@ func (r *visit) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit)
 		n++
 	}
 
-	if dto.CheckInLocation != nil {
-		sql += fmt.Sprintf("check_in_location = ST_GeomFromText($%d, 4326), ", n)
-		args = append(args, *dto.CheckInLocation)
+	if dto.CheckInLat != nil {
+		sql += fmt.Sprintf("check_in_lat = $%d, ", n)
+		args = append(args, *dto.CheckInLat)
+		n++
+	}
+
+	if dto.CheckInLon != nil {
+		sql += fmt.Sprintf("check_in_lon = $%d, ", n)
+		args = append(args, *dto.CheckInLon)
 		n++
 	}
 

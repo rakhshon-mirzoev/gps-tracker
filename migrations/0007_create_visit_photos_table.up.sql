@@ -4,5 +4,6 @@ CREATE TABLE visit_photos (
         REFERENCES visits(id)
         ON DELETE CASCADE,
     photo_url TEXT NOT NULL,
+    original_name TEXT NOT NULL,
     captured_at TIMESTAMP NOT NULL DEFAULT now()
 );

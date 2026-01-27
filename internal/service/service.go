@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
+	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 )
 
@@ -15,13 +16,13 @@ type Service struct {
 	Visit              Visits
 }
 
-func New(r *repository.Repository, t token.Token) *Service {
+func New(r *repository.Repository, t token.Token, minio minioservice.Minio) *Service {
 	sch := NewScheduleService(r.Schedules)
 	sys := NewSystemUsersService(r.SystemUsers)
 	group := NewGroupService(r.Groups)
 	staff := NewStaffUserService(r.StaffUsers, sch)
 	authorize := NewAuthorizeService(t, r.Auth, sys, staff)
-	visit := NewVisitsService(r.Visit)
+	visit := NewVisitsService(r.Visit, minio)
 	return &Service{
 		SystemUsers: sys,
 		Group:       group,

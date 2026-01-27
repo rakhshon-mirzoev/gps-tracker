@@ -16,10 +16,14 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 		a.middleware.RequestID(),
 		a.middleware.Logger(),
 	) */
-
 	{
-		api.GET("", m.GetDownloadURL)
 		api.GET("/ping", h.Ping)
+	}
+	storage := api.Group("/storage")
+	{
+		storage.GET("download-url", m.GetDownloadURL)
+		storage.GET("upload-url", m.GetUploadURL)
+
 	}
 
 	auth := api.Group(constants.AuthGroup + constants.UserTypeSystem)

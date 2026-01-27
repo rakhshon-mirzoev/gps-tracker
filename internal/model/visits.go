@@ -32,7 +32,8 @@ type UpdateVisit struct {
 	StoreID           *uuid.UUID `json:"store_id"`
 	CheckInAt         *time.Time `json:"check_in_at"`
 	CheckOutAt        *time.Time `json:"check_out_at"`
-	CheckInLocation   *string    `json:"check_in_location"`
+	CheckInLat        *float64   `json:"check_in_lat"`
+	CheckInLon        *float64   `json:"check_in_lon"`
 	DistanceDeviation *int       `json:"distance_deviation"`
 	SelfieURL         *string    `json:"selfie_url"`
 	Comment           *string    `json:"comment"`

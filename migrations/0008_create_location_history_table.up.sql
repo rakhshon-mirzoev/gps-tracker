@@ -8,6 +8,3 @@ CREATE TABLE location_history(
     battery_level INTEGER,
     captured_at TIMESTAMP
 );
-
-CREATE INDEX idx_location_history_gist 
-    ON location_history USING GIST (location);

@@ -19,7 +19,7 @@ CREATE TABLE visits(
     comment   TEXT,
     is_offline      BOOLEAN   NOT NULL DEFAULT FALSE,
 
-    review_status  VARCHAR(40)  NOT NULL DEFAULT 'pending',
+    review_status  VARCHAR(40)  NOT NULL DEFAULT 'new',
 
     review_comment  TEXT,
     reviewer_id     UUID,
@@ -28,7 +28,7 @@ CREATE TABLE visits(
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT visits_review_status_check
-        CHECK (review_status IN ('pending', 'approved', 'rejected', 'revision_needed')),
+        CHECK (review_status IN ('new','pending', 'approved', 'rejected')),
 
     CONSTRAINT visits_checkout_after_checkin
         CHECK (check_out_at IS NULL OR check_out_at > check_in_at)

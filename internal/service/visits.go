@@ -3,13 +3,19 @@ package service
 import (
 	"context"
 	"errors"
-	"math"
+	"fmt"
+	"io"
 	"mime/multipart"
+	"os"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
+	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
@@ -17,7 +23,8 @@ type Visits interface {
 	Create(ctx context.Context, v *model.CreateVisit, user_id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
-	Update(ctx context.Context, id string, dto model.UpdateVisit, file *multipart.Form, user_id uuid.UUID) error
+	VisitComplete(ctx context.Context, id string, dto model.UpdateVisit) error
+	VisitPhoto(ctx context.Context, id string, dto model.UpdateVisit, file *multipart.Form) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -25,10 +32,11 @@ type visitsService struct {
 	repo  repository.VisitRepository
 	store Stores
 	photo VisitPhotos
+	minio minioservice.Minio
 }
 
-func NewVisitsService(repo repository.VisitRepository) Visits {
-	return &visitsService{repo: repo}
+func NewVisitsService(repo repository.VisitRepository, minio minioservice.Minio) Visits {
+	return &visitsService{repo: repo, minio: minio}
 }
 
 func (s *visitsService) Create(ctx context.Context, v *model.CreateVisit, user_id uuid.UUID) error {
@@ -37,7 +45,7 @@ func (s *visitsService) Create(ctx context.Context, v *model.CreateVisit, user_i
 		return err
 	}
 
-	m := Distance(store.Latitude, store.Longitude, v.Lat, v.Lon)
+	m := utils.Distance(store.Latitude, store.Longitude, v.Lat, v.Lon)
 	if m > 150 {
 		return errs.ErrorUnprocessable
 	}
@@ -70,7 +78,15 @@ func (s *visitsService) List(ctx context.Context, scheduleID uuid.UUID) ([]model
 	return s.repo.List(ctx, scheduleID)
 }
 
-func (s *visitsService) Update(ctx context.Context, id string, dto model.UpdateVisit, file *multipart.Form, user_id uuid.UUID) error {
+func (s *visitsService) VisitComplete(ctx context.Context, id string, dto model.UpdateVisit) error {
+	uid, err := uuid.FromBytes([]byte(id))
+	if err != nil {
+		return err
+	}
+	return s.repo.Update(ctx, uid, dto)
+}
+
+func (s *visitsService) VisitPhoto(ctx context.Context, id string, dto model.UpdateVisit, file *multipart.Form) error {
 	uid, err := uuid.FromBytes([]byte(id))
 	if err != nil {
 		return err
@@ -82,24 +98,49 @@ func (s *visitsService) Update(ctx context.Context, id string, dto model.UpdateV
 		return errs.ErrorInvalidFileFormat
 	}
 
-	for _, f := range selfie {
-		if err := utils.ValidateFileType(f); err != nil {
-			return errs.ErrorInvalidFileFormat
+	if err := utils.ValidateFileType(selfie[0]); err != nil {
+		return err
+	}
+
+	if err := utils.ValidateFileSize(selfie[0]); err != nil {
+		return err
+	}
+
+	ext := utils.GetFileExtension(selfie[0].Filename)
+	if ext == "" {
+		return errs.ErrorFileExt
+	}
+	timestamp := time.Now().Unix()
+	filename := fmt.Sprintf("%s_%d%s", strings.TrimSuffix(selfie[0].Filename, ext), timestamp, ext)
+	objectName := fmt.Sprintf(constants.VisitDir+constants.SelfieDir+"/%s/%s", uid, filename)
+
+	selfiePath, err := s.minio.UploadFile(ctx, selfie[0], objectName)
+	if err != nil {
+		return fmt.Errorf("failed to upload selfie to minio: %w", err)
+	}
+
+	localPath, err := utils.PathCreator(filename, constants.VisitDir, constants.SelfieDir, uid)
+	if err == nil {
+		if src, err := selfie[0].Open(); err == nil {
+			defer src.Close()
+			if dst, err := os.Create(localPath); err == nil {
+				defer dst.Close()
+				io.Copy(dst, src)
+			}
 		}
+	}
 
-		savePath, err := utils.PathCreator(f.Filename, "visit_photos", "selfie", uid)
-		if err != nil {
-			return err
-		}
+	dto.SelfieURL = &selfiePath
 
-		dto.SelfieURL = &savePath
+	vp := &model.VisitPhotos{
+		VisitID:      uid,
+		PhotoURL:     selfiePath,
+		OriginalName: selfie[0].Filename,
+	}
 
-		vp := &model.VisitPhotos{
-			VisitID:  uid,
-			PhotoURL: savePath,
-		}
-
-		s.photo.Create(ctx, vp)
+	err = s.photo.Create(ctx, vp)
+	if err != nil {
+		return err
 	}
 
 	shelf := file.File["shelf"]
@@ -107,24 +148,50 @@ func (s *visitsService) Update(ctx context.Context, id string, dto model.UpdateV
 		return errs.ErrorEmptyRequestBody
 	}
 
-	for _, f := range shelf {
+	for idx, f := range shelf {
 		if err := utils.ValidateFileType(f); err != nil {
-			return errs.ErrorInvalidFileFormat
-		}
-
-		savePath, err := utils.PathCreator(f.Filename, "visit_photos", "shelf", uid)
-		if err != nil {
 			return err
 		}
 
-		vp := &model.VisitPhotos{
-			VisitID:  uid,
-			PhotoURL: savePath,
+		if err := utils.ValidateFileSize(f); err != nil {
+			return err
 		}
 
-		s.photo.Create(ctx, vp)
-	}
+		ext := utils.GetFileExtension(f.Filename)
+		if ext == "" {
+			return errs.ErrorFileExt
+		}
+		timestamp := time.Now().Unix()
+		filename := fmt.Sprintf("%s_%d%s", strings.TrimSuffix(f.Filename, ext), timestamp, ext)
+		objectName := fmt.Sprintf(constants.VisitDir+constants.ShelfDir+"/%s/%s", uid, filename)
 
+		photoPath, err := s.minio.UploadFile(ctx, f, objectName)
+		if err != nil {
+			return fmt.Errorf("failed to upload shelf photo %d to minio: %w", idx+1, err)
+		}
+
+		localPath, err := utils.PathCreator(filename, constants.VisitDir, constants.ShelfDir, uid)
+		if err == nil {
+			if src, err := f.Open(); err == nil {
+				defer src.Close()
+				if dst, err := os.Create(localPath); err == nil {
+					defer dst.Close()
+					io.Copy(dst, src)
+				}
+			}
+		}
+
+		vp = &model.VisitPhotos{
+			PhotoURL:     photoPath,
+			OriginalName: f.Filename,
+			CapturedAt:   time.Now(),
+		}
+
+		err = s.photo.Create(ctx, vp)
+		if err != nil {
+			return err
+		}
+	}
 	return s.repo.Update(ctx, uid, dto)
 }
 
@@ -134,24 +201,4 @@ func (s *visitsService) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return s.repo.Delete(ctx, id)
-}
-
-const earthRadius = 6371000
-
-func Distance(lat1, lon1, lat2, lon2 float64) float64 {
-	lat1Rad := lat1 * math.Pi / 180
-	lon1Rad := lon1 * math.Pi / 180
-	lat2Rad := lat2 * math.Pi / 180
-	lon2Rad := lon2 * math.Pi / 180
-
-	dLat := lat2Rad - lat1Rad
-	dLon := lon2Rad - lon1Rad
-
-	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
-		math.Cos(lat1Rad)*math.Cos(lat2Rad)*
-			math.Sin(dLon/2)*math.Sin(dLon/2)
-
-	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-
-	return earthRadius * c
 }
