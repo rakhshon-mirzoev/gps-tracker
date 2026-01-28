@@ -22,7 +22,7 @@ type systemSettings struct {
 	DB *db.DB
 }
 
-func InitSystemSettingsRepository(db *db.DB) SystemSettingsRepository {
+func NewSystemSettingsRepository(db *db.DB) SystemSettingsRepository {
 	return &systemSettings{DB: db}
 }
 

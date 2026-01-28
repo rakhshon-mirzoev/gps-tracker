@@ -16,6 +16,7 @@ type Service struct {
 	Visit              Visits
 	Store              Stores
 	Location           LocationHistory
+	SystemSettings     SystemSettings
 }
 
 func New(r *repository.Repository, t token.Token, minio minioservice.Minio) *Service {
@@ -27,14 +28,16 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio) *Ser
 	visit := NewVisitsService(r.Visit, minio)
 	store := NewStoresService(r.Store)
 	location := NewLocationHistoryService(r.Location)
+	ss := NewSystemSettingsService(r.SystemSettings)
 	return &Service{
-		SystemUsers: sys,
-		Group:       group,
-		StaffUser:   staff,
-		Authorize:   authorize,
-		Schedule:    sch,
-		Visit:       visit,
-		Store:       store,
-		Location:    location,
+		SystemUsers:    sys,
+		Group:          group,
+		StaffUser:      staff,
+		Authorize:      authorize,
+		Schedule:       sch,
+		Visit:          visit,
+		Store:          store,
+		Location:       location,
+		SystemSettings: ss,
 	}
 }

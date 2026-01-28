@@ -9,7 +9,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 )
 
-type SystemSettingsService interface {
+type SystemSettings interface {
 	Create(ctx context.Context, ss *model.SystemSettings) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemSettings, error)
 	List(ctx context.Context) ([]model.SystemSettings, error)
@@ -21,7 +21,7 @@ type systemSettingsService struct {
 	repo repository.SystemSettingsRepository
 }
 
-func NewSystemSettingsService(repo repository.SystemSettingsRepository) SystemSettingsService {
+func NewSystemSettingsService(repo repository.SystemSettingsRepository) SystemSettings {
 	return &systemSettingsService{repo: repo}
 }
 
