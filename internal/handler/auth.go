@@ -4,7 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
@@ -23,18 +25,21 @@ func (h *Handler) Login(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 			return
 		}
+		logger.Log.Errorf("Login: get by login err: %w", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	access_token, refresh_token, err := h.s.Authorize.Authenticate(auth.Password, u)
 	if err != nil {
+		logger.Log.Errorf("Login: failed to authenticate: %w", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
 
 	err = h.s.Authorize.UpsertRefreshToken(ctx, u.ID, u.Type, refresh_token)
 	if err != nil {
+		logger.Log.Errorf("Login: failed to upsert: %w", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "failed to create refresh_token"})
 		return
 	}
@@ -43,18 +48,26 @@ func (h *Handler) Login(c *gin.Context) {
 
 }
 
-func (h *Handler) Register(c *gin.Context) {
+func (h *Handler) RegisterSystem(c *gin.Context) {
+	h.register(c, constants.UserTypeSystem)
+}
+
+func (h *Handler) RegisterStaff(c *gin.Context) {
+	h.register(c, constants.UserTypeStaff)
+}
+
+func (h *Handler) register(c *gin.Context, utype string) {
 	var user model.CreateUser
 
-	utype := c.Param("type")
-
 	if err := c.ShouldBindJSON(&user); err != nil {
+		logger.Log.Errorf("Register: failed to bind: %w", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	existUser, err := h.s.Authorize.GetByLogin(c.Request.Context(), user.Login)
 	if err != nil && err != errs.ErrorNotFound {
+		logger.Log.Errorf("Register: failed to getbylogin: %w", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -66,7 +79,8 @@ func (h *Handler) Register(c *gin.Context) {
 
 	err = h.s.Authorize.Create(c.Request.Context(), &user, utype)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Log.Errorf("Register: failed to create user: %w", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
 		return
 	}
 
@@ -80,12 +94,14 @@ func (h *Handler) Refresh(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		logger.Log.Errorf("Refresh: failed to bind ref: %w", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "can't bind request"})
 		return
 	}
 
 	access, refresh, err := h.s.Authorize.Refresh(c.Request.Context(), req.RefreshToken)
 	if err != nil {
+		logger.Log.Errorf("Refresh: failed to refresh: %w", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
 		return
 	}
@@ -102,6 +118,7 @@ func (h *Handler) Logout(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Log.Errorf("Logout: failed to bind ref: %w", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -111,6 +128,7 @@ func (h *Handler) Logout(c *gin.Context) {
 			c.Status(http.StatusNoContent)
 			return
 		}
+		logger.Log.Errorf("Logout: failed to logout: %w", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

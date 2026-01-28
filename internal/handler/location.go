@@ -31,5 +31,4 @@ func (h *Handler) Location(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "location created: " + loc.ID.String()})
-
 }

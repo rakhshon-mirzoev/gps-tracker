@@ -13,20 +13,20 @@ func (h *Handler) VisitCheckIn(c *gin.Context) {
 	user_id, err := checkStaffUser(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		logger.Log.Errorf("failed to check staff user: %w", err)
+		logger.Log.Errorf("VisitCheckIn: failed to check staff user: %w", err)
 		return
 	}
 
 	if err := c.ShouldBindJSON(&visit); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		logger.Log.Errorf("failed to check bind visit: %w", err)
+		logger.Log.Errorf("VisitCheckIn: failed to check bind visit: %w", err)
 		return
 	}
 
 	err = h.s.Visit.Create(c.Request.Context(), visit, user_id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		logger.Log.Errorf("failed to create visit: %w", err)
+		logger.Log.Errorf("VisitCheckIn: failed to create visit: %w", err)
 		return
 	}
 
@@ -42,14 +42,14 @@ func (h *Handler) VisitPhoto(c *gin.Context) {
 	file, err := c.MultipartForm()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ошибка при получении файлов: " + err.Error()})
-		logger.Log.Errorf("multipart form: %w", err)
+		logger.Log.Errorf("VisitPhoto: multipart form: %w", err)
 		return
 	}
 
 	err = h.s.Visit.VisitPhoto(c.Request.Context(), vID, dto, file)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		logger.Log.Errorf("failed to update visit: %w", err)
+		logger.Log.Errorf("VisitPhoto: failed to update visit: %w", err)
 		return
 	}
 
@@ -64,14 +64,14 @@ func (h *Handler) VisitComplete(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		logger.Log.Errorf("failed to bind dto: %w", err)
+		logger.Log.Errorf("VisitComplete: failed to bind dto: %w", err)
 		return
 	}
 
 	err := h.s.Visit.VisitComplete(c.Request.Context(), vID, dto)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		logger.Log.Errorf("failed to update visit: %w", err)
+		logger.Log.Errorf("VisitComplete: failed to update visit: %w", err)
 		return
 	}
 

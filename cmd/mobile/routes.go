@@ -28,7 +28,7 @@ func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Ha
 	auth := api.Group(constants.AuthGroup + "/" + constants.UserTypeStaff)
 	{
 		auth.POST("/login", h.Login)
-		auth.POST("/register", h.Register)
+		auth.POST("/register", h.RegisterStaff)
 		auth.POST("/refresh", h.Refresh)
 		auth.POST("/logout", h.Logout)
 	}

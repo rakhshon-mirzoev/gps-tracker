@@ -5,7 +5,9 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
+	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 )
@@ -35,4 +37,18 @@ func getLimitOffset(c *gin.Context) (int, int, error) {
 		return 0, 0, err
 	}
 	return lim, off, nil
+}
+
+func checkStaffUser(c *gin.Context) (uuid.UUID, error) {
+	user_id, ok := c.Get("user_id")
+	if !ok {
+		return uuid.Nil, errs.ErrorPermissionDenied
+	}
+
+	role, _ := c.Get("role")
+	if role != "staff" {
+		return uuid.Nil, errs.ErrorPermissionDenied
+	}
+
+	return user_id.(uuid.UUID), nil
 }
