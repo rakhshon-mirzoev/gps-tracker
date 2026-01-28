@@ -26,7 +26,7 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 
 	}
 
-	auth := api.Group(constants.AuthGroup + constants.UserTypeSystem)
+	auth := api.Group(constants.AuthGroup + "/" + constants.UserTypeSystem)
 	{
 		auth.POST("/login", h.Login)
 		auth.POST("/register", h.RegisterSystem)
