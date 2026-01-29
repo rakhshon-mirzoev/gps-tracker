@@ -35,6 +35,7 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 	}
 
 	admin := api.Group(constants.AdminGroup)
+	admin.Use(mw.Auth())
 	{
 		staff := admin.Group(constants.UserTypeStaff)
 		{
