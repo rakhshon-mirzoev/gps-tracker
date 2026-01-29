@@ -60,7 +60,7 @@ func checkSystemUser(c *gin.Context) (uuid.UUID, error) {
 	}
 
 	role, _ := c.Get("role")
-	if role != "admin" || role != "supervisor" {
+	if role != "admin" && role != "supervisor" {
 		return uuid.Nil, errs.ErrorPermissionDenied
 	}
 

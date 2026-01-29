@@ -38,10 +38,10 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 	{
 		staff := admin.Group(constants.UserTypeStaff)
 		{
-			staff.GET(constants.UserTypeStaff, h.ListStaffUsers)
-			staff.POST(constants.UserTypeStaff, h.CreateStaffUser)
-			staff.PUT(constants.UserTypeStaff+"/:id", h.UpdateStaffUser)
-			staff.PATCH(constants.UserTypeStaff+"/:id/deactivate", h.DeactivateStaffUser)
+			staff.GET("", h.ListStaffUsers)
+			staff.POST("", h.CreateStaffUser)
+			staff.PUT("/:id", h.UpdateStaffUser)
+			staff.PATCH("/:id/deactivate", h.DeactivateStaffUser)
 		}
 
 		store := admin.Group(constants.Stores)
