@@ -11,11 +11,11 @@ import (
 func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Handler, m *miniohandler.MinioHandler) {
 	api := r.Group("/api/v1")
 
-	api.Use(mw.CorsMiddleWare()) /*,
-		a.middleware.Recovery(),
-		a.middleware.RequestID(),
-		a.middleware.Logger(),
-	) */
+	api.Use(mw.CorsMiddleWare(),
+		mw.Recovery(),
+		mw.RequestID(),
+		mw.Logger(),
+	)
 	{
 		api.GET("/ping", h.Ping)
 	}
