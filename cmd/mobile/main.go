@@ -77,7 +77,7 @@ func run() error {
 	defer stop()
 
 	go func() {
-		addr := fmt.Sprintf("%s:%s", cfg.Mobile.Host, cfg.Mobile.Port)
+		addr := fmt.Sprintf(":%s", cfg.Mobile.Port)
 		if err := app.Run(addr); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}
