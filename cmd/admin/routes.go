@@ -33,4 +33,22 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 		auth.POST("/refresh", h.Refresh)
 		auth.POST("/logout", h.Logout)
 	}
+
+	admin := api.Group(constants.AdminGroup)
+	{
+		staff := admin.Group(constants.UserTypeStaff)
+		{
+			staff.GET(constants.UserTypeStaff, h.ListStaffUsers)
+			staff.POST(constants.UserTypeStaff, h.CreateStaffUser)
+			staff.PUT(constants.UserTypeStaff+"/:id", h.UpdateStaffUser)
+			staff.PATCH(constants.UserTypeStaff+"/:id/deactivate", h.DeactivateStaffUser)
+		}
+
+		store := admin.Group(constants.Stores)
+		{
+			store.GET(constants.Stores, h.ListStores)
+			store.PATCH("/:id/approve", h.ApproveStore)
+		}
+	}
+
 }

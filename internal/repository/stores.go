@@ -20,7 +20,7 @@ type stores struct {
 type StoreRepository interface {
 	Create(ctx context.Context, store *model.Store) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error)
-	Update(ctx context.Context, store *model.Store) error
+	Update(ctx context.Context, store model.UpdateStore, id uuid.UUID) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context, filter model.StoreListFilter) ([]*model.Store, int, error)
 	Deactivate(ctx context.Context, id, deactivatedBy uuid.UUID, reason string) error
@@ -110,34 +110,92 @@ func (r *stores) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error
 	return store, nil
 }
 
-func (r *stores) Update(ctx context.Context, store *model.Store) error {
-	sql := `
-		UPDATE stores
-		SET 
-			name = $1,
-			address = $2,
-			owner_full_name = $3,
-			owner_inn = $4,
-			owner_passport = $5,
-			status = $6,
-			rejection_comment = $7,
-			is_active = $8,
-			is_frozen = $9
-		WHERE id = $10`
+func (r *stores) Update(ctx context.Context, store model.UpdateStore, id uuid.UUID) error {
+	var updates []string
+	var args []interface{}
+	argNum := 1
 
-	ct, err := r.DB.Pool.Exec(ctx, sql,
-		store.Name,
-		store.Address,
-		store.OwnerFullName,
-		store.OwnerINN,
-		store.OwnerPassport,
-		store.Status,
-		store.RejectionComment,
-		store.IsActive,
-		store.IsFrozen,
-		store.ID,
+	if store.Name != nil {
+		updates = append(updates, fmt.Sprintf("name = $%d", argNum))
+		args = append(args, *store.Name)
+		argNum++
+	}
+
+	if store.Address != nil {
+		updates = append(updates, fmt.Sprintf("address = $%d", argNum))
+		args = append(args, *store.Address)
+		argNum++
+	}
+
+	if store.Latitude != nil {
+		updates = append(updates, fmt.Sprintf("latitude = $%d", argNum))
+		args = append(args, *store.Latitude)
+		argNum++
+	}
+
+	if store.Longitude != nil {
+		updates = append(updates, fmt.Sprintf("longitude = $%d", argNum))
+		args = append(args, *store.Longitude)
+		argNum++
+	}
+
+	if store.OwnerFullName != nil {
+		updates = append(updates, fmt.Sprintf("owner_full_name = $%d", argNum))
+		args = append(args, *store.OwnerFullName)
+		argNum++
+	}
+
+	if store.OwnerINN != nil {
+		updates = append(updates, fmt.Sprintf("owner_inn = $%d", argNum))
+		args = append(args, *store.OwnerINN)
+		argNum++
+	}
+
+	if store.OwnerPassport != nil {
+		updates = append(updates, fmt.Sprintf("owner_passport = $%d", argNum))
+		args = append(args, *store.OwnerPassport)
+		argNum++
+	}
+
+	if store.Status != nil {
+		updates = append(updates, fmt.Sprintf("status = $%d", argNum))
+		args = append(args, *store.Status)
+		argNum++
+	}
+
+	if store.RejectionComment != nil {
+		updates = append(updates, fmt.Sprintf("rejection_comment = $%d", argNum))
+		args = append(args, *store.RejectionComment)
+		argNum++
+	}
+
+	if store.IsActive != nil {
+		updates = append(updates, fmt.Sprintf("is_active = $%d", argNum))
+		args = append(args, *store.IsActive)
+		argNum++
+	}
+
+	if store.IsFrozen != nil {
+		updates = append(updates, fmt.Sprintf("is_frozen = $%d", argNum))
+		args = append(args, *store.IsFrozen)
+		argNum++
+	}
+
+	if len(updates) == 0 {
+		return nil
+	}
+
+	sql := fmt.Sprintf(`
+		UPDATE stores
+		SET %s
+		WHERE id = $%d`,
+		utils.Join(updates, ", "),
+		argNum,
 	)
 
+	args = append(args, id)
+
+	ct, err := r.DB.Pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return fmt.Errorf("update store: %w", err)
 	}

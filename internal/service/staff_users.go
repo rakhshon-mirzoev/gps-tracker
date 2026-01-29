@@ -12,10 +12,10 @@ import (
 )
 
 type StaffUsers interface {
-	Create(ctx context.Context, dto model.CreateStaffUser) error
+	Create(ctx context.Context, dto model.CreateStaffUser, admin_id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error)
 	Delete(ctx context.Context, id uuid.UUID) error
-	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser, user_id uuid.UUID) error
 	List(ctx context.Context) ([]model.StaffUser, error)
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 	GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error)
@@ -23,6 +23,7 @@ type StaffUsers interface {
 type staffUserService struct {
 	r         repository.StaffUsersRepository
 	schedules Schedule
+	audit     AuditLogs
 }
 
 func NewStaffUserService(r repository.StaffUsersRepository, sch Schedule) StaffUsers {
@@ -48,7 +49,7 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 	}, nil
 }
 
-func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser) error {
+func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser, admin_id uuid.UUID) error {
 	if dto.Password != dto.ConfirmPassword {
 		return errs.ErrorPasswordsDoNotMatch
 	}
@@ -84,7 +85,7 @@ func (s *staffUserService) List(ctx context.Context) ([]model.StaffUser, error) 
 	return s.r.List(ctx)
 }
 
-func (s *staffUserService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error {
+func (s *staffUserService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser, user_id uuid.UUID) error {
 	return s.r.Update(ctx, id, dto)
 }
 

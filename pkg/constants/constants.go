@@ -10,4 +10,6 @@ const (
 	ShelfDir       = "shelf"
 	SelfieDir      = "selfie"
 	VisitGroup     = "visit"
+	AdminGroup     = "admin"
+	Stores         = "stores"
 )

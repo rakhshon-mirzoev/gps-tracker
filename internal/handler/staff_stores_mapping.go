@@ -7,7 +7,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 )
 
-func (h *Handler) ListStores(c *gin.Context) {
+func (h *Handler) ListStoresByStaffId(c *gin.Context) {
 	user_id, err := checkStaffUser(c)
 	if err != nil {
 		logger.Log.Errorf("ListStores: failed to check user: %w", err)

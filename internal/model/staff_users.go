@@ -30,12 +30,15 @@ type StaffUser struct {
 }
 
 type UpdateStaffUser struct {
-	FullName    *string    `json:"full_name"`
-	PhoneNumber *string    `json:"phone_number"`
-	IsActive    *bool      `json:"is_active"`
-	GroupID     *uuid.UUID `json:"group_id"`
-	FcmToken    *string    `json:"fcm_token"`
-	DeviceId    *string    `json:"device_id"`
+	FullName           *string    `json:"full_name"`
+	PhoneNumber        *string    `json:"phone_number"`
+	IsActive           *bool      `json:"is_active"`
+	GroupID            *uuid.UUID `json:"group_id"`
+	FcmToken           *string    `json:"fcm_token"`
+	DeviceId           *string    `json:"device_id"`
+	DeactivatedAt      *time.Time `json:"deactivated_at"`
+	DeactivatedByID    *uuid.UUID `json:"deactivated_by_id"`
+	DeactivationReason *string    `json:"deactivation_reason"`
 }
 
 type CreateStaffUser struct {

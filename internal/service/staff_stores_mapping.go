@@ -12,7 +12,7 @@ import (
 type StaffStoresMapping interface {
 	Create(ctx context.Context, ssm *model.StaffStoresMapping) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffStoresMapping, error)
-	List(ctx context.Context, staffID uuid.UUID) ([]model.StaffStoresMapping, error)
+	// List(ctx context.Context, staffID uuid.UUID) ([]model.StaffStoresMapping, error)
 	Update(ctx context.Context, ssm *model.StaffStoresMapping) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]*model.Store, error)
