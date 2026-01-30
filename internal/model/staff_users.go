@@ -12,6 +12,7 @@ type StaffUser struct {
 	FullName            string     `db:"full_name" json:"full_name"`
 	Login               string     `db:"login" json:"login"`
 	PhoneNumber         string     `db:"phone_number" json:"phone_number"`
+	Role                string     `json:"role" db:"role"`
 	Inn                 string     `db:"inn" json:"inn"`
 	Birthday            *time.Time `db:"birthday" json:"birthday"`
 	PasswordHash        string     `db:"password_hash" json:"-"`

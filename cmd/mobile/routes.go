@@ -34,7 +34,7 @@ func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Ha
 	}
 
 	mobi := api.Group(constants.MobileGroup)
-	mobi.Use(mw.Auth(), mw.Role())
+	mobi.Use(mw.Auth(), mw.Mobile())
 	{
 		mobi.GET("/profile", h.Profile)
 		mobi.PUT("/device-token", h.AttachDevice)

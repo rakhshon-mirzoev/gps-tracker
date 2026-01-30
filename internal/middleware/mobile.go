@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (s *MiddlewareService) Role() gin.HandlerFunc {
+func (s *MiddlewareService) Mobile() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, ok := c.Get("user_id")
 		if !ok {
@@ -22,19 +22,10 @@ func (s *MiddlewareService) Role() gin.HandlerFunc {
 			c.Abort()
 		}
 
-		switch role {
-		case "administrator":
+		if role == "staff" {
 			c.Next()
-		case "supervisor":
-			c.Next()
-		case "staff":
-			_, ok := c.Get("group_id")
-			if !ok {
-				c.AbortWithStatus(http.StatusForbidden)
-			}
-			c.Next()
-		default:
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "no role user"})
+		} else {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "not staff"})
 		}
 
 	}

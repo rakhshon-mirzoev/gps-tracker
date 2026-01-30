@@ -57,7 +57,7 @@ func (r *staffUsers) Create(ctx context.Context, u *model.StaffUser) error {
 
 func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error) {
 	query := `
-		SELECT id, group_id, full_name, login, is_active, created_at
+		SELECT id, group_id, full_name, role, login, is_active, created_at
 		FROM staff_users
 		WHERE id = $1
 	`
@@ -68,6 +68,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 		&u.ID,
 		&u.GroupID,
 		&u.FullName,
+		&u.Role,
 		&u.Login,
 		&u.IsActive,
 		&u.CreatedAt,
@@ -85,7 +86,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 
 func (r *staffUsers) List(ctx context.Context) ([]model.StaffUser, error) {
 	query := `
-		SELECT id, full_name, login, is_active, created_at
+		SELECT id, full_name, role, login, is_active, created_at
 		FROM staff_users
 		ORDER BY created_at DESC
 	`
@@ -103,6 +104,7 @@ func (r *staffUsers) List(ctx context.Context) ([]model.StaffUser, error) {
 		if err := rows.Scan(
 			&u.ID,
 			&u.FullName,
+			&u.Role,
 			&u.Login,
 			&u.IsActive,
 			&u.CreatedAt,
