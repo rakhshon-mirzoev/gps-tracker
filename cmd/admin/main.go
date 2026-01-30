@@ -51,7 +51,7 @@ func run() error {
 		return err
 	}
 
-	token := token.InitTokenService(os.Getenv("SECRET_KEY"), time.Duration(cfg.Admin.TTLMinutes))
+	token := token.InitTokenService(os.Getenv("SECRET_KEY"), time.Duration(cfg.Admin.TTLMinutes)*time.Minute)
 
 	repository := repository.New(db)
 	service := service.New(repository, token, client)

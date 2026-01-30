@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 )
 
 type ctxKey string
@@ -33,7 +34,8 @@ func (s *MiddlewareService) Auth() gin.HandlerFunc {
 
 		claims, err := s.t.ParseToken(tokenStr)
 		if err != nil {
-			c.AbortWithStatusJSON(401, gin.H{"error": "invalid token"})
+			logger.Log.Errorf("Auth: parse token error: %v", err)
+			c.AbortWithStatusJSON(401, gin.H{"error": err.Error()})
 			return
 		}
 
