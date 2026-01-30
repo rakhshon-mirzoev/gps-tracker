@@ -12,4 +12,5 @@ const (
 	VisitGroup     = "visit"
 	AdminGroup     = "admin"
 	Stores         = "stores"
+	Group          = "groups"
 )

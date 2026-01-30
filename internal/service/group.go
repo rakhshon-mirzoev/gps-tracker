@@ -12,7 +12,7 @@ type Group interface {
 	Create(ctx context.Context, group *model.Group) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Group, error)
-	Update(ctx context.Context, gr *model.Group) error
+	Update(ctx context.Context, gr model.Group, id uuid.UUID) error
 	List(ctx context.Context, supervisorID *uuid.UUID) ([]model.Group, error)
 }
 
@@ -40,6 +40,6 @@ func (g *GroupService) GetByID(ctx context.Context, id uuid.UUID) (*model.Group,
 	return g.r.GetByID(ctx, id)
 }
 
-func (g *GroupService) Update(ctx context.Context, gr *model.Group) error {
-	return g.r.Update(ctx, gr)
+func (g *GroupService) Update(ctx context.Context, gr model.Group, id uuid.UUID) error {
+	return g.r.Update(ctx, gr, id)
 }

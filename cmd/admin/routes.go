@@ -50,6 +50,15 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			store.GET(constants.Stores, h.ListStores)
 			store.PATCH("/:id/approve", h.ApproveStore)
 		}
+
+		group := admin.Group(constants.Group)
+		{
+			group.POST("", h.CreateGroup)
+			group.DELETE("/:id", h.DeleteGroup)
+			group.GET("/:id", h.GetByIdGroup)
+			group.GET("", h.ListGroups)
+			group.PUT("/:id", h.UpdateGroup)
+		}
 	}
 
 }

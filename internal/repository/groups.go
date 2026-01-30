@@ -21,7 +21,7 @@ type GroupsRepository interface {
 	Create(context.Context, *model.Group) error
 	List(ctx context.Context, supervisorID *uuid.UUID) ([]model.Group, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Group, error)
-	Update(ctx context.Context, gr *model.Group) error
+	Update(ctx context.Context, gr model.Group, id uuid.UUID) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -134,14 +134,14 @@ func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Gr
 	return &gr, nil
 }
 
-func (g *groupsRepository) Update(ctx context.Context, gr *model.Group) error {
+func (g *groupsRepository) Update(ctx context.Context, gr model.Group, id uuid.UUID) error {
 	sql := `
 		UPDATE groups 
 		SET name = $1,
 			supervisor_id = $2
 		WHERE id = $3
 	`
-	ct, err := g.DB.Pool.Exec(ctx, sql, gr.Name, gr.SupervisorID, gr.ID)
+	ct, err := g.DB.Pool.Exec(ctx, sql, gr.Name, gr.SupervisorID, id)
 
 	if err != nil {
 		return err
