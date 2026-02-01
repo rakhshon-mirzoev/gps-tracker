@@ -108,7 +108,11 @@ func (s *authorizeService) UpsertRefreshToken(ctx context.Context, id uuid.UUID,
 }
 
 func (s *authorizeService) Refresh(ctx context.Context, oldRefreshToken string) (accessToken string, refreshToken string, err error) {
-	var gId *uuid.UUID
+	var (
+		gId     *uuid.UUID
+		user_id uuid.UUID
+		role    string
+	)
 
 	ref, err := s.r.GetRefreshByToken(ctx, oldRefreshToken)
 	if err != nil {
@@ -130,12 +134,23 @@ func (s *authorizeService) Refresh(ctx context.Context, oldRefreshToken string) 
 			return "", "", err
 		}
 		gId = &user.GroupID
+		user_id = user.ID
+		role = user.Role
+	}
+
+	if ref.UserType == constants.UserTypeSystem {
+		user, err := s.sys.GetByID(ctx, ref.UserID)
+		if err != nil {
+			return "", "", err
+		}
+		user_id = user.ID
+		role = user.Role
 	}
 
 	accessToken, err = s.t.GenerateToken(
-		ref.UserID,
+		user_id,
 		gId,
-		ref.Role,
+		role,
 	)
 	if err != nil {
 		return "", "", err
