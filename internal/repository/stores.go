@@ -184,6 +184,47 @@ func (r *stores) Update(ctx context.Context, store model.UpdateStore, id uuid.UU
 	if len(updates) == 0 {
 		return nil
 	}
+	if store.CreatedByStaffID != nil {
+		staffID, err := uuid.Parse(*store.CreatedByStaffID)
+		if err != nil {
+			return fmt.Errorf("invalid created_by_staff_id: %w", err)
+		}
+		updates = append(updates, fmt.Sprintf("created_by_staff_id = $%d", argNum))
+		args = append(args, staffID)
+		argNum++
+	}
+
+	if store.CreatedByAdminID != nil {
+		adminID, err := uuid.Parse(*store.CreatedByAdminID)
+		if err != nil {
+			return fmt.Errorf("invalid created_by_admin_id: %w", err)
+		}
+		updates = append(updates, fmt.Sprintf("created_by_admin_id = $%d", argNum))
+		args = append(args, adminID)
+		argNum++
+	}
+
+	if store.DeactivatedByID != nil {
+		deactivatedByID, err := uuid.Parse(*store.DeactivatedByID)
+		if err != nil {
+			return fmt.Errorf("invalid deactivated_by_id: %w", err)
+		}
+		updates = append(updates, fmt.Sprintf("deactivated_by_id = $%d", argNum))
+		args = append(args, deactivatedByID)
+		argNum++
+	}
+
+	if store.DeactivatedAt != nil {
+		updates = append(updates, fmt.Sprintf("deactivated_at = $%d", argNum))
+		args = append(args, *store.DeactivatedAt)
+		argNum++
+	}
+
+	if store.DeactivationReason != nil {
+		updates = append(updates, fmt.Sprintf("deactivation_reason = $%d", argNum))
+		args = append(args, *store.DeactivationReason)
+		argNum++
+	}
 
 	sql := fmt.Sprintf(`
 		UPDATE stores
