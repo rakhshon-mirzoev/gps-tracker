@@ -178,13 +178,6 @@ func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateS
 		args = append(args, *dto.DeviceId)
 		n++
 	}
-
-	if dto.DeactivatedAt != nil {
-		query += fmt.Sprintf("deactivated_at = $%d, ", n)
-		args = append(args, *dto.DeactivatedAt)
-		n++
-	}
-
 	if dto.DeactivatedByID != nil {
 		query += fmt.Sprintf("deactivated_by_id = $%d, ", n)
 		args = append(args, *dto.DeactivatedByID)
@@ -192,7 +185,7 @@ func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateS
 	}
 
 	if dto.DeactivationReason != nil {
-		query += fmt.Sprintf("deactivated_reason = $%d, ", n)
+		query += fmt.Sprintf("deactivation_reason = $%d, ", n)
 		args = append(args, *dto.DeactivationReason)
 		n++
 	}

@@ -91,6 +91,7 @@ func (s *staffUserService) List(ctx context.Context) ([]model.StaffUser, error) 
 }
 
 func (s *staffUserService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser, user_id uuid.UUID) error {
+	dto.DeactivatedByID = &user_id
 	return s.r.Update(ctx, id, dto)
 }
 
