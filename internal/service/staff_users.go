@@ -54,13 +54,18 @@ func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser
 		return errs.ErrorPasswordsDoNotMatch
 	}
 
+	groupID, err := uuid.Parse(dto.GroupID)
+	if err != nil {
+		return errs.ErrorInvalidGroup
+	}
+
 	hash, err := utils.HashPassword(dto.Password)
 	if err != nil {
 		return errors.ErrorPasswordHashError
 	}
 
 	user := &model.StaffUser{
-		GroupID:             dto.GroupID,
+		GroupID:             groupID,
 		FullName:            dto.FullName,
 		Login:               dto.Login,
 		PhoneNumber:         dto.PhoneNumber,

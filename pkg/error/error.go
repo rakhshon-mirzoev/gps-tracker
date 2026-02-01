@@ -30,4 +30,5 @@ var (
 	ErrorExceedsFileSize     = errors.New("file size exceeds maximum allowed size")
 	ErrorFileEmpty           = errors.New("file size is empty")
 	ErrorFileExt             = errors.New("ext file error")
+	ErrorInvalidGroup        = errors.New("invalid group_id format")
 )

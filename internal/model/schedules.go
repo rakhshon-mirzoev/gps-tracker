@@ -21,9 +21,22 @@ type Schedule struct {
 	CreatedByAdminID  uuid.UUID `json:"created_by_admin_id" db:"created_by_admin_id"`
 }
 
+type CreateSchedule struct {
+	StaffID           string    `json:"staff_id" binding:"required"`
+	StoreID           string    `json:"store_id" binding:"required"`
+	PlannedDate       time.Time `json:"planned_date" binding:"required"`
+	Description       string    `json:"description" binding:"required"`
+	WindowOpen        time.Time `json:"window_open" binding:"required"`
+	WindowClose       time.Time `json:"window_close" binding:"required"`
+	IsPhotoRequired   bool      `json:"is_photo_required"`
+	IsSelfieRequired  bool      `json:"is_selfie_required"`
+	IsCommentRequired bool      `json:"is_comment_required"`
+	CreatedByAdminID  string    `json:"created_by_admin_id" binding:"required"`
+}
+
 type UpdateSchedule struct {
-	StaffID           *uuid.UUID `json:"staff_id"`
-	StoreID           *uuid.UUID `json:"store_id"`
+	StaffID           *string    `json:"staff_id"`
+	StoreID           *string    `json:"store_id"`
 	PlannedDate       *time.Time `json:"planned_date"`
 	Description       *string    `json:"description"`
 	WindowOpen        *time.Time `json:"window_open"`

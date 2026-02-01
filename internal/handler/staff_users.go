@@ -168,7 +168,7 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 }
 
 func (h *Handler) AssignSchedule(c *gin.Context) {
-	var dto *model.Schedule
+	var dto *model.CreateSchedule
 
 	adminID, err := checkSystemUser(c)
 	if err != nil {

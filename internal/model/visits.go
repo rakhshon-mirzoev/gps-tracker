@@ -27,9 +27,9 @@ type Visit struct {
 }
 
 type UpdateVisit struct {
-	ScheduleID        *uuid.UUID `json:"schedule_id"`
-	StaffID           *uuid.UUID `json:"staff_id"`
-	StoreID           *uuid.UUID `json:"store_id"`
+	ScheduleID        *string    `json:"schedule_id"`
+	StaffID           *string    `json:"staff_id"`
+	StoreID           *string    `json:"store_id"`
 	CheckInAt         *time.Time `json:"check_in_at"`
 	CheckOutAt        *time.Time `json:"check_out_at"`
 	CheckInLat        *float64   `json:"check_in_lat"`
@@ -45,9 +45,9 @@ type UpdateVisit struct {
 }
 
 type CreateVisit struct {
-	ScheduleID uuid.UUID `json:"schedule_id"`
-	StoreID    uuid.UUID `json:"store_id"`
-	Lat        float64   `json:"lat"`
-	Lon        float64   `json:"lon"`
-	CheckInAt  time.Time `json:"check_in_at"`
+	ScheduleID string    `json:"schedule_id" binding:"required"`
+	StoreID    string    `json:"store_id" binding:"required"`
+	Lat        float64   `json:"lat" binding:"required"`
+	Lon        float64   `json:"lon" binding:"required"`
+	CheckInAt  time.Time `json:"check_in_at" binding:"required"`
 }

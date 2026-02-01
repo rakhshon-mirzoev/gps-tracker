@@ -20,11 +20,11 @@ type AuditLogs struct {
 }
 
 type UpdateAuditLogs struct {
-	ActorID     *uuid.UUID             `json:"actor_id"`
+	ActorID     *string                `json:"actor_id"`
 	ActorType   *string                `json:"actor_type"`
 	Action      *string                `json:"action"`
 	TargetTable *string                `json:"target_table"`
-	TargetID    *uuid.UUID             `json:"target_id"`
+	TargetID    *string                `json:"target_id"`
 	OldValue    map[string]interface{} `json:"old_value"`
 	NewValue    map[string]interface{} `json:"new_value"`
 	IPAddress   *string                `json:"ip_address"`

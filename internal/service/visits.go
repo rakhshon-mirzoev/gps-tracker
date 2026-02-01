@@ -42,7 +42,17 @@ func NewVisitsService(repo repository.VisitRepository, minio minioservice.Minio)
 }
 
 func (s *visitsService) Create(ctx context.Context, v *model.CreateVisit, user_id uuid.UUID) error {
-	store, err := s.store.GetByID(ctx, v.StoreID)
+	storeID, err := uuid.Parse(v.StoreID)
+	if err != nil {
+		return err
+	}
+
+	scheduleID, err := uuid.Parse(v.ScheduleID)
+	if err != nil {
+		return err
+	}
+
+	store, err := s.store.GetByID(ctx, storeID)
 	if err != nil {
 		return err
 	}
@@ -54,8 +64,8 @@ func (s *visitsService) Create(ctx context.Context, v *model.CreateVisit, user_i
 
 	visit := &model.Visit{
 		StaffID:    user_id,
-		StoreID:    v.StoreID,
-		ScheduleID: &v.ScheduleID,
+		StoreID:    storeID,
+		ScheduleID: &scheduleID,
 		CheckInLat: &v.Lat,
 		CheckInLon: &v.Lon,
 		CheckInAt:  &v.CheckInAt,

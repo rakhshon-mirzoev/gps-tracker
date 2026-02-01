@@ -43,7 +43,7 @@ type UpdateStaffUser struct {
 }
 
 type CreateStaffUser struct {
-	GroupID         uuid.UUID  `json:"group_id" binding:"required"`
+	GroupID         string     `json:"group_id" binding:"required"`
 	FullName        string     `json:"full_name" binding:"required"`
 	Login           string     `json:"login" binding:"required"`
 	PhoneNumber     string     `json:"phone_number"`
