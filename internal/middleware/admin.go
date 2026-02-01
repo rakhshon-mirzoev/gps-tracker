@@ -22,7 +22,7 @@ func (s *MiddlewareService) Admin() gin.HandlerFunc {
 			c.Abort()
 		}
 
-		if role == "administrator" || role == "supervisor" {
+		if role == "admin" || role == "supervisor" {
 			c.Next()
 		} else {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "not admin"})
