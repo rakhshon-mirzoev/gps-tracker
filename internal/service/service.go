@@ -29,15 +29,17 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio) *Ser
 	store := NewStoresService(r.Store)
 	location := NewLocationHistoryService(r.Location)
 	ss := NewSystemSettingsService(r.SystemSettings)
+	ssm := NewStaffStoresMappingService(r.StaffStoresMapping)
 	return &Service{
-		SystemUsers:    sys,
-		Group:          group,
-		StaffUser:      staff,
-		Authorize:      authorize,
-		Schedule:       sch,
-		Visit:          visit,
-		Store:          store,
-		Location:       location,
-		SystemSettings: ss,
+		SystemUsers:        sys,
+		Group:              group,
+		StaffUser:          staff,
+		Authorize:          authorize,
+		Schedule:           sch,
+		Visit:              visit,
+		Store:              store,
+		Location:           location,
+		SystemSettings:     ss,
+		StaffStoresMapping: ssm,
 	}
 }

@@ -21,7 +21,7 @@ type staffStoresMapping struct {
 	DB *db.DB
 }
 
-func InitStaffStoresMappingRepository(db *db.DB) StaffStoresMappingRepository {
+func NewStaffStoresMappingRepository(db *db.DB) StaffStoresMappingRepository {
 	return &staffStoresMapping{DB: db}
 }
 
