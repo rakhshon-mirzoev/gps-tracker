@@ -44,10 +44,9 @@ func (r *schedules) Create(ctx context.Context, schedule *model.Schedule) error 
 			is_photo_required,
 			is_selfie_required,
 			is_comment_required,
-			status,
 			created_by_admin_id
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id`
 
 	err := r.DB.Pool.QueryRow(
@@ -62,7 +61,6 @@ func (r *schedules) Create(ctx context.Context, schedule *model.Schedule) error 
 		schedule.IsPhotoRequired,
 		schedule.IsSelfieRequired,
 		schedule.IsCommentRequired,
-		schedule.Status,
 		schedule.CreatedByAdminID,
 	).Scan(&schedule.ID)
 

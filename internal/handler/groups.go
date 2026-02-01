@@ -30,7 +30,7 @@ func (h *Handler) CreateGroup(c *gin.Context) {
 }
 
 func (h *Handler) DeleteGroup(c *gin.Context) {
-	uid, err := uuid.FromBytes([]byte(c.Param("id")))
+	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		logger.Log.Errorf("DeleteGroup: failed to convert id to uuid: %w", err)
@@ -51,7 +51,7 @@ func (h *Handler) DeleteGroup(c *gin.Context) {
 }
 
 func (h *Handler) GetByIdGroup(c *gin.Context) {
-	uid, err := uuid.FromBytes([]byte(c.Param("id")))
+	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		logger.Log.Errorf("GetByID: failed to convert id to uuid: %w", err)
@@ -92,7 +92,7 @@ func (h *Handler) ListGroups(c *gin.Context) {
 func (h *Handler) UpdateGroup(c *gin.Context) {
 	var dto model.Group
 
-	uid, err := uuid.FromBytes([]byte(c.Param("id")))
+	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		logger.Log.Errorf("UpdateGroup: failed to convert id to uuid: %w", err)

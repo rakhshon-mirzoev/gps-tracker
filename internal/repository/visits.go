@@ -14,6 +14,7 @@ type VisitRepository interface {
 	Create(ctx context.Context, v *model.Visit) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
+	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.Visit, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -221,6 +222,59 @@ func (r *visit) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit)
 	}
 
 	return nil
+}
+
+func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.Visit, int, error) {
+	const defaultLimit = 20
+
+	if limit <= 0 {
+		limit = defaultLimit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	var total int
+	countSQL := `SELECT COUNT(*) FROM visits WHERE review_status = $1`
+	if err := r.DB.Pool.QueryRow(ctx, countSQL, status).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	sql := `
+		SELECT id, schedule_id, staff_id, store_id, check_in_at, check_out_at,
+			   check_in_lat, check_in_lon, distance_deviation, selfie_url, comment,
+			   is_offline, review_status, review_comment, reviewer_id,
+			   reviewed_at, created_at
+		FROM visits WHERE review_status = $1 and reviewer_id = $2
+		ORDER BY created_at DESC
+		LIMIT $3 OFFSET $4
+	`
+
+	rows, err := r.DB.Pool.Query(ctx, sql, status, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var visits []model.Visit
+	for rows.Next() {
+		var v model.Visit
+		if err := rows.Scan(
+			&v.ID, &v.ScheduleID, &v.StaffID, &v.StoreID, &v.CheckInAt, &v.CheckOutAt,
+			&v.CheckInLat, &v.CheckInLon, &v.DistanceDeviation, &v.SelfieURL, &v.Comment,
+			&v.IsOffline, &v.ReviewStatus, &v.ReviewComment, &v.ReviewerID,
+			&v.ReviewedAt, &v.CreatedAt,
+		); err != nil {
+			return nil, 0, err
+		}
+		visits = append(visits, v)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return visits, total, nil
 }
 
 func (r *visit) Delete(ctx context.Context, id uuid.UUID) error {

@@ -100,7 +100,7 @@ func (h *Handler) CreateStaffUser(c *gin.Context) {
 func (h *Handler) UpdateStaffUser(c *gin.Context) {
 	var dto model.UpdateStaffUser
 
-	uid, err := uuid.FromBytes([]byte(c.Param("id")))
+	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		logger.Log.Errorf("UpdateStaffUser: failed to convert id to uuid: %w", err)
@@ -141,7 +141,7 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 		return
 	}
 
-	uid, err := uuid.FromBytes([]byte(c.Param("id")))
+	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		logger.Log.Errorf("DeactivateStaffUser: failed to convert id to uuid: %w", err)
@@ -165,4 +165,28 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "deactivation complete"})
+}
+
+func (h *Handler) AssignSchedule(c *gin.Context) {
+	var dto *model.Schedule
+
+	adminID, err := checkSystemUser(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		logger.Log.Errorf("AssignSchedule: failed bind: %w", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.s.Schedule.Create(c.Request.Context(), dto, adminID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Log.Errorf("AssignSchedule: failed create: %w", err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"schedule": dto})
 }

@@ -2,10 +2,13 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
+	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 func (h *Handler) VisitCheckIn(c *gin.Context) {
@@ -76,4 +79,79 @@ func (h *Handler) VisitComplete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "visit complete"})
+}
+
+func (h *Handler) ReviewQueue(c *gin.Context) {
+	id, err := checkSystemUser(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err})
+		return
+	}
+
+	lim, off, err := getLimitOffset(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		logger.Log.Errorf("ReviewQueue: failed to get limit/offset: %w", err)
+		return
+	}
+
+	visits, total, err := h.s.Visit.ListByReviewStatus(c.Request.Context(), "pending", lim, off, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		logger.Log.Errorf("ReviewQueue: failed to list visits: %w", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"visits": visits, "total": total})
+}
+
+func (h *Handler) ReviewVisit(c *gin.Context) {
+	var reviewDTO struct {
+		Status        string `json:"status" binding:"required"`
+		ReviewComment string `json:"review_comment"`
+	}
+
+	reviewerID, err := checkSystemUser(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err})
+		return
+	}
+
+	visitID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid visit id"})
+		logger.Log.Errorf("ReviewVisit: failed to parse id: %w", err)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&reviewDTO); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		logger.Log.Errorf("ReviewVisit: failed to bind dto: %w", err)
+		return
+	}
+
+	if reviewDTO.Status != "approved" && reviewDTO.Status != "rejected" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status must be 'approved' or 'rejected'"})
+		return
+	}
+
+	now := time.Now()
+	dto := model.UpdateVisit{
+		ReviewStatus:  &reviewDTO.Status,
+		ReviewComment: &reviewDTO.ReviewComment,
+		ReviewerID:    &reviewerID,
+		ReviewedAt:    &now,
+	}
+
+	if err := h.s.Visit.UpdateVisit(c.Request.Context(), visitID, dto); err != nil {
+		if err == errs.ErrorNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "visit not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Log.Errorf("ReviewVisit: failed to update visit: %w", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "review completed", "status": reviewDTO.Status})
 }

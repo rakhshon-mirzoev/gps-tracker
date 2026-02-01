@@ -10,7 +10,7 @@ import (
 )
 
 type Schedule interface {
-	Create(ctx context.Context, schedule *model.Schedule) error
+	Create(ctx context.Context, schedule *model.Schedule, adminID uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Schedule, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateSchedule) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -28,7 +28,8 @@ func NewScheduleService(r repository.ScheduleRepository) Schedule {
 	return &scheduleService{r: r}
 }
 
-func (s *scheduleService) Create(ctx context.Context, schedule *model.Schedule) error {
+func (s *scheduleService) Create(ctx context.Context, schedule *model.Schedule, adminID uuid.UUID) error {
+	schedule.CreatedByAdminID = adminID
 	return s.r.Create(ctx, schedule)
 }
 

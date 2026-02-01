@@ -17,9 +17,12 @@ CREATE TABLE schedules (
     is_photo_required BOOLEAN,
     is_selfie_required BOOLEAN,
     is_comment_required BOOLEAN,
-    status varchar(30),
+    status varchar(30) NOT NULL DEFAULT 'new',
 
     created_by_admin_id UUID
         REFERENCES system_users(id)
         ON DELETE RESTRICT
 );
+
+ALTER TABLE schedules
+    ADD CONSTRAINT schedules_status_check CHECK (status IN ('new','pending','approved','rejected'));

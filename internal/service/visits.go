@@ -26,6 +26,8 @@ type Visits interface {
 	VisitComplete(ctx context.Context, id string, dto model.UpdateVisit) error
 	VisitPhoto(ctx context.Context, id string, dto model.UpdateVisit, file *multipart.Form) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.Visit, int, error)
+	UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
 }
 
 type visitsService struct {
@@ -202,4 +204,12 @@ func (s *visitsService) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *visitsService) ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.Visit, int, error) {
+	return s.repo.ListByReviewStatus(ctx, status, limit, offset, id)
+}
+
+func (s *visitsService) UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error {
+	return s.repo.Update(ctx, id, dto)
 }

@@ -57,7 +57,7 @@ func (h *Handler) ListStores(c *gin.Context) {
 func (h *Handler) ApproveStore(c *gin.Context) {
 	var s model.UpdateStore
 
-	uID, err := uuid.FromBytes([]byte(c.Param("id")))
+	uID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		logger.Log.Errorf("ApproveStore: failed to convert id to uuid: %w", err)

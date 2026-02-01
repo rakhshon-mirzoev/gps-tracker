@@ -43,6 +43,7 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			staff.POST("", h.CreateStaffUser)
 			staff.PUT("/:id", h.UpdateStaffUser)
 			staff.PATCH("/:id/deactivate", h.DeactivateStaffUser)
+			staff.POST("/schedules/assign", h.AssignSchedule)
 		}
 
 		store := admin.Group(constants.Stores)
@@ -58,6 +59,17 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			group.GET("/:id", h.GetByIdGroup)
 			group.GET("", h.ListGroups)
 			group.PUT("/:id", h.UpdateGroup)
+		}
+
+		staff_mapping := admin.Group(constants.StaffMapping)
+		{
+			staff_mapping.GET("/:staff_id", h.ListStoresByStaffIdAdmin)
+		}
+
+		visit := admin.Group(constants.VisitGroup)
+		{
+			visit.GET("/review-queue", h.ReviewQueue)
+			visit.PATCH("/:id/review", h.ReviewVisit)
 		}
 	}
 

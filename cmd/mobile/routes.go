@@ -39,13 +39,14 @@ func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Ha
 		mobi.GET("/profile", h.Profile)
 		mobi.PUT("/device-token", h.AttachDevice)
 		mobi.GET("/schedule", h.ListShedules)
-		mobi.GET("/my-stores", h.ListStoresByStaffId)
+		mobi.GET("/my-stores", h.ListStoresByStaffIdStaff)
 		mobi.POST("/location", h.Location)
-		visit := mobi.Group(constants.VisitGroup)
-		{
-			visit.POST("/check-in", h.VisitCheckIn)
-			visit.POST("/:id/photo", h.VisitPhoto)
-			visit.POST("/:id/complete", h.VisitComplete)
-		}
+
+	}
+	visit := mobi.Group(constants.VisitGroup)
+	{
+		visit.POST("/check-in", h.VisitCheckIn)
+		visit.POST("/:id/photo", h.VisitPhoto)
+		visit.POST("/:id/complete", h.VisitComplete)
 	}
 }

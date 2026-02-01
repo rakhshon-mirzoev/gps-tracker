@@ -13,4 +13,5 @@ const (
 	AdminGroup     = "admin"
 	Stores         = "stores"
 	Group          = "groups"
+	StaffMapping   = "staff-mapping"
 )
