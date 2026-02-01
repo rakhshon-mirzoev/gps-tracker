@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -153,6 +154,12 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
+
+	now := time.Now()
+	is_active := false
+	deactivate.DeactivatedByID = &user_id
+	deactivate.DeactivatedAt = &now
+	deactivate.IsActive = &is_active
 
 	if err := h.s.StaffUser.Update(c.Request.Context(), uid, deactivate, user_id); err != nil {
 		if errors.Is(err, errs.ErrorNotFound) {
