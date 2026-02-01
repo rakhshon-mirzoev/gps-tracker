@@ -86,7 +86,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 
 func (r *staffUsers) List(ctx context.Context) ([]model.StaffUser, error) {
 	query := `
-		SELECT id, full_name, role, login, is_active, created_at, inn, birthday, is_temporary_password, group_id, phone_number
+		SELECT id, full_name, role, login, is_active, created_at, inn, birthday, is_temporary_password, group_id, phone_number,
 			   password_updated_at, device_id, fcm_token, app_version, last_battery_level, last_seen_at, deactivated_at,
 			   deactivated_by_id, deactivation_reason
 		FROM staff_users
