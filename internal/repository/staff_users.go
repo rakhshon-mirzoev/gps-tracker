@@ -21,6 +21,8 @@ type StaffUsersRepository interface {
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
+	ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error)
+	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
 }
 
 type staffUsers struct {
@@ -57,7 +59,9 @@ func (r *staffUsers) Create(ctx context.Context, u *model.StaffUser) error {
 
 func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error) {
 	query := `
-		SELECT id, group_id, full_name, role, login, is_active, created_at
+		SELECT id, full_name, role, login, is_active, created_at, inn, birthday, is_temporary_password, group_id, phone_number,
+			   password_updated_at, device_id, fcm_token, app_version, last_battery_level, last_seen_at, deactivated_at,
+			   deactivated_by_id, deactivation_reason
 		FROM staff_users
 		WHERE id = $1
 	`
@@ -66,12 +70,25 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 
 	err := r.DB.Pool.QueryRow(ctx, query, id).Scan(
 		&u.ID,
-		&u.GroupID,
 		&u.FullName,
 		&u.Role,
 		&u.Login,
 		&u.IsActive,
 		&u.CreatedAt,
+		&u.Inn,
+		&u.Birthday,
+		&u.IsTemporaryPassword,
+		&u.GroupID,
+		&u.PhoneNumber,
+		&u.PasswordUpdatedAt,
+		&u.DeviceID,
+		&u.FcmToken,
+		&u.AppVersion,
+		&u.LastBatteryLevel,
+		&u.LastSeenAt,
+		&u.DeactivatedAt,
+		&u.DeactivatedByID,
+		&u.DeactivationReason,
 	)
 
 	if err != nil {
@@ -248,4 +265,118 @@ func (s *staffUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason 
 	}
 
 	return nil
+}
+
+func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error) {
+	sql := `
+		SELECT DISTINCT ON (s.id)
+			s.id, s.full_name, s.login, s.inn, s.birthday, s.group_id, s.phone_number,
+			s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at,
+			l.id, l.latitude, l.longitude, l.battery_level, l.captured_at
+		FROM staff_users s
+		JOIN groups g ON g.id = s.group_id
+		JOIN location_history l ON l.staff_id = s.id
+		WHERE g.supervisor_id = $1 AND s.is_active = true
+		ORDER BY s.id, l.captured_at DESС
+	`
+
+	rows, err := s.DB.Pool.Query(ctx, sql, user_id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var st model.StaffUserLocation
+		st.Location = &model.LocationHistory{}
+		if err := rows.Scan(
+			&st.ID,
+			&st.FullName,
+			&st.Login,
+			&st.Inn,
+			&st.Birthday,
+			&st.GroupID,
+			&st.PhoneNumber,
+			&st.DeviceID,
+			&st.FcmToken,
+			&st.AppVersion,
+			&st.LastBatteryLevel,
+			&st.LastSeenAt,
+			&st.Location.ID,
+			&st.Location.Latitude,
+			&st.Location.Longitude,
+			&st.Location.BatteryLevel,
+			&st.Location.CapturedAt,
+		); err != nil {
+			return nil, err
+		}
+		staff = append(staff, st)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return staff, nil
+}
+
+func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error) {
+	sql := `
+		SELECT
+			s.id, s.full_name, s.login, s.inn, s.birthday, s.group_id, s.phone_number,
+			s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at,
+			l.id, l.latitude, l.longitude, l.battery_level, l.captured_at
+		FROM staff_users s
+		JOIN location_history l ON l.staff_id = s.id
+		WHERE s.id = $1
+		AND s.is_active = true
+		AND (l.captured_at >= $2 AND l.captured_at < $3)
+		ORDER BY l.captured_at
+	`
+
+	rows, err := s.DB.Pool.Query(ctx, sql, id, begin, end)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var staff *model.StaffUserLocationHistory
+
+	for rows.Next() {
+		var loc model.LocationHistory
+
+		if staff == nil {
+			staff = &model.StaffUserLocationHistory{}
+		}
+
+		if err := rows.Scan(
+			&staff.ID,
+			&staff.FullName,
+			&staff.Login,
+			&staff.Inn,
+			&staff.Birthday,
+			&staff.GroupID,
+			&staff.PhoneNumber,
+			&staff.DeviceID,
+			&staff.FcmToken,
+			&staff.AppVersion,
+			&staff.LastBatteryLevel,
+			&staff.LastSeenAt,
+			&loc.ID,
+			&loc.Latitude,
+			&loc.Longitude,
+			&loc.BatteryLevel,
+			&loc.CapturedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		staff.Locations = append(staff.Locations, loc)
+	}
+
+	if staff == nil {
+		return nil, pgx.ErrNoRows
+	}
+
+	return staff, nil
 }

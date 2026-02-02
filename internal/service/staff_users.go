@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
@@ -19,6 +20,8 @@ type StaffUsers interface {
 	List(ctx context.Context) ([]model.StaffUser, error)
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 	GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error)
+	ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error)
+	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
 }
 type staffUserService struct {
 	r         repository.StaffUsersRepository
@@ -109,4 +112,12 @@ func (s *staffUserService) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (s *staffUserService) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
 	return s.r.Deactivate(ctx, id, dId, dReason)
+}
+
+func (s *staffUserService) ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error) {
+	return s.r.ListByGroupID(ctx, user_id)
+}
+
+func (s *staffUserService) GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error) {
+	return s.r.GetLocationByID(ctx, id, begin, end)
 }

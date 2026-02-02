@@ -173,3 +173,61 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "deactivation complete"})
 }
+
+func (h *Handler) ListStaffUsersLocationByGroupID(c *gin.Context) {
+	id, err := checkSystemUser(c)
+	if err != nil {
+		logger.Log.Errorf("ListStaffUsersLocationByGroupID: failed to check system user: %w", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to check system user"})
+		return
+	}
+
+	staff_users, err := h.s.StaffUser.ListByGroupID(c.Request.Context(), id)
+	if err != nil {
+		logger.Log.Errorf("ListStaffUsersLocationByGroupID: failed to list staff users: %w", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to list staff users"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"staff_users": staff_users})
+}
+
+func (h *Handler) ListStaffUserLocationByDate(c *gin.Context) {
+	beginStr := c.Query("begin")
+	endStr := c.Query("end")
+
+	if beginStr == "" || endStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "begin and end dates are required"})
+		return
+	}
+
+	begin, err := time.Parse("02.01.2006", beginStr)
+	if err != nil {
+		logger.Log.Errorf("ListStaffUserLocationByDate: failed to parse begin time: %w", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid begin date format, use dd.mm.yyyy"})
+		return
+	}
+
+	end, err := time.Parse("02.01.2006", endStr)
+	if err != nil {
+		logger.Log.Errorf("ListStaffUserLocationByDate: failed to parse end time: %w", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end date format, use dd.mm.yyyy"})
+		return
+	}
+
+	end = end.Add(24*time.Hour - time.Nanosecond)
+
+	staff_id, err := uuid.Parse(c.Param("staff_id"))
+	if err != nil {
+		logger.Log.Errorf("ListStaffUserLocationByDate: failed to parse staff id: %w", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse staff id"})
+		return
+	}
+
+	staff_user, err := h.s.StaffUser.GetLocationByID(c.Request.Context(), staff_id, begin, end)
+	if err != nil {
+		logger.Log.Errorf("ListStaffUserLocationByDate: failed to list staff user's location history: %w", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to list staff user's location history"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"staff_user": staff_user})
+}
