@@ -36,7 +36,6 @@ type CreateStore struct {
 	OwnerINN         string  `json:"owner_inn" binding:"required,len=12"`
 	OwnerPassport    *string `json:"owner_passport"`
 	CreatedByStaffID string  `json:"created_by_staff_id" binding:"required"`
-	CreatedByAdminID string  `json:"created_by_admin_id" binding:"required"`
 }
 
 type UpdateStore struct {

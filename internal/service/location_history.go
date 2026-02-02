@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
@@ -15,6 +16,7 @@ type LocationHistory interface {
 	List(ctx context.Context, staffID uuid.UUID) ([]model.LocationHistory, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateLocationHistory) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	GetAllStaffOnlineOffline(ctx context.Context, supervisorID uuid.UUID, begin, end time.Time) (map[uuid.UUID]map[string]time.Duration, error)
 }
 
 type locationHistoryService struct {
@@ -26,7 +28,6 @@ func NewLocationHistoryService(r repository.LocationHistoryRepository) LocationH
 }
 
 func (s *locationHistoryService) Create(ctx context.Context, lh *model.LocationHistory, user_id uuid.UUID) error {
-	lh.StaffID = user_id
 	return s.r.Create(ctx, lh)
 }
 
@@ -56,4 +57,8 @@ func (s *locationHistoryService) Delete(ctx context.Context, id uuid.UUID) error
 	}
 
 	return s.r.Delete(ctx, id)
+}
+
+func (s *locationHistoryService) GetAllStaffOnlineOffline(ctx context.Context, supervisorID uuid.UUID, begin, end time.Time) (map[uuid.UUID]map[string]time.Duration, error) {
+	return s.r.GetAllStaffOnlineOffline(ctx, supervisorID, begin, end)
 }

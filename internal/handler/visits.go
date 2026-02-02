@@ -12,7 +12,7 @@ import (
 )
 
 func (h *Handler) VisitCheckIn(c *gin.Context) {
-	var visit = &model.CreateVisit{}
+	var visit *model.CreateVisit
 	user_id, err := checkStaffUser(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})

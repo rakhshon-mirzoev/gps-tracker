@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
@@ -16,6 +17,7 @@ type LocationHistoryRepository interface {
 	List(ctx context.Context, staffID uuid.UUID) ([]model.LocationHistory, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateLocationHistory) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	GetAllStaffOnlineOffline(ctx context.Context, supervisorID uuid.UUID, begin, end time.Time) (map[uuid.UUID]map[string]time.Duration, error)
 }
 
 type locationHistory struct {
@@ -171,4 +173,55 @@ func (r *locationHistory) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (r *locationHistory) GetAllStaffOnlineOffline(ctx context.Context, supervisorID uuid.UUID, begin, end time.Time) (map[uuid.UUID]map[string]time.Duration, error) {
+	sql := `
+        SELECT
+			l.staff_id,
+			l.status,
+			COUNT(*) AS cnt
+		FROM location_history l
+		JOIN staff_users s ON s.id = l.staff_id
+		JOIN groups g ON g.id = s.group_id
+		WHERE g.supervisor_id = $1
+		AND l.captured_at >= $2
+		AND l.captured_at <= $3
+		GROUP BY l.staff_id, l.status;
+    `
+
+	rows, err := r.DB.Pool.Query(ctx, sql, supervisorID, begin, end)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[uuid.UUID]map[string]time.Duration)
+
+	for rows.Next() {
+		var staffID uuid.UUID
+		var status string
+		var count int
+
+		if err := rows.Scan(&staffID, &status, &count); err != nil {
+			return nil, err
+		}
+
+		if _, ok := result[staffID]; !ok {
+			result[staffID] = map[string]time.Duration{
+				"online":  0,
+				"offline": 0,
+			}
+		}
+
+		duration := time.Duration(count*5) * time.Minute
+
+		if status == "offline" {
+			result[staffID]["offline"] += duration
+		} else {
+			result[staffID]["online"] += duration
+		}
+	}
+
+	return result, nil
 }

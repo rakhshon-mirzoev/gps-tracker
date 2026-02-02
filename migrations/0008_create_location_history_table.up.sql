@@ -10,5 +10,14 @@ CREATE TABLE location_history(
     status TEXT NOT NULL,
 
     CONSTRAINT location_history_status_check
-        CHECK (status IN ('online','offline')),
+        CHECK (status IN ('online','offline'))
 );
+
+CREATE INDEX idx_location_history_staff_time
+    ON location_history (staff_id, captured_at);
+
+CREATE INDEX idx_location_history_staff_status_time
+    ON location_history (staff_id, status, captured_at);
+
+CREATE INDEX idx_location_history_captured_at
+    ON location_history (captured_at);

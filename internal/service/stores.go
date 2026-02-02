@@ -31,11 +31,6 @@ func (s *storesService) Create(ctx context.Context, store *model.CreateStore, us
 		return err
 	}
 
-	adminID, err := uuid.Parse(store.CreatedByAdminID)
-	if err != nil {
-		return err
-	}
-
 	st := &model.Store{
 		Name:             store.Name,
 		Address:          store.Address,
@@ -45,7 +40,6 @@ func (s *storesService) Create(ctx context.Context, store *model.CreateStore, us
 		OwnerINN:         store.OwnerINN,
 		OwnerPassport:    store.OwnerPassport,
 		CreatedByStaffID: staffID,
-		CreatedByAdminID: adminID,
 	}
 
 	return s.r.Create(ctx, st)

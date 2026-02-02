@@ -44,7 +44,7 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			staff.PUT("/:id", h.UpdateStaffUser)
 			staff.PATCH("/:id/deactivate", h.DeactivateStaffUser)
 			staff.POST("/schedules/assign", h.AssignSchedule)
-
+			staff.GET("/online-offline", h.AllStaffOnlineOffline)
 		}
 
 		monitoring := staff.Group(constants.Monitoring)
