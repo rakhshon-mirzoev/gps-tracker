@@ -5,6 +5,7 @@ CREATE TABLE location_history(
         ON DELETE RESTRICT,
     latitude DECIMAL(9,6)  NOT NULL,
     longitude DECIMAL(9,6) NOT NULL,
-    battery_level INTEGER,
-    captured_at TIMESTAMP
+    battery_level INTEGER NOT NULL,
+    captured_at TIMESTAMP NOT NULL DEFAULT now(),
+    status TEXT NOT NULL
 );

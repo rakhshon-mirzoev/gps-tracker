@@ -33,13 +33,14 @@ func (r *locationHistory) Create(ctx context.Context, lh *model.LocationHistory)
             latitude,
             longitude,
             battery_level,
-            captured_at
+            captured_at,
+			status
         ) VALUES (
-            $1, $2, $3, $4, $5
+            $1, $2, $3, $4, $5, $6
         ) RETURNING id;
     `
 
-	err := r.DB.Pool.QueryRow(ctx, sql, lh.StaffID, lh.Latitude, lh.Longitude, lh.BatteryLevel, lh.CapturedAt).Scan(&lh.ID)
+	err := r.DB.Pool.QueryRow(ctx, sql, lh.StaffID, lh.Latitude, lh.Longitude, lh.BatteryLevel, lh.CapturedAt, lh.Status).Scan(&lh.ID)
 	if err != nil {
 		return err
 	}
@@ -49,7 +50,7 @@ func (r *locationHistory) Create(ctx context.Context, lh *model.LocationHistory)
 
 func (r *locationHistory) GetByID(ctx context.Context, id uuid.UUID) (*model.LocationHistory, error) {
 	sql := `
-        SELECT id, staff_id, latitude, longitude, battery_level, captured_at
+        SELECT id, staff_id, latitude, longitude, battery_level, captured_at, status
         FROM location_history WHERE id = $1
     `
 
@@ -61,6 +62,7 @@ func (r *locationHistory) GetByID(ctx context.Context, id uuid.UUID) (*model.Loc
 		&lh.Longitude,
 		&lh.BatteryLevel,
 		&lh.CapturedAt,
+		&lh.Status,
 	)
 	if err != nil {
 		return nil, err
@@ -71,7 +73,7 @@ func (r *locationHistory) GetByID(ctx context.Context, id uuid.UUID) (*model.Loc
 
 func (r *locationHistory) List(ctx context.Context, staffID uuid.UUID) ([]model.LocationHistory, error) {
 	sql := `
-        SELECT id, staff_id, latitude, longitude, battery_level, captured_at
+        SELECT id, staff_id, latitude, longitude, battery_level, captured_at, status
         FROM location_history WHERE staff_id = $1
     `
 
@@ -92,6 +94,7 @@ func (r *locationHistory) List(ctx context.Context, staffID uuid.UUID) ([]model.
 			&lh.Longitude,
 			&lh.BatteryLevel,
 			&lh.CapturedAt,
+			&lh.Status,
 		); err != nil {
 			return nil, err
 		}
