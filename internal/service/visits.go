@@ -58,7 +58,7 @@ func (s *visitsService) Create(ctx context.Context, v *model.CreateVisit, user_i
 	}
 
 	m := utils.Distance(store.Latitude, store.Longitude, v.Lat, v.Lon)
-	if m > 150 {
+	if m > 10 {
 		return errs.ErrorUnprocessable
 	}
 

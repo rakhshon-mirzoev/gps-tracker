@@ -7,5 +7,8 @@ CREATE TABLE location_history(
     longitude DECIMAL(9,6) NOT NULL,
     battery_level INTEGER NOT NULL,
     captured_at TIMESTAMP NOT NULL DEFAULT now(),
-    status TEXT NOT NULL
+    status TEXT NOT NULL,
+
+    CONSTRAINT location_history_status_check
+        CHECK (status IN ('online','offline')),
 );
