@@ -82,6 +82,15 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			visit.PATCH("/:id/review", h.ReviewVisit)
 		}
 
+		settings := admin.Group(constants.Settings)
+		{
+			settings.POST("", h.CreateSystemSetting)
+			settings.PUT("/:id", h.UpdateSystemSetting)
+			settings.GET("", h.ListSystemSettings)
+			settings.DELETE("/:id", h.DeleteSystemSetting)
+			settings.GET("/:id", h.GetSystemSettingByID)
+		}
+
 	}
 
 }

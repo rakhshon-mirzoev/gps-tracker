@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -69,8 +68,8 @@ func (s *systemUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.SystemU
 		&u.ID, &u.FullName, &u.Login, &u.Role, &u.IsActive, &u.CreatedAt,
 	)
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, nil
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errs.ErrorNotFound
 		}
 		return nil, err
 	}
@@ -88,7 +87,7 @@ func (s *systemUsers) GetByLogin(ctx context.Context, login string) (*model.Syst
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, errs.ErrorNotFound
 		}
-		return nil, fmt.Errorf("get user by login: %w", err)
+		return nil, err
 	}
 	return u, nil
 }

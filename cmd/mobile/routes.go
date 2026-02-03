@@ -18,6 +18,7 @@ func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Ha
 	) */
 	{
 		api.GET("/ping", h.Ping)
+		api.GET("/settings", h.ListSystemSettings)
 	}
 	storage := api.Group("/storage")
 	{

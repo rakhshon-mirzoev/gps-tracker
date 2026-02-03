@@ -375,7 +375,7 @@ func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, e
 	}
 
 	if staff == nil {
-		return nil, pgx.ErrNoRows
+		return nil, errs.ErrorNotFound
 	}
 
 	return staff, nil

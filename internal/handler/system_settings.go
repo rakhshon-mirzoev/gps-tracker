@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
+	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 func (h *Handler) CreateSystemSetting(c *gin.Context) {
@@ -85,4 +87,25 @@ func (h *Handler) UpdateSystemSetting(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (h *Handler) GetSystemSettingByID(c *gin.Context) {
+	uid, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		logger.Log.Errorf("GetSystemSettingByID: failed to parse id: %w", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	setting, err := h.s.SystemSettings.GetByID(c.Request.Context(), uid)
+	if err != nil {
+		if errors.Is(err, errs.ErrorNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err})
+			return
+		}
+		logger.Log.Errorf("GetSystemSettingByID: failed to get by id setting: %w", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"setting": setting})
 }

@@ -102,7 +102,7 @@ func (r *schedules) GetByID(ctx context.Context, id uuid.UUID) (*model.Schedule,
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, errs.ErrorNotFound
 		}
-		return nil, fmt.Errorf("get schedule by id: %w", err)
+		return nil, err
 	}
 
 	return schedule, nil

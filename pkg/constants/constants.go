@@ -15,4 +15,5 @@ const (
 	Group          = "groups"
 	StaffMapping   = "staff-mapping"
 	Monitoring     = "monitoring"
+	Settings       = "settings"
 )

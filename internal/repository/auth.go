@@ -56,7 +56,7 @@ func (r *authRepository) GetByLoginUnified(ctx context.Context, login string) (*
 	)
 
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, errs.ErrorNotFound
 		}
 		return nil, err

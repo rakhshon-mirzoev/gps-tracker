@@ -104,7 +104,7 @@ func (r *stores) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, errs.ErrorNotFound
 		}
-		return nil, fmt.Errorf("get store by id: %w", err)
+		return nil, err
 	}
 
 	return store, nil

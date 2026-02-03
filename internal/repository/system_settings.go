@@ -2,12 +2,15 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
+	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type SystemSettingsRepository interface {
@@ -59,9 +62,10 @@ func (r *systemSettings) GetByID(ctx context.Context, id uuid.UUID) (*model.Syst
 		&ss.Description,
 	)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errs.ErrorNotFound
+		}
 	}
-
 	return &ss, nil
 }
 
