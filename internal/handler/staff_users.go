@@ -79,18 +79,18 @@ func (h *Handler) CreateStaffUser(c *gin.Context) {
 
 	user_id, err := checkSystemUser(c)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err})
+		c.JSON(http.StatusForbidden, gin.H{"error": "failed to check system user"})
 		return
 	}
 
 	if err := c.ShouldBindJSON(&dto); err != nil {
-		logger.Log.Errorf("CreateStaffUser: failed bind: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		logger.Log.Errorf("CreateStaffUser: failed to bind staff user: %w", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to bind staff user"})
 		return
 	}
 
 	if err := h.s.StaffUser.Create(c.Request.Context(), dto, user_id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create staff user"})
 		logger.Log.Errorf("CreateStaffUser: failed create: %w", err)
 		return
 	}
@@ -103,20 +103,20 @@ func (h *Handler) UpdateStaffUser(c *gin.Context) {
 
 	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse uuid"})
 		logger.Log.Errorf("UpdateStaffUser: failed to convert id to uuid: %w", err)
 		return
 	}
 
 	user_id, err := checkSystemUser(c)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err})
+		c.JSON(http.StatusForbidden, gin.H{"error": "failed to check system user"})
 		return
 	}
 
 	if err := c.ShouldBindJSON(&dto); err != nil {
-		logger.Log.Errorf("UpdateStaffUser: failed bind: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		logger.Log.Errorf("UpdateStaffUser: failed to bind: %w", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to bind update staff user"})
 		return
 	}
 
@@ -125,7 +125,7 @@ func (h *Handler) UpdateStaffUser(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "no user found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update staff user"})
 		logger.Log.Errorf("UpdateStaffUser: failed update: %w", err)
 		return
 	}
@@ -138,20 +138,20 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 
 	user_id, err := checkSystemUser(c)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err})
+		c.JSON(http.StatusForbidden, gin.H{"error": "failed to check system user"})
 		return
 	}
 
 	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to convert id to uuid"})
 		logger.Log.Errorf("DeactivateStaffUser: failed to convert id to uuid: %w", err)
 		return
 	}
 
 	if err := c.ShouldBindJSON(&deactivate); err != nil {
-		logger.Log.Errorf("DeactivateStaffUser: failed bind: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		logger.Log.Errorf("DeactivateStaffUser: failed to bind: %w", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to bind"})
 		return
 	}
 
@@ -166,7 +166,7 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "no user found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed update"})
 		logger.Log.Errorf("DeactivateStaffUser: failed update: %w", err)
 		return
 	}

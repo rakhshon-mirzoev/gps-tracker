@@ -61,14 +61,14 @@ func (h *Handler) register(c *gin.Context, utype string) {
 
 	if err := c.ShouldBindJSON(&user); err != nil {
 		logger.Log.Errorf("Register: failed to bind: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to bind create user"})
 		return
 	}
 
 	existUser, err := h.s.Authorize.GetByLogin(c.Request.Context(), user.Login)
 	if err != nil && err != errs.ErrorNotFound {
 		logger.Log.Errorf("Register: failed to getbylogin: %w", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user by login"})
 		return
 	}
 
@@ -119,17 +119,17 @@ func (h *Handler) Logout(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Log.Errorf("Logout: failed to bind ref: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to bind refresh token"})
 		return
 	}
 
 	if err := h.s.Authorize.Logout(c.Request.Context(), req.RefreshToken); err != nil {
 		if err == errs.ErrorNotFound {
-			c.Status(http.StatusNoContent)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "no found refresh"})
 			return
 		}
 		logger.Log.Errorf("Logout: failed to logout: %w", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "logout failed"})
 		return
 	}
 
