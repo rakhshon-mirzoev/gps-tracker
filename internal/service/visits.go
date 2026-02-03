@@ -28,8 +28,8 @@ type Visits interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.Visit, int, error)
 	UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
+	GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUID, begin, end time.Time) ([]model.VisitExcel, error)
 }
-
 type visitsService struct {
 	repo  repository.VisitRepository
 	store Stores
@@ -222,4 +222,8 @@ func (s *visitsService) ListByReviewStatus(ctx context.Context, status string, l
 
 func (s *visitsService) UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error {
 	return s.repo.Update(ctx, id, dto)
+}
+
+func (s *visitsService) GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUID, begin, end time.Time) ([]model.VisitExcel, error) {
+	return s.repo.GetDataForExcel(ctx, staff_id, store_id, begin, end)
 }

@@ -36,7 +36,10 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 
 	admin := api.Group(constants.AdminGroup)
 	admin.Use(mw.Auth(), mw.Admin())
+
 	{
+		admin.GET("/reports/export", h.ExportReports)
+
 		staff := admin.Group(constants.UserTypeStaff)
 		{
 			staff.GET("", h.ListStaffUsers)
@@ -78,6 +81,7 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			visit.GET("/review-queue", h.ReviewQueue)
 			visit.PATCH("/:id/review", h.ReviewVisit)
 		}
+
 	}
 
 }

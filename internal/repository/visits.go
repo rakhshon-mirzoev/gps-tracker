@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
@@ -17,6 +18,7 @@ type VisitRepository interface {
 	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.Visit, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUID, begin, end time.Time) ([]model.VisitExcel, error)
 }
 
 type visit struct {
@@ -288,4 +290,83 @@ func (r *visit) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUID, begin, end time.Time) ([]model.VisitExcel, error) {
+	sql := `
+	SELECT
+		v.id,
+		v.check_in_at,
+		v.check_out_at,
+		v.check_in_lat,
+		v.check_in_lon,
+		v.distance_deviation,
+		v.selfie_url,
+		v.comment,
+		v.review_status,
+		v.review_comment,
+		v.reviewed_at,
+		v.created_at,
+
+		s.full_name,
+		s.phone_number,
+		g.name,
+		st.name,
+		su.full_name
+
+	FROM visits v
+	JOIN staff_users s ON v.staff_id = s.id
+	JOIN groups g ON g.id = s.group_id
+	JOIN stores st ON st.id = v.store_id
+	LEFT JOIN system_users su ON su.id = v.reviewer_id
+
+	WHERE v.staff_id = $1
+	  AND v.store_id = $2
+	  AND v.check_in_at >= $3
+	  AND v.check_in_at < $4
+
+	ORDER BY v.check_in_at DESC
+`
+
+	rows, err := s.DB.Pool.Query(ctx, sql, staff_id, store_id, begin, end)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var visits []model.VisitExcel
+
+	for rows.Next() {
+		var v model.VisitExcel
+		if err := rows.Scan(
+			&v.ID,
+			&v.CheckInAt,
+			&v.CheckOutAt,
+			&v.CheckInLat,
+			&v.CheckInLon,
+			&v.DistanceDeviation,
+			&v.SelfieURL,
+			&v.Comment,
+			&v.ReviewStatus,
+			&v.ReviewComment,
+			&v.ReviewedAt,
+			&v.CreatedAt,
+			&v.Staff.FullName,
+			&v.Staff.PhoneNumber,
+			&v.Group.Name,
+			&v.Store.Name,
+			&v.Reviewer.FullName,
+		); err != nil {
+			return nil, err
+		}
+
+		visits = append(visits, v)
+
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return visits, nil
 }

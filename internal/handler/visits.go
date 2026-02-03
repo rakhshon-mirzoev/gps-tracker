@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -154,4 +155,51 @@ func (h *Handler) ReviewVisit(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "review completed", "status": reviewDTO.Status})
+}
+
+func (h *Handler) ExportReports(c *gin.Context) {
+	staffID, err := uuid.Parse(c.Query("staff_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid staff_id"})
+		return
+	}
+
+	storeID, err := uuid.Parse(c.Query("store_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store_id"})
+		return
+	}
+
+	begin, err := time.Parse("2006-01-02", c.Query("begin"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid begin"})
+		return
+	}
+
+	end, err := time.Parse("2006-01-02", c.Query("end"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end"})
+		return
+	}
+	end = end.AddDate(0, 0, 1)
+
+	visits, err := h.s.Visit.GetDataForExcel(c.Request.Context(), staffID, storeID, begin, end)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get data"})
+		return
+	}
+
+	data, err := h.s.Excel.ExportReports(visits)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate excel"})
+		return
+	}
+
+	filename := "visits_report.xlsx"
+
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Header("Content-Disposition", `attachment; filename="`+filename+`"`)
+	c.Header("Content-Length", strconv.Itoa(len(data)))
+
+	c.Data(http.StatusOK, "application/octet-stream", data)
 }

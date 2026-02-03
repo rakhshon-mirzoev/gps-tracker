@@ -60,6 +60,7 @@ func (h *Handler) AllStaffOnlineOffline(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end date"})
 		return
 	}
+	end = end.AddDate(0, 0, 1)
 
 	data, err := h.s.Location.GetAllStaffOnlineOffline(c.Request.Context(), id, begin, end)
 	if err != nil {
