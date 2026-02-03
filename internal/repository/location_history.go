@@ -84,7 +84,7 @@ func (r *locationHistory) List(ctx context.Context, staffID uuid.UUID) ([]model.
 		return nil, err
 	}
 
-	var history []model.LocationHistory
+	var history = make([]model.LocationHistory, 0)
 
 	for rows.Next() {
 		var lh model.LocationHistory

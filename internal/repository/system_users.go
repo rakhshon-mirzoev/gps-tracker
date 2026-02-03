@@ -24,6 +24,7 @@ type SystemUsersRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context) ([]model.SystemUser, error)
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
+	GetGroupList(ctx context.Context, groupId uuid.UUID) ([]model.StaffUser, error)
 }
 
 func NewSystemUsersRepository(db *db.DB) SystemUsersRepository {
@@ -138,7 +139,7 @@ func (s *systemUsers) List(ctx context.Context) ([]model.SystemUser, error) {
 	}
 	defer rows.Close()
 
-	var users []model.SystemUser
+	var users = make([]model.SystemUser, 0)
 
 	for rows.Next() {
 		var u model.SystemUser
@@ -176,7 +177,7 @@ func (s *systemUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason
 	return nil
 }
 
-func (s *systemUsers) GetGroupList(ctx context.Context, groupId uuid.UUID) ([]*model.StaffUser, error) {
+func (s *systemUsers) GetGroupList(ctx context.Context, groupId uuid.UUID) ([]model.StaffUser, error) {
 	sql := `
 		SELECT	s.id, s.full_name, s.phone_number, s.inn, s.birthday, s.password_updated_at, s.device_id, s.fcm_token, s.app_version, 
 				s.last_battery_level, s.last_seen_at, s.is_active, s.created_at
@@ -190,10 +191,10 @@ func (s *systemUsers) GetGroupList(ctx context.Context, groupId uuid.UUID) ([]*m
 	}
 	defer rows.Close()
 
-	var result []*model.StaffUser
+	var result = make([]model.StaffUser, 0)
 
 	for rows.Next() {
-		var su = &model.StaffUser{}
+		var su = model.StaffUser{}
 		if err := rows.Scan(
 			&su.ID,
 			&su.FullName,

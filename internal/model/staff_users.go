@@ -42,6 +42,12 @@ type UpdateStaffUser struct {
 	DeactivationReason *string    `json:"deactivation_reason"`
 }
 
+type DeactivateStaffUser struct {
+	DeactivatedAt      *time.Time `json:"deactivated_at"`
+	DeactivatedByID    *uuid.UUID `json:"deactivated_by_id"`
+	DeactivationReason *string    `json:"deactivation_reason"`
+}
+
 type CreateStaffUser struct {
 	GroupID         string     `json:"group_id" binding:"required"`
 	FullName        string     `json:"full_name" binding:"required"`
@@ -62,9 +68,9 @@ type StaffUserResponse struct {
 }
 
 type StaffUserProfile struct {
-	User       *StaffUser  `json:"user"`
-	Schedules  []*Schedule `json:"schedules"`
-	TotalCount int         `json:"total_count"`
+	User       *StaffUser `json:"user"`
+	Schedules  []Schedule `json:"schedules"`
+	TotalCount int        `json:"total_count"`
 }
 
 type StaffUserLocation struct {

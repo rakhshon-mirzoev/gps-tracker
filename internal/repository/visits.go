@@ -91,7 +91,7 @@ func (r *visit) List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, 
 		return nil, err
 	}
 
-	var visits []model.Visit
+	var visits = make([]model.Visit, 0)
 
 	for rows.Next() {
 		var v model.Visit
@@ -258,7 +258,7 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 	}
 	defer rows.Close()
 
-	var visits []model.Visit
+	var visits = make([]model.Visit, 0)
 	for rows.Next() {
 		var v model.Visit
 		if err := rows.Scan(

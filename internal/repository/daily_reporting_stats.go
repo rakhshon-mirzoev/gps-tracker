@@ -86,7 +86,7 @@ func (r *dailyReportingStats) List(ctx context.Context, staffID uuid.UUID) ([]mo
 		return nil, err
 	}
 
-	var stats []model.DailyReportingStats
+	var stats = make([]model.DailyReportingStats, 0)
 
 	for rows.Next() {
 		var drs model.DailyReportingStats

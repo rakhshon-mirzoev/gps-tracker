@@ -13,10 +13,10 @@ type Schedule interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Schedule, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateSchedule) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	ListByStaffID(ctx context.Context, staffID uuid.UUID, limit, offset int) ([]*model.Schedule, int, error)
-	ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]*model.Schedule, int, error)
-	ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]*model.Schedule, int, error)
-	ListByStatus(ctx context.Context, status string, limit, offset int) ([]*model.Schedule, int, error)
+	ListByStaffID(ctx context.Context, staffID uuid.UUID, limit, offset int) ([]model.Schedule, int, error)
+	ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]model.Schedule, int, error)
+	ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]model.Schedule, int, error)
+	ListByStatus(ctx context.Context, status string, limit, offset int) ([]model.Schedule, int, error)
 }
 
 type scheduleService struct {
@@ -94,18 +94,18 @@ func (s *scheduleService) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.r.Delete(ctx, id)
 }
 
-func (s *scheduleService) ListByStaffID(ctx context.Context, staffID uuid.UUID, limit, offset int) ([]*model.Schedule, int, error) {
+func (s *scheduleService) ListByStaffID(ctx context.Context, staffID uuid.UUID, limit, offset int) ([]model.Schedule, int, error) {
 	return s.r.ListByStaffID(ctx, staffID, limit, offset)
 }
 
-func (s *scheduleService) ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]*model.Schedule, int, error) {
+func (s *scheduleService) ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]model.Schedule, int, error) {
 	return s.r.ListByStoreID(ctx, storeID, limit, offset)
 }
 
-func (s *scheduleService) ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]*model.Schedule, int, error) {
+func (s *scheduleService) ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]model.Schedule, int, error) {
 	return s.r.ListByDate(ctx, plannedDate, limit, offset)
 }
 
-func (s *scheduleService) ListByStatus(ctx context.Context, status string, limit, offset int) ([]*model.Schedule, int, error) {
+func (s *scheduleService) ListByStatus(ctx context.Context, status string, limit, offset int) ([]model.Schedule, int, error) {
 	return s.r.ListByStatus(ctx, status, limit, offset)
 }

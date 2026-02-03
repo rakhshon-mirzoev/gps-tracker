@@ -14,7 +14,7 @@ type StaffStoresMappingRepository interface {
 	List(ctx context.Context, staffID uuid.UUID) ([]model.StaffStoresMapping, error)
 	Update(ctx context.Context, ssm *model.StaffStoresMapping) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]*model.Store, error)
+	ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]model.Store, error)
 }
 
 type staffStoresMapping struct {
@@ -73,7 +73,7 @@ func (r *staffStoresMapping) List(ctx context.Context, staffID uuid.UUID) ([]mod
 		return nil, err
 	}
 
-	var mappings []model.StaffStoresMapping
+	var mappings = make([]model.StaffStoresMapping, 0)
 
 	for rows.Next() {
 		var ssm model.StaffStoresMapping
@@ -124,7 +124,7 @@ func (r *staffStoresMapping) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]*model.Store, error) {
+func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]model.Store, error) {
 	defaultLim := 5
 
 	if lim <= 0 {
@@ -152,7 +152,7 @@ func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, li
 	}
 	defer rows.Close()
 
-	var stores []*model.Store
+	var stores = make([]model.Store, 0)
 
 	for rows.Next() {
 		var store model.Store
@@ -181,7 +181,7 @@ func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, li
 			return nil, err
 		}
 
-		stores = append(stores, &store)
+		stores = append(stores, store)
 	}
 
 	if err := rows.Err(); err != nil {

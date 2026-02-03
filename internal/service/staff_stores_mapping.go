@@ -15,7 +15,7 @@ type StaffStoresMapping interface {
 	// List(ctx context.Context, staffID uuid.UUID) ([]model.StaffStoresMapping, error)
 	Update(ctx context.Context, ssm *model.StaffStoresMapping) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]*model.Store, error)
+	ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]model.Store, error)
 }
 
 type staffStoresMappingService struct {
@@ -75,6 +75,6 @@ func (s *staffStoresMappingService) Delete(ctx context.Context, id uuid.UUID) er
 	return s.r.Delete(ctx, id)
 }
 
-func (s *staffStoresMappingService) ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]*model.Store, error) {
+func (s *staffStoresMappingService) ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]model.Store, error) {
 	return s.r.ListByStaffID(ctx, id, lim, off)
 }

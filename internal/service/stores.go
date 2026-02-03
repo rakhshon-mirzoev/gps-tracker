@@ -12,7 +12,7 @@ import (
 type Stores interface {
 	Create(ctx context.Context, s *model.CreateStore, user_id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error)
-	List(ctx context.Context, filter model.StoreListFilter) ([]*model.Store, int, error)
+	List(ctx context.Context, filter model.StoreListFilter) ([]model.Store, int, error)
 	Update(ctx context.Context, s model.UpdateStore, id uuid.UUID) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -53,7 +53,7 @@ func (s *storesService) GetByID(ctx context.Context, id uuid.UUID) (*model.Store
 	return s.r.GetByID(ctx, id)
 }
 
-func (s *storesService) List(ctx context.Context, filter model.StoreListFilter) ([]*model.Store, int, error) {
+func (s *storesService) List(ctx context.Context, filter model.StoreListFilter) ([]model.Store, int, error) {
 	return s.r.List(ctx, filter)
 }
 

@@ -134,7 +134,7 @@ func (h *Handler) UpdateStaffUser(c *gin.Context) {
 }
 
 func (h *Handler) DeactivateStaffUser(c *gin.Context) {
-	var deactivate model.UpdateStaffUser
+	var deactivate model.DeactivateStaffUser
 
 	user_id, err := checkSystemUser(c)
 	if err != nil {
@@ -155,13 +155,9 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 		return
 	}
 
-	now := time.Now()
-	is_active := false
 	deactivate.DeactivatedByID = &user_id
-	deactivate.DeactivatedAt = &now
-	deactivate.IsActive = &is_active
 
-	if err := h.s.StaffUser.Update(c.Request.Context(), uid, deactivate, user_id); err != nil {
+	if err := h.s.StaffUser.Deactivate(c.Request.Context(), uid, deactivate); err != nil {
 		if errors.Is(err, errs.ErrorNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "no user found"})
 			return
@@ -229,5 +225,27 @@ func (h *Handler) ListStaffUserLocationByDate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to list staff user's location history"})
 		return
 	}
+	c.JSON(http.StatusOK, gin.H{"staff_user": staff_user})
+}
+
+func (h *Handler) GetStaffUserByID(c *gin.Context) {
+	uid, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		logger.Log.Errorf("GetStaffUserByID: failed to parse id: %w", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse id"})
+		return
+	}
+
+	staff_user, err := h.s.StaffUser.GetByID(c.Request.Context(), uid)
+	if err != nil {
+		if errors.Is(err, errs.ErrorNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "no user found"})
+			return
+		}
+		logger.Log.Errorf("GetStaffUserByID: failed to get staff user: %w", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get staff user"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"staff_user": staff_user})
 }

@@ -77,7 +77,7 @@ func (r *storePhotos) List(ctx context.Context, storeID uuid.UUID) ([]model.Stor
 		return nil, err
 	}
 
-	var photos []model.StorePhotos
+	var photos = make([]model.StorePhotos, 0)
 
 	for rows.Next() {
 		var sp model.StorePhotos

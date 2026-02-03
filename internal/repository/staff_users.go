@@ -20,7 +20,7 @@ type StaffUsersRepository interface {
 	List(ctx context.Context) ([]model.StaffUser, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
+	Deactivate(ctx context.Context, id uuid.UUID, dReason model.DeactivateStaffUser) error
 	ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error)
 	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
 }
@@ -116,7 +116,7 @@ func (r *staffUsers) List(ctx context.Context) ([]model.StaffUser, error) {
 	}
 	defer rows.Close()
 
-	var users []model.StaffUser
+	var users = make([]model.StaffUser, 0)
 
 	for rows.Next() {
 		var u model.StaffUser
@@ -207,6 +207,12 @@ func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateS
 		n++
 	}
 
+	if dto.DeactivatedAt != nil {
+		query += fmt.Sprintf("deactivated_at = $%d, ", n)
+		args = append(args, *dto.DeactivatedAt)
+		n++
+	}
+
 	if len(args) == 0 {
 		return nil
 	}
@@ -245,7 +251,7 @@ func (r *staffUsers) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (s *staffUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
+func (s *staffUsers) Deactivate(ctx context.Context, id uuid.UUID, deactivate model.DeactivateStaffUser) error {
 	sql := `
 		UPDATE staff_users
 		SET is_active = false,
@@ -255,7 +261,7 @@ func (s *staffUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason 
 		WHERE id = $4
 	`
 
-	ct, err := s.DB.Pool.Exec(ctx, sql, dId, time.Now(), dReason, id)
+	ct, err := s.DB.Pool.Exec(ctx, sql, deactivate.DeactivatedByID, time.Now(), deactivate.DeactivationReason, id)
 	if err != nil {
 		return err
 	}
@@ -267,7 +273,7 @@ func (s *staffUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason 
 	return nil
 }
 
-func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error) {
+func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) ([]model.StaffUserLocation, error) {
 	sql := `
 		SELECT DISTINCT ON (s.id)
 			s.id, s.full_name, s.login, s.inn, s.birthday, s.group_id, s.phone_number,
@@ -285,6 +291,8 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) (staf
 		return nil, err
 	}
 	defer rows.Close()
+
+	var staff = make([]model.StaffUserLocation, 0)
 
 	for rows.Next() {
 		var st model.StaffUserLocation

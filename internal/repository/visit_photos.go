@@ -60,7 +60,7 @@ func (r *visitPhotos) List(ctx context.Context, id uuid.UUID) ([]model.VisitPhot
 		return nil, err
 	}
 
-	var v []model.VisitPhotos
+	var v = make([]model.VisitPhotos, 0)
 
 	for rows.Next() {
 		var vPh model.VisitPhotos

@@ -18,7 +18,7 @@ type StaffUsers interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser, user_id uuid.UUID) error
 	List(ctx context.Context) ([]model.StaffUser, error)
-	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
+	Deactivate(ctx context.Context, id uuid.UUID, d model.DeactivateStaffUser) error
 	GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error)
 	ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error)
 	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
@@ -110,8 +110,8 @@ func (s *staffUserService) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.r.Delete(ctx, id)
 }
 
-func (s *staffUserService) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
-	return s.r.Deactivate(ctx, id, dId, dReason)
+func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model.DeactivateStaffUser) error {
+	return s.r.Deactivate(ctx, id, d)
 }
 
 func (s *staffUserService) ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error) {

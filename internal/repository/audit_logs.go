@@ -84,7 +84,7 @@ func (r *auditLogs) List(ctx context.Context, actorID uuid.UUID) ([]model.AuditL
 		return nil, err
 	}
 
-	var logs []model.AuditLogs
+	var logs = make([]model.AuditLogs, 0)
 
 	for rows.Next() {
 		var al model.AuditLogs

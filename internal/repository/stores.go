@@ -22,7 +22,7 @@ type StoreRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error)
 	Update(ctx context.Context, store model.UpdateStore, id uuid.UUID) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	List(ctx context.Context, filter model.StoreListFilter) ([]*model.Store, int, error)
+	List(ctx context.Context, filter model.StoreListFilter) ([]model.Store, int, error)
 	Deactivate(ctx context.Context, id, deactivatedBy uuid.UUID, reason string) error
 }
 
@@ -285,7 +285,7 @@ func (r *stores) Deactivate(ctx context.Context, id, deactivatedBy uuid.UUID, re
 	return nil
 }
 
-func (r *stores) List(ctx context.Context, f model.StoreListFilter) ([]*model.Store, int, error) {
+func (r *stores) List(ctx context.Context, f model.StoreListFilter) ([]model.Store, int, error) {
 	var conditions []string
 	var args []interface{}
 	argNum := 1
@@ -356,10 +356,10 @@ func (r *stores) List(ctx context.Context, f model.StoreListFilter) ([]*model.St
 	}
 	defer rows.Close()
 
-	var storesList []*model.Store
+	var storesList = make([]model.Store, 0)
 
 	for rows.Next() {
-		s := &model.Store{}
+		s := model.Store{}
 		if err := rows.Scan(
 			&s.ID, &s.Name, &s.Address, &s.Latitude, &s.Longitude,
 			&s.OwnerFullName, &s.OwnerINN, &s.OwnerPassport,

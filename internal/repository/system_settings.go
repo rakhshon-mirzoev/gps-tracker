@@ -80,7 +80,7 @@ func (r *systemSettings) List(ctx context.Context) ([]model.SystemSettings, erro
 		return nil, err
 	}
 
-	var settings []model.SystemSettings
+	var settings = make([]model.SystemSettings, 0)
 
 	for rows.Next() {
 		var ss model.SystemSettings

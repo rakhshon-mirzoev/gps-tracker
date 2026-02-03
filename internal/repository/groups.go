@@ -135,14 +135,27 @@ func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Gr
 }
 
 func (g *groupsRepository) Update(ctx context.Context, gr model.Group, id uuid.UUID) error {
-	sql := `
-		UPDATE groups 
-		SET name = $1,
-			supervisor_id = $2
-		WHERE id = $3
-	`
-	ct, err := g.DB.Pool.Exec(ctx, sql, gr.Name, gr.SupervisorID, id)
+	var setClauses []string
+	var args []any
 
+	if gr.Name != "" {
+		args = append(args, gr.Name)
+		setClauses = append(setClauses, fmt.Sprintf("name = $%d", len(args)))
+	}
+
+	if gr.SupervisorID != nil {
+		args = append(args, gr.SupervisorID)
+		setClauses = append(setClauses, fmt.Sprintf("supervisor_id = $%d", len(args)))
+	}
+
+	if len(setClauses) == 0 {
+		return nil
+	}
+
+	args = append(args, id)
+	query := fmt.Sprintf("UPDATE groups SET %s WHERE id = $%d", strings.Join(setClauses, ", "), len(args))
+
+	ct, err := g.DB.Pool.Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}

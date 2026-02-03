@@ -22,10 +22,10 @@ type ScheduleRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Schedule, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateSchedule) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	ListByStaffID(ctx context.Context, staffID uuid.UUID, limit, offset int) ([]*model.Schedule, int, error)
-	ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]*model.Schedule, int, error)
-	ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]*model.Schedule, int, error)
-	ListByStatus(ctx context.Context, status string, limit, offset int) ([]*model.Schedule, int, error)
+	ListByStaffID(ctx context.Context, staffID uuid.UUID, limit, offset int) ([]model.Schedule, int, error)
+	ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]model.Schedule, int, error)
+	ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]model.Schedule, int, error)
+	ListByStatus(ctx context.Context, status string, limit, offset int) ([]model.Schedule, int, error)
 }
 
 func NewScheduleRepository(db *db.DB) ScheduleRepository {
@@ -208,7 +208,7 @@ func (r *schedules) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (r *schedules) ListByStaffID(ctx context.Context, staffID uuid.UUID, limit, offset int) ([]*model.Schedule, int, error) {
+func (r *schedules) ListByStaffID(ctx context.Context, staffID uuid.UUID, limit, offset int) ([]model.Schedule, int, error) {
 	const defaultLimit = 5
 
 	if limit <= 0 {
@@ -242,9 +242,9 @@ func (r *schedules) ListByStaffID(ctx context.Context, staffID uuid.UUID, limit,
 	}
 	defer rows.Close()
 
-	var schedulesList []*model.Schedule
+	var schedulesList = make([]model.Schedule, 0)
 	for rows.Next() {
-		s := &model.Schedule{}
+		s := model.Schedule{}
 		if err := rows.Scan(
 			&s.ID, &s.StaffID, &s.StoreID, &s.PlannedDate, &s.Description,
 			&s.WindowOpen, &s.WindowClose,
@@ -263,7 +263,7 @@ func (r *schedules) ListByStaffID(ctx context.Context, staffID uuid.UUID, limit,
 	return schedulesList, total, nil
 }
 
-func (r *schedules) ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]*model.Schedule, int, error) {
+func (r *schedules) ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]model.Schedule, int, error) {
 	const defaultLimit = 20
 
 	if limit <= 0 {
@@ -297,9 +297,9 @@ func (r *schedules) ListByStoreID(ctx context.Context, storeID uuid.UUID, limit,
 	}
 	defer rows.Close()
 
-	var schedulesList []*model.Schedule
+	var schedulesList = make([]model.Schedule, 0)
 	for rows.Next() {
-		s := &model.Schedule{}
+		s := model.Schedule{}
 		if err := rows.Scan(
 			&s.ID, &s.StaffID, &s.StoreID, &s.PlannedDate, &s.Description,
 			&s.WindowOpen, &s.WindowClose,
@@ -318,7 +318,7 @@ func (r *schedules) ListByStoreID(ctx context.Context, storeID uuid.UUID, limit,
 	return schedulesList, total, nil
 }
 
-func (r *schedules) ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]*model.Schedule, int, error) {
+func (r *schedules) ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]model.Schedule, int, error) {
 	const defaultLimit = 20
 
 	if limit <= 0 {
@@ -352,9 +352,9 @@ func (r *schedules) ListByDate(ctx context.Context, plannedDate string, limit, o
 	}
 	defer rows.Close()
 
-	var schedulesList []*model.Schedule
+	var schedulesList = make([]model.Schedule, 0)
 	for rows.Next() {
-		s := &model.Schedule{}
+		s := model.Schedule{}
 		if err := rows.Scan(
 			&s.ID, &s.StaffID, &s.StoreID, &s.PlannedDate, &s.Description,
 			&s.WindowOpen, &s.WindowClose,
@@ -373,7 +373,7 @@ func (r *schedules) ListByDate(ctx context.Context, plannedDate string, limit, o
 	return schedulesList, total, nil
 }
 
-func (r *schedules) ListByStatus(ctx context.Context, status string, limit, offset int) ([]*model.Schedule, int, error) {
+func (r *schedules) ListByStatus(ctx context.Context, status string, limit, offset int) ([]model.Schedule, int, error) {
 	const defaultLimit = 20
 
 	if limit <= 0 {
@@ -407,9 +407,9 @@ func (r *schedules) ListByStatus(ctx context.Context, status string, limit, offs
 	}
 	defer rows.Close()
 
-	var schedulesList []*model.Schedule
+	var schedulesList = make([]model.Schedule, 0)
 	for rows.Next() {
-		s := &model.Schedule{}
+		s := model.Schedule{}
 		if err := rows.Scan(
 			&s.ID, &s.StaffID, &s.StoreID, &s.PlannedDate, &s.Description,
 			&s.WindowOpen, &s.WindowClose,
