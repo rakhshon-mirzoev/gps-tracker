@@ -48,7 +48,7 @@ func (r *visit) Create(ctx context.Context, v *model.Visit) error {
 		v.CheckInLat, v.CheckInLon,
 	).Scan(&v.ID, &v.CreatedAt)
 	if err != nil {
-		return err
+		return fmt.Errorf("create visit: %w", err)
 	}
 
 	return nil
@@ -71,7 +71,7 @@ func (r *visit) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 		&v.ReviewedAt, &v.CreatedAt,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get by id visit: %w", err)
 	}
 
 	return &v, nil
@@ -88,7 +88,7 @@ func (r *visit) List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, 
 
 	rows, err := r.DB.Pool.Query(ctx, sql, scheduleID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list visits: %w", err)
 	}
 
 	var visits = make([]model.Visit, 0)
@@ -102,14 +102,14 @@ func (r *visit) List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, 
 			&v.IsOffline, &v.ReviewStatus, &v.ReviewComment, &v.ReviewerID,
 			&v.ReviewedAt, &v.CreatedAt,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan visit: %w", err)
 		}
 
 		visits = append(visits, v)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows visits: %w", err)
 	}
 
 	return visits, nil
@@ -117,7 +117,7 @@ func (r *visit) List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, 
 
 func (r *visit) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error {
 	sql := `UPDATE visits SET `
-	args := []interface{}{}
+	var args []any
 	n := 1
 
 	if dto.ScheduleID != nil {
@@ -220,7 +220,7 @@ func (r *visit) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit)
 
 	_, err := r.DB.Pool.Exec(ctx, sql, args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("update visit: %w", err)
 	}
 
 	return nil
@@ -239,7 +239,7 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 	var total int
 	countSQL := `SELECT COUNT(*) FROM visits WHERE review_status = $1`
 	if err := r.DB.Pool.QueryRow(ctx, countSQL, status).Scan(&total); err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("count visits: %w", err)
 	}
 
 	sql := `
@@ -254,7 +254,7 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 
 	rows, err := r.DB.Pool.Query(ctx, sql, status, limit, offset)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("list visits by review status: %w", err)
 	}
 	defer rows.Close()
 
@@ -267,13 +267,13 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 			&v.IsOffline, &v.ReviewStatus, &v.ReviewComment, &v.ReviewerID,
 			&v.ReviewedAt, &v.CreatedAt,
 		); err != nil {
-			return nil, 0, err
+			return nil, 0, fmt.Errorf("scan visit review status: %w", err)
 		}
 		visits = append(visits, v)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("rows visits review status: %w", err)
 	}
 
 	return visits, total, nil
@@ -286,7 +286,7 @@ func (r *visit) Delete(ctx context.Context, id uuid.UUID) error {
 
 	_, err := r.DB.Pool.Exec(ctx, sql, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete visit: %w", err)
 	}
 
 	return nil
@@ -330,7 +330,7 @@ func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUI
 
 	rows, err := s.DB.Pool.Query(ctx, sql, staff_id, store_id, begin, end)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get data for excel: %w", err)
 	}
 	defer rows.Close()
 
@@ -357,7 +357,7 @@ func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUI
 			&v.Store.Name,
 			&v.Reviewer.FullName,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan visit excel: %w", err)
 		}
 
 		visits = append(visits, v)
@@ -365,7 +365,7 @@ func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUI
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows visits excel: %w", err)
 	}
 
 	return visits, nil

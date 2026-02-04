@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -91,7 +92,11 @@ func (r *authRepository) UpsertRefreshToken(ctx context.Context, ref *model.Refr
 		ref.ExpiresAt,
 	)
 
-	return err
+	if err != nil {
+		return fmt.Errorf("upsert refresh token: %w", err)
+	}
+
+	return nil
 }
 
 func (r *authRepository) GetRefreshByToken(ctx context.Context, token string) (*model.Refresh, error) {
@@ -126,7 +131,7 @@ func (r *authRepository) DeleteRefreshByID(ctx context.Context, id uuid.UUID) er
 	sql := `DELETE FROM refresh_token WHERE id = $1`
 	ct, err := r.DB.Pool.Exec(ctx, sql, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete refresh token by id: %w", err)
 	}
 
 	if ct.RowsAffected() == 0 {
@@ -142,7 +147,7 @@ func (r *authRepository) DeleteRefreshByToken(ctx context.Context, token string)
 
 	ct, err := r.DB.Pool.Exec(ctx, sql, token)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete refresh token by token: %w", err)
 	}
 
 	if ct.RowsAffected() == 0 {

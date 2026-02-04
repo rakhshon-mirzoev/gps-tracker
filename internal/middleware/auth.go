@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
+	"go.uber.org/zap"
 )
 
 type ctxKey string
@@ -34,7 +35,7 @@ func (s *MiddlewareService) Auth() gin.HandlerFunc {
 
 		claims, err := s.t.ParseToken(tokenStr)
 		if err != nil {
-			logger.Log.Errorf("Auth: parse token error: %v", err)
+			logger.Log.Error("Auth: parse token error", zap.Error(err))
 			c.AbortWithStatusJSON(401, gin.H{"error": err.Error()})
 			return
 		}

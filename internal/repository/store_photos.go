@@ -39,7 +39,7 @@ func (r *storePhotos) Create(ctx context.Context, sp *model.StorePhotos) error {
 
 	err := r.DB.Pool.QueryRow(ctx, sql, sp.StoreID, sp.PhotoURL, sp.Type).Scan(&sp.ID, &sp.CreatedAt)
 	if err != nil {
-		return err
+		return fmt.Errorf("create store photos: %w", err)
 	}
 
 	return nil
@@ -60,7 +60,7 @@ func (r *storePhotos) GetByID(ctx context.Context, id uuid.UUID) (*model.StorePh
 		&sp.CreatedAt,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get by id store photos: %w", err)
 	}
 
 	return &sp, nil
@@ -74,7 +74,7 @@ func (r *storePhotos) List(ctx context.Context, storeID uuid.UUID) ([]model.Stor
 
 	rows, err := r.DB.Pool.Query(ctx, sql, storeID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list store photos: %w", err)
 	}
 
 	var photos = make([]model.StorePhotos, 0)
@@ -89,14 +89,14 @@ func (r *storePhotos) List(ctx context.Context, storeID uuid.UUID) ([]model.Stor
 			&sp.Type,
 			&sp.CreatedAt,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan store photos: %w", err)
 		}
 
 		photos = append(photos, sp)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows store photos: %w", err)
 	}
 
 	return photos, nil
@@ -104,7 +104,7 @@ func (r *storePhotos) List(ctx context.Context, storeID uuid.UUID) ([]model.Stor
 
 func (r *storePhotos) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStorePhotos) error {
 	sql := `UPDATE store_photos SET `
-	args := []interface{}{}
+	var args []any
 	n := 1
 
 	if dto.StoreID != nil {
@@ -135,7 +135,7 @@ func (r *storePhotos) Update(ctx context.Context, id uuid.UUID, dto model.Update
 
 	_, err := r.DB.Pool.Exec(ctx, sql, args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("update store photos: %w", err)
 	}
 
 	return nil
@@ -148,7 +148,7 @@ func (r *storePhotos) Delete(ctx context.Context, id uuid.UUID) error {
 
 	_, err := r.DB.Pool.Exec(ctx, sql, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete store photos: %w", err)
 	}
 
 	return nil

@@ -110,7 +110,7 @@ func (r *schedules) GetByID(ctx context.Context, id uuid.UUID) (*model.Schedule,
 
 func (r *schedules) Update(ctx context.Context, id uuid.UUID, dto model.UpdateSchedule) error {
 	sql := `UPDATE schedules SET `
-	args := []interface{}{}
+	var args []any
 	n := 1
 
 	if dto.StaffID != nil {

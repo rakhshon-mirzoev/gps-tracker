@@ -26,3 +26,12 @@ type CreateSystemUser struct {
 	ConfirmPassword string `json:"confirm_password" binding:"required,min=8,max=20"`
 	Role            string `json:"role" binding:"required"`
 }
+
+type UpdateSystemUser struct {
+	FullName           *string    `db:"full_name" json:"full_name"`
+	Role               *string    `db:"role" json:"role"`
+	IsActive           *bool      `db:"is_active" json:"is_active"`
+	DeactivatedAt      *time.Time `db:"deactivated_at" json:"deactivated_at"`
+	DeactivatedByID    *int64     `db:"deactivated_by_id" json:"deactivated_by_id"`
+	DeactivationReason *string    `db:"deactivation_reason" json:"deactivation_reason"`
+}

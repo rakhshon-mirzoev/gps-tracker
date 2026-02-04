@@ -36,7 +36,7 @@ type jwtService struct {
 	ttl    time.Duration
 }
 
-func InitTokenService(secret string, ttl time.Duration) Token {
+func NewTokenService(secret string, ttl time.Duration) Token {
 	return &jwtService{
 		secret: []byte(secret),
 		ttl:    ttl,

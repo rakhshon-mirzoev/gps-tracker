@@ -19,19 +19,26 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
+	fcm "github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm/app"
+	sender "github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm/service"
 	miniohandler "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/handler"
 	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
+	"go.uber.org/zap"
 )
 
 func main() {
 	if err := logger.Init(); err != nil {
 		log.Fatalf("failed to init logger: %v", err)
 	}
-	defer logger.Log.Sync()
+
+	defer func() {
+		_ = logger.Log.Sync()
+	}()
 
 	if err := run(); err != nil {
-		logger.Log.Fatalf("failed to run: %v", err)
+		logger.Log.Error("application stopped with error", zap.Error(err))
+		os.Exit(1)
 	}
 }
 
@@ -51,10 +58,20 @@ func run() error {
 		return err
 	}
 
-	token := token.InitTokenService(os.Getenv("SECRET_KEY"), time.Duration(cfg.Admin.TTLMinutes)*time.Minute)
+	firebaseApp, err := fcm.NewFirebaseApp(context.Background(), cfg.Admin.FirebaseCreds)
+	if err != nil {
+		return err
+	}
+
+	firebaseService, err := sender.NewFirebaseService(context.Background(), firebaseApp)
+	if err != nil {
+		return err
+	}
+
+	token := token.NewTokenService(os.Getenv("SECRET_KEY"), time.Duration(cfg.Admin.TTLMinutes)*time.Minute)
 
 	repository := repository.New(db)
-	service := service.New(repository, token, client)
+	service := service.New(repository, token, client, firebaseService)
 	minio := miniohandler.New(client)
 	handler := handler.New(service)
 
@@ -76,7 +93,7 @@ func run() error {
 	go func() {
 		addr := fmt.Sprintf(":%s", cfg.Admin.Port)
 		if err := app.Run(addr); err != nil && err != http.ErrServerClosed {
-			logger.Log.Fatalf("server error: %v", err)
+			logger.Log.Fatal("failed to run admin", zap.Error(err))
 		}
 	}()
 

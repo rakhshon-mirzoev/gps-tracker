@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,7 +22,7 @@ type SystemUsersRepository interface {
 	Create(ctx context.Context, sysUser *model.SystemUser) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error)
 	GetByLogin(ctx context.Context, login string) (*model.SystemUser, error)
-	Update(ctx context.Context, sysUser *model.SystemUser) error
+	Update(ctx context.Context, sysUser *model.UpdateSystemUser, id uuid.UUID) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context) ([]model.SystemUser, error)
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
@@ -55,7 +57,7 @@ func (s *systemUsers) Create(ctx context.Context, sysUser *model.SystemUser) (er
 		sysUser.IsActive).Scan(&sysUser.ID, &sysUser.CreatedAt)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("create system user: %w", err)
 	}
 
 	return nil
@@ -93,24 +95,58 @@ func (s *systemUsers) GetByLogin(ctx context.Context, login string) (*model.Syst
 	return u, nil
 }
 
-func (s *systemUsers) Update(ctx context.Context, sysUser *model.SystemUser) error {
-	sql := `
-        UPDATE system_users 
-        SET full_name = $1, role = $2, is_active = $3 
-        WHERE id = $4`
+func (s *systemUsers) Update(ctx context.Context, dto *model.UpdateSystemUser, id uuid.UUID) error {
+	sql := `UPDATE system_users SET `
+	var args []any
+	n := 1
 
-	ct, err := s.DB.Pool.Exec(ctx, sql,
-		sysUser.FullName,
-		sysUser.Role,
-		sysUser.IsActive,
-		sysUser.ID,
-	)
-	if err != nil {
-		return err
+	if dto.Role != nil {
+		sql += fmt.Sprintf("role = $%d,", n)
+		args = append(args, *dto.Role)
+		n++
 	}
 
-	if ct.RowsAffected() == 0 {
-		return errs.ErrorNotFound
+	if dto.FullName != nil {
+		sql += fmt.Sprintf("full_name = $%d,", n)
+		args = append(args, *dto.FullName)
+		n++
+	}
+
+	if dto.IsActive != nil {
+		sql += fmt.Sprintf("is_active = $%d,", n)
+		args = append(args, *dto.IsActive)
+		n++
+	}
+
+	if dto.DeactivatedAt != nil {
+		sql += fmt.Sprintf("deactivated_at = $%d,", n)
+		args = append(args, *dto.DeactivatedAt)
+		n++
+	}
+
+	if dto.DeactivatedByID != nil {
+		sql += fmt.Sprintf("deactivated_by_id = $%d,", n)
+		args = append(args, *dto.DeactivatedByID)
+		n++
+	}
+
+	if dto.DeactivationReason != nil {
+		sql += fmt.Sprintf("deactivation_reason = $%d,", n)
+		args = append(args, *dto.DeactivationReason)
+		n++
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	sql = strings.TrimSuffix(sql, ", ")
+	sql += fmt.Sprintf(" WHERE id = $%d", n)
+	args = append(args, id)
+
+	_, err := s.DB.Pool.Exec(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("update system user: %w", err)
 	}
 
 	return nil
@@ -120,7 +156,7 @@ func (s *systemUsers) Delete(ctx context.Context, id uuid.UUID) error {
 	sql := `DELETE FROM system_users WHERE id = $1`
 	ct, err := s.DB.Pool.Exec(ctx, sql, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete system user: %w", err)
 	}
 
 	if ct.RowsAffected() == 0 {
@@ -135,7 +171,7 @@ func (s *systemUsers) List(ctx context.Context) ([]model.SystemUser, error) {
 
 	rows, err := s.DB.Pool.Query(ctx, sql)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list system users: %w", err)
 	}
 	defer rows.Close()
 
@@ -144,13 +180,13 @@ func (s *systemUsers) List(ctx context.Context) ([]model.SystemUser, error) {
 	for rows.Next() {
 		var u model.SystemUser
 		if err := rows.Scan(&u.ID, &u.FullName, &u.Login, &u.Role, &u.IsActive, &u.CreatedAt); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan system user: %w", err)
 		}
 		users = append(users, u)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows system users: %w", err)
 	}
 
 	return users, nil
@@ -167,7 +203,7 @@ func (s *systemUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason
 
 	ct, err := s.DB.Pool.Exec(ctx, sql, dId, time.Now(), dReason, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("deactivate system user: %w", err)
 	}
 
 	if ct.RowsAffected() == 0 {
@@ -187,7 +223,7 @@ func (s *systemUsers) GetGroupList(ctx context.Context, groupId uuid.UUID) ([]mo
 
 	rows, err := s.DB.Pool.Query(ctx, sql, groupId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get group list: %w", err)
 	}
 	defer rows.Close()
 
@@ -210,13 +246,13 @@ func (s *systemUsers) GetGroupList(ctx context.Context, groupId uuid.UUID) ([]mo
 			&su.IsActive,
 			&su.CreatedAt,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan staff user: %w", err)
 		}
 		result = append(result, su)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows staff users group: %w", err)
 	}
 
 	return result, nil

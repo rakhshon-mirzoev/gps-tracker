@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
@@ -37,7 +38,7 @@ func (r *staffStoresMapping) Create(ctx context.Context, ssm *model.StaffStoresM
 
 	err := r.DB.Pool.QueryRow(ctx, sql, ssm.StaffID, ssm.StoreID).Scan(&ssm.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("create staff stores mapping: %w", err)
 	}
 
 	return nil
@@ -56,7 +57,7 @@ func (r *staffStoresMapping) GetByID(ctx context.Context, id uuid.UUID) (*model.
 		&ssm.StoreID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get by id staff stores mapping: %w", err)
 	}
 
 	return &ssm, nil
@@ -70,7 +71,7 @@ func (r *staffStoresMapping) List(ctx context.Context, staffID uuid.UUID) ([]mod
 
 	rows, err := r.DB.Pool.Query(ctx, sql, staffID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list staff stores mapping: %w", err)
 	}
 
 	var mappings = make([]model.StaffStoresMapping, 0)
@@ -83,14 +84,14 @@ func (r *staffStoresMapping) List(ctx context.Context, staffID uuid.UUID) ([]mod
 			&ssm.StaffID,
 			&ssm.StoreID,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan staff stores mapping: %w", err)
 		}
 
 		mappings = append(mappings, ssm)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows staff stores mapping: %w", err)
 	}
 
 	return mappings, nil
@@ -105,7 +106,7 @@ func (r *staffStoresMapping) Update(ctx context.Context, ssm *model.StaffStoresM
 
 	_, err := r.DB.Pool.Exec(ctx, sql, ssm.StaffID, ssm.StoreID, ssm.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("update staff stores mapping: %w", err)
 	}
 
 	return nil
@@ -118,7 +119,7 @@ func (r *staffStoresMapping) Delete(ctx context.Context, id uuid.UUID) error {
 
 	_, err := r.DB.Pool.Exec(ctx, sql, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete staff stores mapping: %w", err)
 	}
 
 	return nil
@@ -148,7 +149,7 @@ func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, li
 
 	rows, err := r.DB.Pool.Query(ctx, sqlStores, id, lim, off)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list stores by staff id: %w", err)
 	}
 	defer rows.Close()
 
@@ -178,14 +179,14 @@ func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, li
 			&store.CreatedAt,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan store: %w", err)
 		}
 
 		stores = append(stores, store)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows stores: %w", err)
 	}
 
 	return stores, nil

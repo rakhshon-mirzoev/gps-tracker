@@ -112,7 +112,7 @@ func (r *stores) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error
 
 func (r *stores) Update(ctx context.Context, store model.UpdateStore, id uuid.UUID) error {
 	var updates []string
-	var args []interface{}
+	var args []any
 	argNum := 1
 
 	if store.Name != nil {

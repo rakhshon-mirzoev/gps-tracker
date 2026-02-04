@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 )
 
@@ -13,14 +12,12 @@ func (h *Handler) Location(c *gin.Context) {
 	var loc *model.LocationHistory
 	user_id, err := checkStaffUser(c)
 	if err != nil {
-		logger.Log.Errorf("Location: failed to check user: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		h.handleError(c, "Location: check staff user", err, http.StatusBadRequest)
 		return
 	}
 
 	if err := c.ShouldBindJSON(&loc); err != nil {
-		logger.Log.Errorf("Location: failed to bind location: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		h.handleFieldError(c, "Location: bind", err)
 		return
 	}
 
@@ -28,8 +25,7 @@ func (h *Handler) Location(c *gin.Context) {
 
 	err = h.s.Location.Create(c.Request.Context(), loc, user_id)
 	if err != nil {
-		logger.Log.Errorf("Location: failed to create location: %w", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		h.handleError(c, "Location: create", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -39,8 +35,7 @@ func (h *Handler) Location(c *gin.Context) {
 func (h *Handler) AllStaffOnlineOffline(c *gin.Context) {
 	id, err := checkSystemUser(c)
 	if err != nil {
-		logger.Log.Errorf("AllStaffOnlineOffline: failed to check System User: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check System User"})
+		h.handleError(c, "AllStaffOnlineOffline: check system user", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -49,23 +44,20 @@ func (h *Handler) AllStaffOnlineOffline(c *gin.Context) {
 
 	begin, err := time.Parse("2006-01-02", beginStr)
 	if err != nil {
-		logger.Log.Errorf("AllStaffOnlineOffline: failed to parse begin date: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid begin date"})
+		h.handleFieldError(c, "AllStaffOnlineOffline: parse begin", err)
 		return
 	}
 
 	end, err := time.Parse("2006-01-02", endStr)
 	if err != nil {
-		logger.Log.Errorf("AllStaffOnlineOffline: failed to parse end date: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end date"})
+		h.handleFieldError(c, "AllStaffOnlineOffline: parse end", err)
 		return
 	}
 	end = end.AddDate(0, 0, 1)
 
 	data, err := h.s.Location.GetAllStaffOnlineOffline(c.Request.Context(), id, begin, end)
 	if err != nil {
-		logger.Log.Errorf("AllStaffOnlineOffline: failed to get durations: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get staff durations"})
+		h.handleError(c, "AllStaffOnlineOffline: get durations", err, http.StatusInternalServerError)
 		return
 	}
 

@@ -49,7 +49,7 @@ func (r *dailyReportingStats) Create(ctx context.Context, drs *model.DailyReport
 		drs.RejectedCount, drs.MissedCount, drs.WorkStartAt, drs.WorkEndAt, drs.TotalKm,
 	).Scan(&drs.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("insert daily reporting stats: %w", err)
 	}
 
 	return nil
@@ -68,7 +68,7 @@ func (r *dailyReportingStats) GetByID(ctx context.Context, id uuid.UUID) (*model
 		&drs.RejectedCount, &drs.MissedCount, &drs.WorkStartAt, &drs.WorkEndAt, &drs.TotalKm,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get by id daily reporting stats: %w", err)
 	}
 
 	return &drs, nil
@@ -83,7 +83,7 @@ func (r *dailyReportingStats) List(ctx context.Context, staffID uuid.UUID) ([]mo
 
 	rows, err := r.DB.Pool.Query(ctx, sql, staffID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list daily reporting stats: %w", err)
 	}
 
 	var stats = make([]model.DailyReportingStats, 0)
@@ -102,7 +102,7 @@ func (r *dailyReportingStats) List(ctx context.Context, staffID uuid.UUID) ([]mo
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows daily reporting stats: %w", err)
 	}
 
 	return stats, nil
@@ -110,7 +110,7 @@ func (r *dailyReportingStats) List(ctx context.Context, staffID uuid.UUID) ([]mo
 
 func (r *dailyReportingStats) Update(ctx context.Context, id uuid.UUID, dto model.UpdateDailyReportingStats) error {
 	sql := `UPDATE daily_reporting_stats SET `
-	args := []interface{}{}
+	var args []any
 	n := 1
 
 	if dto.Date != nil {
@@ -183,7 +183,7 @@ func (r *dailyReportingStats) Update(ctx context.Context, id uuid.UUID, dto mode
 
 	_, err := r.DB.Pool.Exec(ctx, sql, args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("update daily reporting stats: %w", err)
 	}
 
 	return nil
@@ -196,7 +196,7 @@ func (r *dailyReportingStats) Delete(ctx context.Context, id uuid.UUID) error {
 
 	_, err := r.DB.Pool.Exec(ctx, sql, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete daily reporting stats: %w", err)
 	}
 
 	return nil

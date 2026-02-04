@@ -112,7 +112,7 @@ func (r *staffUsers) List(ctx context.Context) ([]model.StaffUser, error) {
 
 	rows, err := r.DB.Pool.Query(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list staff users: %w", err)
 	}
 	defer rows.Close()
 
@@ -142,13 +142,13 @@ func (r *staffUsers) List(ctx context.Context) ([]model.StaffUser, error) {
 			&u.DeactivatedByID,
 			&u.DeactivationReason,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan staff user: %w", err)
 		}
 		users = append(users, u)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows staff users: %w", err)
 	}
 
 	return users, nil
@@ -157,7 +157,7 @@ func (r *staffUsers) List(ctx context.Context) ([]model.StaffUser, error) {
 func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error {
 
 	query := `UPDATE staff_users SET `
-	args := []any{}
+	var args []any
 	n := 1
 
 	if dto.FullName != nil {
@@ -223,7 +223,7 @@ func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateS
 
 	ct, err := r.DB.Pool.Exec(ctx, query, args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("update staff user: %w", err)
 	}
 
 	if ct.RowsAffected() == 0 {
@@ -241,7 +241,7 @@ func (r *staffUsers) Delete(ctx context.Context, id uuid.UUID) error {
 
 	ct, err := r.DB.Pool.Exec(ctx, query, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete staff user: %w", err)
 	}
 
 	if ct.RowsAffected() == 0 {
@@ -263,7 +263,7 @@ func (s *staffUsers) Deactivate(ctx context.Context, id uuid.UUID, deactivate mo
 
 	ct, err := s.DB.Pool.Exec(ctx, sql, deactivate.DeactivatedByID, time.Now(), deactivate.DeactivationReason, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("deactivate staff user: %w", err)
 	}
 
 	if ct.RowsAffected() == 0 {
@@ -288,7 +288,7 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) ([]mo
 
 	rows, err := s.DB.Pool.Query(ctx, sql, user_id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list staff by group id: %w", err)
 	}
 	defer rows.Close()
 
@@ -316,13 +316,13 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) ([]mo
 			&st.Location.BatteryLevel,
 			&st.Location.CapturedAt,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan staff user location: %w", err)
 		}
 		staff = append(staff, st)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows staff users: %w", err)
 	}
 
 	return staff, nil
@@ -344,7 +344,7 @@ func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, e
 
 	rows, err := s.DB.Pool.Query(ctx, sql, id, begin, end)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get location by id: %w", err)
 	}
 	defer rows.Close()
 
@@ -376,7 +376,7 @@ func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, e
 			&loc.BatteryLevel,
 			&loc.CapturedAt,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan location history: %w", err)
 		}
 
 		staff.Locations = append(staff.Locations, loc)

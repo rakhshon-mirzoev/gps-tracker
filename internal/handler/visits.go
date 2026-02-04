@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
@@ -16,21 +15,18 @@ func (h *Handler) VisitCheckIn(c *gin.Context) {
 	var visit *model.CreateVisit
 	user_id, err := checkStaffUser(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		logger.Log.Errorf("VisitCheckIn: failed to check staff user: %w", err)
+		h.handleError(c, "VisitCheckIn: check staff user", err, http.StatusBadRequest)
 		return
 	}
 
 	if err := c.ShouldBindJSON(&visit); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		logger.Log.Errorf("VisitCheckIn: failed to check bind visit: %w", err)
+		h.handleFieldError(c, "VisitCheckIn", err)
 		return
 	}
 
 	err = h.s.Visit.Create(c.Request.Context(), visit, user_id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		logger.Log.Errorf("VisitCheckIn: failed to create visit: %w", err)
+		h.handleError(c, "VisitCheckIn: create visit", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -45,15 +41,13 @@ func (h *Handler) VisitPhoto(c *gin.Context) {
 
 	file, err := c.MultipartForm()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ошибка при получении файлов: " + err.Error()})
-		logger.Log.Errorf("VisitPhoto: multipart form: %w", err)
+		h.handleFieldError(c, "VisitPhoto: multipart form", err)
 		return
 	}
 
 	err = h.s.Visit.VisitPhoto(c.Request.Context(), vID, dto, file)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		logger.Log.Errorf("VisitPhoto: failed to update visit: %w", err)
+		h.handleError(c, "VisitPhoto: update visit", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -67,15 +61,13 @@ func (h *Handler) VisitComplete(c *gin.Context) {
 	vID := c.Param("id")
 
 	if err := c.ShouldBindJSON(&dto); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		logger.Log.Errorf("VisitComplete: failed to bind dto: %w", err)
+		h.handleFieldError(c, "VisitComplete", err)
 		return
 	}
 
 	err := h.s.Visit.VisitComplete(c.Request.Context(), vID, dto)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		logger.Log.Errorf("VisitComplete: failed to update visit: %w", err)
+		h.handleError(c, "VisitComplete: update visit", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -91,15 +83,13 @@ func (h *Handler) ReviewQueue(c *gin.Context) {
 
 	lim, off, err := getLimitOffset(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		logger.Log.Errorf("ReviewQueue: failed to get limit/offset: %w", err)
+		h.handleFieldError(c, "ReviewQueue: get limit/offset", err)
 		return
 	}
 
 	visits, total, err := h.s.Visit.ListByReviewStatus(c.Request.Context(), "pending", lim, off, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		logger.Log.Errorf("ReviewQueue: failed to list visits: %w", err)
+		h.handleError(c, "ReviewQueue: list visits", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -120,14 +110,12 @@ func (h *Handler) ReviewVisit(c *gin.Context) {
 
 	visitID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid visit id"})
-		logger.Log.Errorf("ReviewVisit: failed to parse id: %w", err)
+		h.handleFieldError(c, "ReviewVisit: parse id", err)
 		return
 	}
 
 	if err := c.ShouldBindJSON(&reviewDTO); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		logger.Log.Errorf("ReviewVisit: failed to bind dto: %w", err)
+		h.handleFieldError(c, "ReviewVisit", err)
 		return
 	}
 
@@ -149,8 +137,7 @@ func (h *Handler) ReviewVisit(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "visit not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		logger.Log.Errorf("ReviewVisit: failed to update visit: %w", err)
+		h.handleError(c, "ReviewVisit: update visit", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -185,13 +172,13 @@ func (h *Handler) ExportReports(c *gin.Context) {
 
 	visits, err := h.s.Visit.GetDataForExcel(c.Request.Context(), staffID, storeID, begin, end)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get data"})
+		h.handleError(c, "ExportReports: get data", err, http.StatusInternalServerError)
 		return
 	}
 
 	data, err := h.s.Excel.ExportReports(visits)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate excel"})
+		h.handleError(c, "ExportReports: export excel", err, http.StatusInternalServerError)
 		return
 	}
 

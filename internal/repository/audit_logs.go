@@ -47,7 +47,7 @@ func (r *auditLogs) Create(ctx context.Context, al *model.AuditLogs) error {
 		al.OldValue, al.NewValue, al.IPAddress,
 	).Scan(&al.ID, &al.CreatedAt)
 	if err != nil {
-		return err
+		return fmt.Errorf("insert audit logs: %w", err)
 	}
 
 	return nil
@@ -66,7 +66,7 @@ func (r *auditLogs) GetByID(ctx context.Context, id uuid.UUID) (*model.AuditLogs
 		&al.OldValue, &al.NewValue, &al.IPAddress, &al.CreatedAt,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get by id audit logs: %w", err)
 	}
 
 	return &al, nil
@@ -81,7 +81,7 @@ func (r *auditLogs) List(ctx context.Context, actorID uuid.UUID) ([]model.AuditL
 
 	rows, err := r.DB.Pool.Query(ctx, sql, actorID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list audit logs: %w", err)
 	}
 
 	var logs = make([]model.AuditLogs, 0)
@@ -100,7 +100,7 @@ func (r *auditLogs) List(ctx context.Context, actorID uuid.UUID) ([]model.AuditL
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows audit logs: %w", err)
 	}
 
 	return logs, nil
@@ -108,7 +108,7 @@ func (r *auditLogs) List(ctx context.Context, actorID uuid.UUID) ([]model.AuditL
 
 func (r *auditLogs) Update(ctx context.Context, id uuid.UUID, dto model.UpdateAuditLogs) error {
 	sql := `UPDATE audit_logs SET `
-	args := []interface{}{}
+	var args []any
 	n := 1
 
 	if dto.ActorID != nil {
@@ -169,7 +169,7 @@ func (r *auditLogs) Update(ctx context.Context, id uuid.UUID, dto model.UpdateAu
 
 	_, err := r.DB.Pool.Exec(ctx, sql, args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("update audit logs %s: %w", id, err)
 	}
 
 	return nil
@@ -182,7 +182,7 @@ func (r *auditLogs) Delete(ctx context.Context, id uuid.UUID) error {
 
 	_, err := r.DB.Pool.Exec(ctx, sql, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete audit logs %s: %w", id, err)
 	}
 
 	return nil

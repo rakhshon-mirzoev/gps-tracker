@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
+	sender "github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm/service"
 	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 )
@@ -20,11 +21,11 @@ type Service struct {
 	Excel              Excel
 }
 
-func New(r *repository.Repository, t token.Token, minio minioservice.Minio) *Service {
+func New(r *repository.Repository, t token.Token, minio minioservice.Minio, sender sender.PushSender) *Service {
 	sch := NewScheduleService(r.Schedules)
 	sys := NewSystemUsersService(r.SystemUsers)
 	group := NewGroupService(r.Groups)
-	staff := NewStaffUserService(r.StaffUsers, sch)
+	staff := NewStaffUserService(r.StaffUsers, sch, sender)
 	authorize := NewAuthorizeService(t, r.Auth, sys, staff)
 	visit := NewVisitsService(r.Visit, minio)
 	store := NewStoresService(r.Store)

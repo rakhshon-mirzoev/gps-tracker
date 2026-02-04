@@ -16,15 +16,17 @@ type GeneralConfig struct {
 }
 
 type Admin struct {
-	Host       string `json:"host"`
-	Port       string `json:"port"`
-	TTLMinutes int    `json:"ttl_minutes"`
+	Host          string `json:"host"`
+	Port          string `json:"port"`
+	TTLMinutes    int    `json:"ttl_minutes"`
+	FirebaseCreds string `json:"credentials"`
 }
 
 type Mobile struct {
-	Host       string `json:"host"`
-	Port       string `json:"port"`
-	TTLMinutes int    `json:"ttl_minutes"`
+	Host          string `json:"host"`
+	Port          string `json:"port"`
+	TTLMinutes    int    `json:"ttl_minutes"`
+	FirebaseCreds string `json:"credentials"`
 }
 
 type MinioConfig struct {

@@ -44,7 +44,7 @@ func (r *locationHistory) Create(ctx context.Context, lh *model.LocationHistory)
 
 	err := r.DB.Pool.QueryRow(ctx, sql, lh.StaffID, lh.Latitude, lh.Longitude, lh.BatteryLevel, lh.CapturedAt, lh.Status).Scan(&lh.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("create location history: %w", err)
 	}
 
 	return nil
@@ -67,7 +67,7 @@ func (r *locationHistory) GetByID(ctx context.Context, id uuid.UUID) (*model.Loc
 		&lh.Status,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get by id location history: %w", err)
 	}
 
 	return &lh, nil
@@ -81,7 +81,7 @@ func (r *locationHistory) List(ctx context.Context, staffID uuid.UUID) ([]model.
 
 	rows, err := r.DB.Pool.Query(ctx, sql, staffID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list location history: %w", err)
 	}
 
 	var history = make([]model.LocationHistory, 0)
@@ -98,14 +98,14 @@ func (r *locationHistory) List(ctx context.Context, staffID uuid.UUID) ([]model.
 			&lh.CapturedAt,
 			&lh.Status,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan location history: %w", err)
 		}
 
 		history = append(history, lh)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows location history: %w", err)
 	}
 
 	return history, nil
@@ -113,7 +113,7 @@ func (r *locationHistory) List(ctx context.Context, staffID uuid.UUID) ([]model.
 
 func (r *locationHistory) Update(ctx context.Context, id uuid.UUID, dto model.UpdateLocationHistory) error {
 	sql := `UPDATE location_history SET `
-	args := []interface{}{}
+	var args []any
 	n := 1
 
 	if dto.StaffID != nil {
@@ -156,7 +156,7 @@ func (r *locationHistory) Update(ctx context.Context, id uuid.UUID, dto model.Up
 
 	_, err := r.DB.Pool.Exec(ctx, sql, args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("update location history: %w", err)
 	}
 
 	return nil
@@ -169,7 +169,7 @@ func (r *locationHistory) Delete(ctx context.Context, id uuid.UUID) error {
 
 	_, err := r.DB.Pool.Exec(ctx, sql, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete location history: %w", err)
 	}
 
 	return nil
@@ -192,7 +192,7 @@ func (r *locationHistory) GetAllStaffOnlineOffline(ctx context.Context, supervis
 
 	rows, err := r.DB.Pool.Query(ctx, sql, supervisorID, begin, end)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get all staff online offline: %w", err)
 	}
 	defer rows.Close()
 
@@ -204,7 +204,7 @@ func (r *locationHistory) GetAllStaffOnlineOffline(ctx context.Context, supervis
 		var count int
 
 		if err := rows.Scan(&staffID, &status, &count); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan staff online offline: %w", err)
 		}
 
 		if _, ok := result[staffID]; !ok {

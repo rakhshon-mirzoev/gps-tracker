@@ -14,7 +14,7 @@ type SystemUsers interface {
 	Create(ctx context.Context, sysUser *model.CreateSystemUser) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error)
 	Delete(ctx context.Context, id uuid.UUID) error
-	Update(ctx context.Context, u *model.SystemUser) error
+	Update(ctx context.Context, u *model.UpdateSystemUser, id uuid.UUID) error
 	List(ctx context.Context) ([]model.SystemUser, error)
 	GetByLogin(ctx context.Context, login string) (*model.SystemUser, error)
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
@@ -66,8 +66,8 @@ func (s *systemUserService) List(ctx context.Context) ([]model.SystemUser, error
 	return s.r.List(ctx)
 }
 
-func (s *systemUserService) Update(ctx context.Context, u *model.SystemUser) error {
-	return s.r.Update(ctx, u)
+func (s *systemUserService) Update(ctx context.Context, u *model.UpdateSystemUser, id uuid.UUID) error {
+	return s.r.Update(ctx, u, id)
 }
 
 func (s *systemUserService) Delete(ctx context.Context, id uuid.UUID) error {

@@ -41,7 +41,7 @@ func (g *groupsRepository) Create(ctx context.Context, group *model.Group) error
 	`
 	err := g.DB.Pool.QueryRow(ctx, sql, group.Name, group.SupervisorID).Scan(&group.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("create group: %w", err)
 	}
 
 	return nil
@@ -74,7 +74,7 @@ func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID) ([
 
 	rows, err := g.DB.Pool.Query(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list groups: %w", err)
 	}
 	defer rows.Close()
 
@@ -91,14 +91,14 @@ func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID) ([
 			&g.CreatedAt,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan group: %w", err)
 		}
 
 		groups = append(groups, g)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows groups: %w", err)
 	}
 
 	return groups, nil
@@ -157,7 +157,7 @@ func (g *groupsRepository) Update(ctx context.Context, gr model.Group, id uuid.U
 
 	ct, err := g.DB.Pool.Exec(ctx, query, args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("update group: %w", err)
 	}
 
 	if ct.RowsAffected() == 0 {
@@ -172,7 +172,7 @@ func (g *groupsRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 	ct, err := g.DB.Pool.Exec(ctx, sql, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete group: %w", err)
 	}
 
 	if ct.RowsAffected() == 0 {

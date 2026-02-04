@@ -43,7 +43,7 @@ func (r *visitPhotos) Create(ctx context.Context, v *model.VisitPhotos) error {
 
 	err := r.DB.Pool.QueryRow(ctx, sql, v.VisitID, v.PhotoURL, v.OriginalName, v.CapturedAt).Scan(&v.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("create visit photos: %w", err)
 	}
 
 	return nil
@@ -57,7 +57,7 @@ func (r *visitPhotos) List(ctx context.Context, id uuid.UUID) ([]model.VisitPhot
 
 	rows, err := r.DB.Pool.Query(ctx, sql, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list visit photos: %w", err)
 	}
 
 	var v = make([]model.VisitPhotos, 0)
@@ -72,14 +72,14 @@ func (r *visitPhotos) List(ctx context.Context, id uuid.UUID) ([]model.VisitPhot
 			&vPh.OriginalName,
 			&vPh.CapturedAt,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan visit photos: %w", err)
 		}
 
 		v = append(v, vPh)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows visit photos: %w", err)
 	}
 
 	return v, nil
@@ -100,7 +100,7 @@ func (r *visitPhotos) GetByID(ctx context.Context, id uuid.UUID) (*model.VisitPh
 		&v.CapturedAt,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get by id visit photos: %w", err)
 	}
 
 	return &v, nil
@@ -108,7 +108,7 @@ func (r *visitPhotos) GetByID(ctx context.Context, id uuid.UUID) (*model.VisitPh
 
 func (r *visitPhotos) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisitPhotos) error {
 	sql := `UPDATE visit_photos SET `
-	args := []interface{}{}
+	var args []any
 	n := 1
 
 	if dto.VisitID != nil {
@@ -139,7 +139,7 @@ func (r *visitPhotos) Update(ctx context.Context, id uuid.UUID, dto model.Update
 
 	_, err := r.DB.Pool.Exec(ctx, sql, args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("update visit photos: %w", err)
 	}
 
 	return nil
@@ -152,7 +152,7 @@ func (r *visitPhotos) Delete(ctx context.Context, id uuid.UUID) error {
 
 	_, err := r.DB.Pool.Exec(ctx, sql, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete visit photos: %w", err)
 	}
 
 	return nil

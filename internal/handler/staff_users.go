@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
@@ -21,15 +20,13 @@ func (h *Handler) Profile(c *gin.Context) {
 
 	lim, off, err := getLimitOffset(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		logger.Log.Errorf("Profile: failed to get lim and off: %w", err)
+		h.handleFieldError(c, "Profile: get limit/offset", err)
 		return
 	}
 
 	bio, err := h.s.StaffUser.GetProfile(c.Request.Context(), user_id, lim, off)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		logger.Log.Errorf("Profile: failed to get profile: %w", err)
+		h.handleError(c, "Profile: get profile", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -45,8 +42,7 @@ func (h *Handler) AttachDevice(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&updateStaff); err != nil {
-		logger.Log.Errorf("AttachDevice: failed bind: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		h.handleFieldError(c, "AttachDevice", err)
 		return
 	}
 
@@ -56,8 +52,7 @@ func (h *Handler) AttachDevice(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "no user found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		logger.Log.Errorf("AttachDevice: failed update: %w", err)
+		h.handleError(c, "AttachDevice: update", err, http.StatusInternalServerError)
 		return
 	}
 	c.Status(http.StatusOK)
@@ -66,8 +61,7 @@ func (h *Handler) AttachDevice(c *gin.Context) {
 func (h *Handler) ListStaffUsers(c *gin.Context) {
 	staff, err := h.s.StaffUser.List(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		logger.Log.Errorf("ListStaffUsers: failed list: %w", err)
+		h.handleError(c, "ListStaffUsers", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -84,14 +78,12 @@ func (h *Handler) CreateStaffUser(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&dto); err != nil {
-		logger.Log.Errorf("CreateStaffUser: failed to bind staff user: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to bind staff user"})
+		h.handleFieldError(c, "CreateStaffUser", err)
 		return
 	}
 
 	if err := h.s.StaffUser.Create(c.Request.Context(), dto, user_id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create staff user"})
-		logger.Log.Errorf("CreateStaffUser: failed create: %w", err)
+		h.handleError(c, "CreateStaffUser", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -103,8 +95,7 @@ func (h *Handler) UpdateStaffUser(c *gin.Context) {
 
 	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse uuid"})
-		logger.Log.Errorf("UpdateStaffUser: failed to convert id to uuid: %w", err)
+		h.handleFieldError(c, "UpdateStaffUser: parse id", err)
 		return
 	}
 
@@ -115,8 +106,7 @@ func (h *Handler) UpdateStaffUser(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&dto); err != nil {
-		logger.Log.Errorf("UpdateStaffUser: failed to bind: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to bind update staff user"})
+		h.handleFieldError(c, "UpdateStaffUser", err)
 		return
 	}
 
@@ -125,8 +115,7 @@ func (h *Handler) UpdateStaffUser(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "no user found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update staff user"})
-		logger.Log.Errorf("UpdateStaffUser: failed update: %w", err)
+		h.handleError(c, "UpdateStaffUser", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -138,32 +127,25 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 
 	user_id, err := checkSystemUser(c)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "failed to check system user"})
+		h.handleError(c, "DeactivateStaffUser", err, http.StatusUnauthorized)
 		return
 	}
 
 	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to convert id to uuid"})
-		logger.Log.Errorf("DeactivateStaffUser: failed to convert id to uuid: %w", err)
+		h.handleError(c, "DeactivateStaffUser", err, http.StatusBadRequest)
 		return
 	}
 
 	if err := c.ShouldBindJSON(&deactivate); err != nil {
-		logger.Log.Errorf("DeactivateStaffUser: failed to bind: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to bind"})
+		h.handleError(c, "DeactivateStaffUser", err, http.StatusBadRequest)
 		return
 	}
 
 	deactivate.DeactivatedByID = &user_id
 
 	if err := h.s.StaffUser.Deactivate(c.Request.Context(), uid, deactivate); err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "no user found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed update"})
-		logger.Log.Errorf("DeactivateStaffUser: failed update: %w", err)
+		h.handleError(c, "DeactivateStaffUser", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -173,15 +155,13 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 func (h *Handler) ListStaffUsersLocationByGroupID(c *gin.Context) {
 	id, err := checkSystemUser(c)
 	if err != nil {
-		logger.Log.Errorf("ListStaffUsersLocationByGroupID: failed to check system user: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to check system user"})
+		h.handleError(c, "ListStaffUsersLocationByGroupID: check system user", err, http.StatusBadRequest)
 		return
 	}
 
 	staff_users, err := h.s.StaffUser.ListByGroupID(c.Request.Context(), id)
 	if err != nil {
-		logger.Log.Errorf("ListStaffUsersLocationByGroupID: failed to list staff users: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to list staff users"})
+		h.handleError(c, "ListStaffUsersLocationByGroupID: list", err, http.StatusBadRequest)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"staff_users": staff_users})
@@ -198,15 +178,13 @@ func (h *Handler) ListStaffUserLocationByDate(c *gin.Context) {
 
 	begin, err := time.Parse("02.01.2006", beginStr)
 	if err != nil {
-		logger.Log.Errorf("ListStaffUserLocationByDate: failed to parse begin time: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid begin date format, use dd.mm.yyyy"})
+		h.handleFieldError(c, "ListStaffUserLocationByDate: parse begin", err)
 		return
 	}
 
 	end, err := time.Parse("02.01.2006", endStr)
 	if err != nil {
-		logger.Log.Errorf("ListStaffUserLocationByDate: failed to parse end time: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end date format, use dd.mm.yyyy"})
+		h.handleFieldError(c, "ListStaffUserLocationByDate: parse end", err)
 		return
 	}
 
@@ -214,15 +192,13 @@ func (h *Handler) ListStaffUserLocationByDate(c *gin.Context) {
 
 	staff_id, err := uuid.Parse(c.Param("staff_id"))
 	if err != nil {
-		logger.Log.Errorf("ListStaffUserLocationByDate: failed to parse staff id: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse staff id"})
+		h.handleFieldError(c, "ListStaffUserLocationByDate: parse staff id", err)
 		return
 	}
 
 	staff_user, err := h.s.StaffUser.GetLocationByID(c.Request.Context(), staff_id, begin, end)
 	if err != nil {
-		logger.Log.Errorf("ListStaffUserLocationByDate: failed to list staff user's location history: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to list staff user's location history"})
+		h.handleError(c, "ListStaffUserLocationByDate: list locations", err, http.StatusBadRequest)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"staff_user": staff_user})
@@ -231,8 +207,7 @@ func (h *Handler) ListStaffUserLocationByDate(c *gin.Context) {
 func (h *Handler) GetStaffUserByID(c *gin.Context) {
 	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		logger.Log.Errorf("GetStaffUserByID: failed to parse id: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse id"})
+		h.handleFieldError(c, "GetStaffUserByID: parse id", err)
 		return
 	}
 
@@ -242,8 +217,7 @@ func (h *Handler) GetStaffUserByID(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "no user found"})
 			return
 		}
-		logger.Log.Errorf("GetStaffUserByID: failed to get staff user: %w", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get staff user"})
+		h.handleError(c, "GetStaffUserByID", err, http.StatusInternalServerError)
 		return
 	}
 

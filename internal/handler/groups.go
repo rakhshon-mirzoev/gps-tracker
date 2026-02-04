@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
@@ -15,14 +14,12 @@ func (h *Handler) CreateGroup(c *gin.Context) {
 	var group *model.Group
 
 	if err := c.ShouldBindJSON(&group); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to bind"})
-		logger.Log.Errorf("CreateGroup: failed to bind: %w", err)
+		h.handleFieldError(c, "CreateGroup", err)
 		return
 	}
 
 	if err := h.s.Group.Create(c.Request.Context(), group); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create"})
-		logger.Log.Errorf("CreateGroup: failed to create: %w", err)
+		h.handleError(c, "CreateGroup", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -32,8 +29,7 @@ func (h *Handler) CreateGroup(c *gin.Context) {
 func (h *Handler) DeleteGroup(c *gin.Context) {
 	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		logger.Log.Errorf("DeleteGroup: failed to convert id to uuid: %w", err)
+		h.handleFieldError(c, "DeleteGroup: parse id", err)
 		return
 	}
 
@@ -42,8 +38,7 @@ func (h *Handler) DeleteGroup(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "not found group"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		logger.Log.Errorf("DeleteGroup: failed to delete: %w", err)
+		h.handleError(c, "DeleteGroup", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -53,8 +48,7 @@ func (h *Handler) DeleteGroup(c *gin.Context) {
 func (h *Handler) GetByIdGroup(c *gin.Context) {
 	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		logger.Log.Errorf("GetByID: failed to convert id to uuid: %w", err)
+		h.handleFieldError(c, "GetByIdGroup: parse id", err)
 		return
 	}
 
@@ -64,8 +58,7 @@ func (h *Handler) GetByIdGroup(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "not found group"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		logger.Log.Errorf("GetByID: failed to get: %w", err)
+		h.handleError(c, "GetByIdGroup", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -75,14 +68,12 @@ func (h *Handler) GetByIdGroup(c *gin.Context) {
 func (h *Handler) ListGroups(c *gin.Context) {
 	user_id, err := checkSystemUser(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		logger.Log.Errorf("ListGroups: failed to check user: %w", err)
+		h.handleError(c, "ListGroups: check system user", err, http.StatusBadRequest)
 		return
 	}
 	groups, err := h.s.Group.List(c.Request.Context(), &user_id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		logger.Log.Errorf("ListGroups: failed to list: %w", err)
+		h.handleError(c, "ListGroups: list", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -94,14 +85,12 @@ func (h *Handler) UpdateGroup(c *gin.Context) {
 
 	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		logger.Log.Errorf("UpdateGroup: failed to convert id to uuid: %w", err)
+		h.handleFieldError(c, "UpdateGroup: parse id", err)
 		return
 	}
 
 	if err := c.ShouldBindJSON(&dto); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		logger.Log.Errorf("UpdateGroup: failed to bind: %w", err)
+		h.handleFieldError(c, "UpdateGroup", err)
 		return
 	}
 
@@ -110,8 +99,7 @@ func (h *Handler) UpdateGroup(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "not found group"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		logger.Log.Errorf("UpdateGroup: failed to update: %w", err)
+		h.handleError(c, "UpdateGroup", err, http.StatusInternalServerError)
 		return
 	}
 

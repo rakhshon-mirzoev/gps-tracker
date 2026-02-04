@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
@@ -15,14 +14,12 @@ func (h *Handler) CreateSystemSetting(c *gin.Context) {
 	var ss *model.SystemSettings
 
 	if err := c.ShouldBindJSON(&ss); err != nil {
-		logger.Log.Errorf("CreateSystemSetting: failed to bind: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		h.handleFieldError(c, "CreateSystemSetting", err)
 		return
 	}
 
 	if err := h.s.SystemSettings.Create(c.Request.Context(), ss); err != nil {
-		logger.Log.Errorf("CreateSystemSetting: failed to create: %w", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		h.handleError(c, "CreateSystemSetting", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -34,8 +31,7 @@ func (h *Handler) ListSystemSettings(c *gin.Context) {
 
 	ss, err := h.s.SystemSettings.List(c.Request.Context())
 	if err != nil {
-		logger.Log.Errorf("ListSystemSettings: failed to list: %w", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		h.handleError(c, "ListSystemSettings", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -48,14 +44,12 @@ func (h *Handler) DeleteSystemSetting(c *gin.Context) {
 
 	parsedID, err := uuid.Parse(id)
 	if err != nil {
-		logger.Log.Errorf("DeleteSystemSetting: failed to parse id: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		h.handleFieldError(c, "DeleteSystemSetting: parse id", err)
 		return
 	}
 
 	if err := h.s.SystemSettings.Delete(c.Request.Context(), parsedID); err != nil {
-		logger.Log.Errorf("DeleteSystemSetting: failed to delete: %w", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		h.handleError(c, "DeleteSystemSetting", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -69,20 +63,17 @@ func (h *Handler) UpdateSystemSetting(c *gin.Context) {
 
 	parsedID, err := uuid.Parse(id)
 	if err != nil {
-		logger.Log.Errorf("UpdateSystemSetting: failed to parse id: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		h.handleFieldError(c, "UpdateSystemSetting: parse id", err)
 		return
 	}
 
 	if err := c.ShouldBindJSON(&dto); err != nil {
-		logger.Log.Errorf("UpdateSystemSetting: failed to bind: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		h.handleFieldError(c, "UpdateSystemSetting", err)
 		return
 	}
 
 	if err := h.s.SystemSettings.Update(c.Request.Context(), parsedID, dto); err != nil {
-		logger.Log.Errorf("UpdateSystemSetting: failed to update: %w", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		h.handleError(c, "UpdateSystemSetting", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -92,8 +83,7 @@ func (h *Handler) UpdateSystemSetting(c *gin.Context) {
 func (h *Handler) GetSystemSettingByID(c *gin.Context) {
 	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		logger.Log.Errorf("GetSystemSettingByID: failed to parse id: %w", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		h.handleFieldError(c, "GetSystemSettingByID: parse id", err)
 		return
 	}
 
@@ -103,8 +93,7 @@ func (h *Handler) GetSystemSettingByID(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err})
 			return
 		}
-		logger.Log.Errorf("GetSystemSettingByID: failed to get by id setting: %w", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		h.handleError(c, "GetSystemSettingByID", err, http.StatusInternalServerError)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"setting": setting})

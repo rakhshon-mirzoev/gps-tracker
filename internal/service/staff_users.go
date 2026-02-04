@@ -2,14 +2,18 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
+	sender "github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
+	"go.uber.org/zap"
 )
 
 type StaffUsers interface {
@@ -27,10 +31,11 @@ type staffUserService struct {
 	r         repository.StaffUsersRepository
 	schedules Schedule
 	audit     AuditLogs
+	sender    sender.PushSender
 }
 
-func NewStaffUserService(r repository.StaffUsersRepository, sch Schedule) StaffUsers {
-	return &staffUserService{r: r, schedules: sch}
+func NewStaffUserService(r repository.StaffUsersRepository, sch Schedule, sender sender.PushSender) StaffUsers {
+	return &staffUserService{r: r, schedules: sch, sender: sender}
 }
 
 func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error) {
@@ -98,20 +103,24 @@ func (s *staffUserService) Update(ctx context.Context, id uuid.UUID, dto model.U
 }
 
 func (s *staffUserService) Delete(ctx context.Context, id uuid.UUID) error {
-
-	user, err := s.r.GetByID(ctx, id)
-	if err != nil {
-		return err
-	}
-	if user == nil {
-		return errors.ErrorNotFound
-	}
-
 	return s.r.Delete(ctx, id)
 }
 
 func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model.DeactivateStaffUser) error {
-	return s.r.Deactivate(ctx, id, d)
+	if err := s.r.Deactivate(ctx, id, d); err != nil {
+		return err
+	}
+
+	user, err := s.r.GetByID(ctx, id)
+	if err != nil || user.FcmToken == nil {
+		return nil
+	}
+
+	if err := s.sender.SendToToken(ctx, *user.FcmToken, "access deny", "account is deactivated", map[string]string{"type": "account_blocked"}); err != nil {
+		logger.Log.Error(fmt.Sprintf("failed to send push to %s", user.ID), zap.Error(err))
+	}
+
+	return nil
 }
 
 func (s *staffUserService) ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error) {
