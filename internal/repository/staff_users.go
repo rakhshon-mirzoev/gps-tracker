@@ -255,8 +255,8 @@ func (s *staffUsers) Deactivate(ctx context.Context, id uuid.UUID, deactivate mo
 	sql := `
 		UPDATE staff_users
 		SET is_active = false,
-		 	deactivated_by_id = $1
-			deactivated_at = $2
+		 	deactivated_by_id = $1,
+			deactivated_at = $2,
 			deactivation_reason = $3
 		WHERE id = $4
 	`
