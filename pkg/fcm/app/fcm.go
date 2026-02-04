@@ -2,6 +2,7 @@ package fcm
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	firebase "firebase.google.com/go/v4"
@@ -11,14 +12,14 @@ import (
 func NewFirebaseApp(ctx context.Context, credentialsPath string) (*firebase.App, error) {
 	credentialsJSON, err := os.ReadFile(credentialsPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("NewFirebaseApp read file: %w", err)
 	}
 
 	opt := option.WithCredentialsJSON(credentialsJSON)
 
 	app, err := firebase.NewApp(ctx, nil, opt)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("firebase newApp process: %w", err)
 	}
 
 	return app, nil
