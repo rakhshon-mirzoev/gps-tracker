@@ -5,6 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
+	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 func (h *Handler) ListShedules(c *gin.Context) {
@@ -39,6 +41,12 @@ func (h *Handler) AssignSchedule(c *gin.Context) {
 		return
 	}
 
+	role, ok := c.Get("role")
+	if !ok {
+		h.handleFieldError(c, "AssignSchedule: get role", errs.ErrorRoleEmpty)
+		return
+	}
+
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		h.handleFieldError(c, "AssignSchedule", err)
 		return
@@ -46,6 +54,20 @@ func (h *Handler) AssignSchedule(c *gin.Context) {
 
 	if err := h.s.Schedule.Create(c.Request.Context(), dto, adminID); err != nil {
 		h.handleError(c, "AssignSchedule: create schedule", err, http.StatusInternalServerError)
+		return
+	}
+
+	ip := c.ClientIP()
+	schedule := constants.Schedule
+
+	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
+		ActorID:     adminID,
+		ActorType:   role.(string),
+		Action:      "AssignSchedule",
+		TargetTable: &schedule,
+		IPAddress:   &ip,
+	}); err != nil {
+		h.handleError(c, "AssignSchedule", err, http.StatusInternalServerError)
 		return
 	}
 

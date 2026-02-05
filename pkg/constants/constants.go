@@ -16,4 +16,5 @@ const (
 	StaffMapping   = "staff-mapping"
 	Monitoring     = "monitoring"
 	Settings       = "settings"
+	Schedule       = "schedules"
 )

@@ -19,6 +19,7 @@ type Service struct {
 	Location           LocationHistory
 	SystemSettings     SystemSettings
 	Excel              Excel
+	Audit              AuditLogs
 }
 
 func New(r *repository.Repository, t token.Token, minio minioservice.Minio, sender sender.PushSender) *Service {
@@ -33,6 +34,7 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio, send
 	ss := NewSystemSettingsService(r.SystemSettings)
 	ssm := NewStaffStoresMappingService(r.StaffStoresMapping)
 	excel := NewExcelService()
+	audit := NewAuditLogsService(r.Audit)
 	return &Service{
 		SystemUsers:        sys,
 		Group:              group,
@@ -45,5 +47,6 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio, send
 		SystemSettings:     ss,
 		StaffStoresMapping: ssm,
 		Excel:              excel,
+		Audit:              audit,
 	}
 }

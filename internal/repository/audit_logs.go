@@ -22,7 +22,7 @@ type auditLogs struct {
 	DB *db.DB
 }
 
-func InitAuditLogsRepository(db *db.DB) AuditLogsRepository {
+func NewAuditLogsRepository(db *db.DB) AuditLogsRepository {
 	return &auditLogs{DB: db}
 }
 

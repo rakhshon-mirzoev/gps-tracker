@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
@@ -92,7 +93,6 @@ func (h *Handler) ReviewQueue(c *gin.Context) {
 		h.handleError(c, "ReviewQueue: list visits", err, http.StatusInternalServerError)
 		return
 	}
-
 	c.JSON(http.StatusOK, gin.H{"visits": visits, "total": total})
 }
 
@@ -105,6 +105,12 @@ func (h *Handler) ReviewVisit(c *gin.Context) {
 	reviewerID, err := checkSystemUser(c)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err})
+		return
+	}
+
+	role, ok := c.Get("role")
+	if !ok {
+		h.handleFieldError(c, "ReviewVisit: get role", errs.ErrorRoleEmpty)
 		return
 	}
 
@@ -138,6 +144,21 @@ func (h *Handler) ReviewVisit(c *gin.Context) {
 			return
 		}
 		h.handleError(c, "ReviewVisit: update visit", err, http.StatusInternalServerError)
+		return
+	}
+
+	ip := c.ClientIP()
+	v := constants.VisitGroup
+
+	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
+		ActorID:     reviewerID,
+		ActorType:   role.(string),
+		Action:      "ReviewVisit",
+		TargetTable: &v,
+		TargetID:    &visitID,
+		IPAddress:   &ip,
+	}); err != nil {
+		h.handleError(c, "ReviewVisit", err, http.StatusInternalServerError)
 		return
 	}
 

@@ -39,6 +39,7 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 
 	{
 		admin.GET("/reports/export", h.ExportReports)
+		admin.GET("/audit/logs", h.AuditLogs)
 
 		staff := admin.Group(constants.UserTypeStaff)
 		{

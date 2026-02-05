@@ -14,6 +14,7 @@ type Repository struct {
 	Location           LocationHistoryRepository
 	SystemSettings     SystemSettingsRepository
 	StaffStoresMapping StaffStoresMappingRepository
+	Audit              AuditLogsRepository
 }
 
 func New(db *db.DB) *Repository {
@@ -29,5 +30,6 @@ func New(db *db.DB) *Repository {
 		Location:           NewLocationHistoryRepository(db),
 		SystemSettings:     NewSystemSettingsRepository(db),
 		StaffStoresMapping: NewStaffStoresMappingRepository(db),
+		Audit:              NewAuditLogsRepository(db),
 	}
 }

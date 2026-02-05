@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
@@ -18,6 +19,12 @@ func (h *Handler) CreateStore(c *gin.Context) {
 		return
 	}
 
+	role, ok := c.Get("role")
+	if !ok {
+		h.handleFieldError(c, "CreateStore: get role", errs.ErrorRoleEmpty)
+		return
+	}
+
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		h.handleFieldError(c, "CreateStore", err)
 		return
@@ -26,6 +33,20 @@ func (h *Handler) CreateStore(c *gin.Context) {
 	err = h.s.Store.Create(c.Request.Context(), dto, user_id)
 	if err != nil {
 		h.handleError(c, "CreateStore: create store", err, http.StatusInternalServerError)
+		return
+	}
+
+	ip := c.ClientIP()
+	stores := constants.Stores
+
+	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role.(string),
+		Action:      "CreateStore",
+		TargetTable: &stores,
+		IPAddress:   &ip,
+	}); err != nil {
+		h.handleError(c, "CreateStore", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -57,6 +78,18 @@ func (h *Handler) ApproveStore(c *gin.Context) {
 		return
 	}
 
+	user_id, err := checkSystemUser(c)
+	if err != nil {
+		h.handleError(c, "ApproveStore: check system", err, http.StatusBadRequest)
+		return
+	}
+
+	role, ok := c.Get("role")
+	if !ok {
+		h.handleFieldError(c, "ApproveStore: get role", errs.ErrorRoleEmpty)
+		return
+	}
+
 	if err := c.ShouldBindJSON(&s); err != nil {
 		h.handleFieldError(c, "ApproveStore", err)
 		return
@@ -69,6 +102,21 @@ func (h *Handler) ApproveStore(c *gin.Context) {
 			return
 		}
 		h.handleError(c, "ApproveStore: update store", err, http.StatusInternalServerError)
+		return
+	}
+
+	ip := c.ClientIP()
+	stores := constants.Stores
+
+	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role.(string),
+		Action:      "ApproveStore",
+		TargetID:    &uID,
+		TargetTable: &stores,
+		IPAddress:   &ip,
+	}); err != nil {
+		h.handleError(c, "ApproveStore", err, http.StatusInternalServerError)
 		return
 	}
 

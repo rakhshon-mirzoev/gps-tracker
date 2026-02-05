@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
@@ -37,9 +38,18 @@ func (h *Handler) AttachDevice(c *gin.Context) {
 	var updateStaff model.UpdateStaffUser
 	user_id, err := checkStaffUser(c)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err})
+		h.handleFieldError(c, "AttachDevice: check staff user", err)
 		return
 	}
+
+	role, ok := c.Get("role")
+	if !ok {
+		h.handleFieldError(c, "AttachDevice: get role", errs.ErrorRoleEmpty)
+		return
+	}
+
+	ip := c.ClientIP()
+	staff_users := constants.UserTypeStaff
 
 	if err := c.ShouldBindJSON(&updateStaff); err != nil {
 		h.handleFieldError(c, "AttachDevice", err)
@@ -55,6 +65,19 @@ func (h *Handler) AttachDevice(c *gin.Context) {
 		h.handleError(c, "AttachDevice: update", err, http.StatusInternalServerError)
 		return
 	}
+
+	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role.(string),
+		Action:      "AttachDevice",
+		TargetTable: &staff_users,
+		TargetID:    &user_id,
+		IPAddress:   &ip,
+	}); err != nil {
+		h.handleError(c, "AttachDevice", err, http.StatusInternalServerError)
+		return
+	}
+
 	c.Status(http.StatusOK)
 }
 
@@ -77,12 +100,33 @@ func (h *Handler) CreateStaffUser(c *gin.Context) {
 		return
 	}
 
+	role, ok := c.Get("role")
+	if !ok {
+		h.handleFieldError(c, "CreateStaffUser: get role", errs.ErrorRoleEmpty)
+		return
+	}
+
+	ip := c.ClientIP()
+	staff_users := constants.UserTypeStaff
+
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		h.handleFieldError(c, "CreateStaffUser", err)
 		return
 	}
 
 	if err := h.s.StaffUser.Create(c.Request.Context(), dto, user_id); err != nil {
+		h.handleError(c, "CreateStaffUser", err, http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role.(string),
+		Action:      "CreateStaffUser",
+		TargetTable: &staff_users,
+		TargetID:    &user_id,
+		IPAddress:   &ip,
+	}); err != nil {
 		h.handleError(c, "CreateStaffUser", err, http.StatusInternalServerError)
 		return
 	}
@@ -105,6 +149,15 @@ func (h *Handler) UpdateStaffUser(c *gin.Context) {
 		return
 	}
 
+	role, ok := c.Get("role")
+	if !ok {
+		h.handleFieldError(c, "UpdateStaffUser: get role", errs.ErrorRoleEmpty)
+		return
+	}
+
+	ip := c.ClientIP()
+	staff_users := constants.UserTypeStaff
+
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		h.handleFieldError(c, "UpdateStaffUser", err)
 		return
@@ -119,6 +172,18 @@ func (h *Handler) UpdateStaffUser(c *gin.Context) {
 		return
 	}
 
+	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role.(string),
+		Action:      "UpdateStaffUser",
+		TargetTable: &staff_users,
+		TargetID:    &uid,
+		IPAddress:   &ip,
+	}); err != nil {
+		h.handleError(c, "UpdateStaffUser", err, http.StatusInternalServerError)
+		return
+	}
+
 	c.Status(http.StatusOK)
 }
 
@@ -127,15 +192,24 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 
 	user_id, err := checkSystemUser(c)
 	if err != nil {
-		h.handleError(c, "DeactivateStaffUser", err, http.StatusUnauthorized)
+		h.handleFieldError(c, "DeactivateStaffUser", err)
 		return
 	}
 
 	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		h.handleError(c, "DeactivateStaffUser", err, http.StatusBadRequest)
+		h.handleFieldError(c, "DeactivateStaffUser", err)
 		return
 	}
+
+	role, ok := c.Get("role")
+	if !ok {
+		h.handleFieldError(c, "DeactivateStaffUser: get role", errs.ErrorRoleEmpty)
+		return
+	}
+
+	ip := c.ClientIP()
+	staff_users := constants.UserTypeStaff
 
 	if err := c.ShouldBindJSON(&deactivate); err != nil {
 		h.handleError(c, "DeactivateStaffUser", err, http.StatusBadRequest)
@@ -145,6 +219,18 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 	deactivate.DeactivatedByID = &user_id
 
 	if err := h.s.StaffUser.Deactivate(c.Request.Context(), uid, deactivate); err != nil {
+		h.handleError(c, "DeactivateStaffUser", err, http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role.(string),
+		Action:      "DeactivateStaffUser",
+		TargetTable: &staff_users,
+		TargetID:    &uid,
+		IPAddress:   &ip,
+	}); err != nil {
 		h.handleError(c, "DeactivateStaffUser", err, http.StatusInternalServerError)
 		return
 	}
