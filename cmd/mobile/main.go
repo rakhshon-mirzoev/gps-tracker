@@ -19,8 +19,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
-	fcm "github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm/app"
-	sender "github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm/service"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
 	miniohandler "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/handler"
 	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
@@ -43,7 +42,7 @@ func main() {
 }
 
 func run() error {
-	cfg, err := config.LoadConfig("config.json")
+	cfg, creds, err := config.LoadConfig("config.json")
 	if err != nil {
 		return err
 	}
@@ -61,12 +60,14 @@ func run() error {
 
 	tokenService := token.NewTokenService(os.Getenv("SECRET_KEY"), time.Duration(cfg.Mobile.TTLMinutes)*time.Minute)
 
-	firebaseApp, err := fcm.NewFirebaseApp(context.Background(), cfg.Mobile.FirebaseCreds)
+	ctxFB := context.Background()
+
+	firebaseApp, err := fcm.NewFirebaseApp(ctxFB, creds)
 	if err != nil {
 		return err
 	}
 
-	firebaseService, err := sender.NewFirebaseService(context.Background(), firebaseApp)
+	firebaseService, err := fcm.NewFirebaseService(ctxFB, firebaseApp)
 	if err != nil {
 		return err
 	}

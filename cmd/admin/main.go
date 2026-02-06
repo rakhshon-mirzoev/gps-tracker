@@ -19,8 +19,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
-	fcm "github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm/app"
-	sender "github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm/service"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
 	miniohandler "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/handler"
 	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
@@ -43,7 +42,7 @@ func main() {
 }
 
 func run() error {
-	cfg, err := config.LoadConfig("config.json")
+	cfg, creds, err := config.LoadConfig("config.json")
 	if err != nil {
 		return err
 	}
@@ -58,12 +57,12 @@ func run() error {
 		return err
 	}
 
-	firebaseApp, err := fcm.NewFirebaseApp(context.Background(), cfg.Admin.FirebaseCreds)
+	firebaseApp, err := fcm.NewFirebaseApp(context.Background(), creds)
 	if err != nil {
 		return err
 	}
 
-	firebaseService, err := sender.NewFirebaseService(context.Background(), firebaseApp)
+	firebaseService, err := fcm.NewFirebaseService(context.Background(), firebaseApp)
 	if err != nil {
 		return err
 	}

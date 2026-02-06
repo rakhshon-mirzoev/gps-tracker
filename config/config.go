@@ -9,24 +9,23 @@ import (
 )
 
 type GeneralConfig struct {
-	Admin  Admin       `json:"admin"`
-	Minio  MinioConfig `json:"minio"`
-	Mobile Mobile      `json:"mobile"`
-	DB     DB          `json:"db"`
+	Admin    Admin       `json:"admin"`
+	Minio    MinioConfig `json:"minio"`
+	Mobile   Mobile      `json:"mobile"`
+	DB       DB          `json:"db"`
+	Firebase Firebase    `json:"firebase"`
 }
 
 type Admin struct {
-	Host          string `json:"host"`
-	Port          string `json:"port"`
-	TTLMinutes    int    `json:"ttl_minutes"`
-	FirebaseCreds string `json:"credentials"`
+	Host       string `json:"host"`
+	Port       string `json:"port"`
+	TTLMinutes int    `json:"ttl_minutes"`
 }
 
 type Mobile struct {
-	Host          string `json:"host"`
-	Port          string `json:"port"`
-	TTLMinutes    int    `json:"ttl_minutes"`
-	FirebaseCreds string `json:"credentials"`
+	Host       string `json:"host"`
+	Port       string `json:"port"`
+	TTLMinutes int    `json:"ttl_minutes"`
 }
 
 type MinioConfig struct {
@@ -36,6 +35,10 @@ type MinioConfig struct {
 	Bucket     string `json:"bucket"`
 	UseSSL     bool   `json:"use_ssl"`
 	TTLMinutes int    `json:"ttl_minutes"`
+}
+
+type Firebase struct {
+	FirebaseCreds string `json:"credentials"`
 }
 
 type DB struct {
@@ -48,19 +51,25 @@ type DB struct {
 	DbPort   string `json:"db_port"`
 }
 
-func LoadConfig(path string) (*GeneralConfig, error) {
+func LoadConfig(path string) (*GeneralConfig, []byte, error) {
 	_ = godotenv.Load()
 
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("error while open config file: %v", err)
+		return nil, nil, fmt.Errorf("error while open config file: %v", err)
 	}
 	defer file.Close()
 
 	var cfg GeneralConfig
 	decoder := json.NewDecoder(file)
 	if err := decoder.Decode(&cfg); err != nil {
-		return nil, fmt.Errorf("error to decode config: %v", err)
+		return nil, nil, fmt.Errorf("error to decode config: %v", err)
 	}
-	return &cfg, nil
+
+	creds, err := os.ReadFile(cfg.Firebase.FirebaseCreds)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read firebase creds: %w", err)
+	}
+
+	return &cfg, creds, nil
 }

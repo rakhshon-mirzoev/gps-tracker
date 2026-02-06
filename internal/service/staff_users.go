@@ -11,7 +11,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
-	sender "github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm/service"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 	"go.uber.org/zap"
 )
@@ -31,10 +31,10 @@ type staffUserService struct {
 	r         repository.StaffUsersRepository
 	schedules Schedule
 	audit     AuditLogs
-	sender    sender.PushSender
+	sender    fcm.PushSender
 }
 
-func NewStaffUserService(r repository.StaffUsersRepository, sch Schedule, sender sender.PushSender) StaffUsers {
+func NewStaffUserService(r repository.StaffUsersRepository, sch Schedule, sender fcm.PushSender) StaffUsers {
 	return &staffUserService{r: r, schedules: sch, sender: sender}
 }
 

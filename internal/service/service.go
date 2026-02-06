@@ -2,7 +2,7 @@ package service
 
 import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	sender "github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm/service"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
 	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 )
@@ -22,7 +22,7 @@ type Service struct {
 	Audit              AuditLogs
 }
 
-func New(r *repository.Repository, t token.Token, minio minioservice.Minio, sender sender.PushSender) *Service {
+func New(r *repository.Repository, t token.Token, minio minioservice.Minio, sender fcm.PushSender) *Service {
 	sch := NewScheduleService(r.Schedules)
 	sys := NewSystemUsersService(r.SystemUsers)
 	group := NewGroupService(r.Groups)

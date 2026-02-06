@@ -1,4 +1,4 @@
-package sender
+package fcm
 
 import (
 	"context"
