@@ -18,6 +18,7 @@ type LocationHistoryRepository interface {
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateLocationHistory) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetAllStaffOnlineOffline(ctx context.Context, supervisorID uuid.UUID, begin, end time.Time) (map[uuid.UUID]map[string]time.Duration, error)
+	CreateBatch(ctx context.Context, locations []model.LocationHistory) error
 }
 
 type locationHistory struct {
@@ -45,6 +46,50 @@ func (r *locationHistory) Create(ctx context.Context, lh *model.LocationHistory)
 	err := r.DB.Pool.QueryRow(ctx, sql, lh.StaffID, lh.Latitude, lh.Longitude, lh.BatteryLevel, lh.CapturedAt, lh.Status).Scan(&lh.ID)
 	if err != nil {
 		return fmt.Errorf("create location history: %w", err)
+	}
+
+	return nil
+}
+
+func (r *locationHistory) CreateBatch(ctx context.Context, locations []model.LocationHistory) error {
+	tx, err := r.DB.Pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	sql := `
+		INSERT INTO location_history (
+			staff_id,
+			latitude,
+			longitude,
+			battery_level,
+			captured_at,
+			status
+		) VALUES (
+			$1, $2, $3, $4, $5, $6
+		) RETURNING id;
+	`
+
+	for i := range locations {
+		err := tx.QueryRow(
+			ctx,
+			sql,
+			locations[i].StaffID,
+			locations[i].Latitude,
+			locations[i].Longitude,
+			locations[i].BatteryLevel,
+			locations[i].CapturedAt,
+			locations[i].Status,
+		).Scan(&locations[i].ID)
+
+		if err != nil {
+			return fmt.Errorf("insert location[%d]: %w", i, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit tx: %w", err)
 	}
 
 	return nil

@@ -9,7 +9,7 @@ import (
 )
 
 func (h *Handler) Location(c *gin.Context) {
-	var loc *model.LocationHistory
+	var loc []model.LocationHistory
 	user_id, err := checkStaffUser(c)
 	if err != nil {
 		h.handleError(c, "Location: check staff user", err, http.StatusBadRequest)
@@ -21,15 +21,25 @@ func (h *Handler) Location(c *gin.Context) {
 		return
 	}
 
-	loc.StaffID = user_id
-
-	err = h.s.Location.Create(c.Request.Context(), loc, user_id)
-	if err != nil {
-		h.handleError(c, "Location: create", err, http.StatusInternalServerError)
+	if len(loc) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "empty locations array"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "location created: " + loc.ID.String()})
+	for i := range loc {
+		loc[i].StaffID = user_id
+	}
+
+	err = h.s.Location.CreateBatch(c.Request.Context(), loc)
+	if err != nil {
+		h.handleError(c, "Location: create location batch", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "locations created",
+		"count":   len(loc),
+	})
 }
 
 func (h *Handler) AllStaffOnlineOffline(c *gin.Context) {

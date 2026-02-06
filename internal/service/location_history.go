@@ -17,6 +17,7 @@ type LocationHistory interface {
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateLocationHistory) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetAllStaffOnlineOffline(ctx context.Context, supervisorID uuid.UUID, begin, end time.Time) (map[uuid.UUID]map[string]time.Duration, error)
+	CreateBatch(ctx context.Context, locations []model.LocationHistory) error
 }
 
 type locationHistoryService struct {
@@ -29,6 +30,10 @@ func NewLocationHistoryService(r repository.LocationHistoryRepository) LocationH
 
 func (s *locationHistoryService) Create(ctx context.Context, lh *model.LocationHistory, user_id uuid.UUID) error {
 	return s.r.Create(ctx, lh)
+}
+
+func (s *locationHistoryService) CreateBatch(ctx context.Context, locations []model.LocationHistory) error {
+	return s.r.CreateBatch(ctx, locations)
 }
 
 func (s *locationHistoryService) GetByID(ctx context.Context, id uuid.UUID) (*model.LocationHistory, error) {
