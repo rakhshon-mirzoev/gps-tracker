@@ -31,14 +31,16 @@ type Visits interface {
 	GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUID, begin, end time.Time) ([]model.VisitExcel, error)
 }
 type visitsService struct {
-	repo  repository.VisitRepository
-	store Stores
-	photo VisitPhotos
-	minio minioservice.Minio
+	repo          repository.VisitRepository
+	store         Stores
+	photo         VisitPhotos
+	minio         minioservice.Minio
+	notifications Notification
+	staff         StaffUsers
 }
 
-func NewVisitsService(repo repository.VisitRepository, minio minioservice.Minio) Visits {
-	return &visitsService{repo: repo, minio: minio}
+func NewVisitsService(repo repository.VisitRepository, minio minioservice.Minio, store Stores, photo VisitPhotos, staff StaffUsers) Visits {
+	return &visitsService{repo: repo, minio: minio, store: store, photo: photo, staff: staff}
 }
 
 func (s *visitsService) Create(ctx context.Context, v *model.CreateVisit, user_id uuid.UUID) error {
@@ -221,7 +223,28 @@ func (s *visitsService) ListByReviewStatus(ctx context.Context, status string, l
 }
 
 func (s *visitsService) UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error {
-	return s.repo.Update(ctx, id, dto)
+	if err := s.repo.Update(ctx, id, dto); err != nil {
+		return err
+	}
+
+	v, err := s.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	u, err := s.staff.GetByID(ctx, v.StaffID)
+	if err != nil {
+		return err
+	}
+
+	if u.FcmToken != nil {
+		if err := s.notifications.CreateAndPushToUser(ctx, u.ID, "visit review result",
+			fmt.Sprintf("visit in store result: %s; review comment: %s; reviewed at: %v", v.ReviewStatus, *v.ReviewComment, v.ReviewedAt), "review_result",
+			map[string]any{"type": "review_result"}, u.FcmToken); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *visitsService) GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUID, begin, end time.Time) ([]model.VisitExcel, error) {

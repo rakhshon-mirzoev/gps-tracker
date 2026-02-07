@@ -23,6 +23,7 @@ type StaffUsersRepository interface {
 	Deactivate(ctx context.Context, id uuid.UUID, dReason model.DeactivateStaffUser) error
 	ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error)
 	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
+	GetByGroupID(ctx context.Context, group_id uuid.UUID) ([]model.StaffUser, error)
 }
 
 type staffUsers struct {
@@ -387,4 +388,55 @@ func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, e
 	}
 
 	return staff, nil
+}
+
+func (s *staffUsers) GetByGroupID(ctx context.Context, group_id uuid.UUID) ([]model.StaffUser, error) {
+	sql := `id, full_name, role, login, is_active, created_at, inn, birthday, is_temporary_password, phone_number,
+			   password_updated_at, device_id, fcm_token, app_version, last_battery_level, last_seen_at, deactivated_at,
+			   deactivated_by_id, deactivation_reason
+		FROM staff_users
+		WHERE group_id = $1`
+
+	rows, err := s.DB.Pool.Query(ctx, sql, group_id)
+	if err != nil {
+		return nil, fmt.Errorf("list staff users: %w", err)
+	}
+	defer rows.Close()
+
+	var users = make([]model.StaffUser, 0)
+
+	for rows.Next() {
+		var u model.StaffUser
+		if err := rows.Scan(
+			&u.ID,
+			&u.FullName,
+			&u.Role,
+			&u.Login,
+			&u.IsActive,
+			&u.CreatedAt,
+			&u.Inn,
+			&u.Birthday,
+			&u.IsTemporaryPassword,
+			&u.PhoneNumber,
+			&u.PasswordUpdatedAt,
+			&u.DeviceID,
+			&u.FcmToken,
+			&u.AppVersion,
+			&u.LastBatteryLevel,
+			&u.LastSeenAt,
+			&u.DeactivatedAt,
+			&u.DeactivatedByID,
+			&u.DeactivationReason,
+		); err != nil {
+			return nil, fmt.Errorf("scan staff user: %w", err)
+		}
+		users = append(users, u)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows staff users: %w", err)
+	}
+
+	return users, nil
+
 }

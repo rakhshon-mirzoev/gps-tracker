@@ -12,7 +12,7 @@ var (
 	Sugar *zap.SugaredLogger
 )
 
-func Init() error {
+func New() error {
 	if err := os.MkdirAll("logs", 0755); err != nil {
 		return err
 	}

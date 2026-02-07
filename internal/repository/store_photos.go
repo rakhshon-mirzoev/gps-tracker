@@ -22,7 +22,7 @@ type storePhotos struct {
 	DB *db.DB
 }
 
-func InitStorePhotosRepository(db *db.DB) StorePhotosRepository {
+func NewStorePhotosRepository(db *db.DB) StorePhotosRepository {
 	return &storePhotos{DB: db}
 }
 

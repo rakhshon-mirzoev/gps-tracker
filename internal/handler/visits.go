@@ -110,7 +110,7 @@ func (h *Handler) ReviewVisit(c *gin.Context) {
 
 	role, ok := c.Get("role")
 	if !ok {
-		h.handleFieldError(c, "ReviewVisit: get role", errs.ErrorRoleEmpty)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "role empty"})
 		return
 	}
 

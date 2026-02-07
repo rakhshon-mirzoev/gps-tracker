@@ -27,7 +27,7 @@ import (
 )
 
 func main() {
-	if err := logger.Init(); err != nil {
+	if err := logger.New(); err != nil {
 		log.Fatalf("failed to init logger: %v", err)
 	}
 

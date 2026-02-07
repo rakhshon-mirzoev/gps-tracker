@@ -22,7 +22,7 @@ type dailyReportingStats struct {
 	DB *db.DB
 }
 
-func InitDailyReportingStatsRepository(db *db.DB) DailyReportingStatsRepository {
+func NewDailyReportingStatsRepository(db *db.DB) DailyReportingStatsRepository {
 	return &dailyReportingStats{DB: db}
 }
 

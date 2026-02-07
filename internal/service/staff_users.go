@@ -28,14 +28,14 @@ type StaffUsers interface {
 	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
 }
 type staffUserService struct {
-	r         repository.StaffUsersRepository
-	schedules Schedule
-	audit     AuditLogs
-	sender    fcm.PushSender
+	r             repository.StaffUsersRepository
+	schedules     Schedule
+	audit         AuditLogs
+	notifications Notification
 }
 
-func NewStaffUserService(r repository.StaffUsersRepository, sch Schedule, sender fcm.PushSender) StaffUsers {
-	return &staffUserService{r: r, schedules: sch, sender: sender}
+func NewStaffUserService(r repository.StaffUsersRepository, sch Schedule, sender fcm.PushSender, notifications Notification) StaffUsers {
+	return &staffUserService{r: r, schedules: sch, notifications: notifications}
 }
 
 func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error) {
@@ -116,8 +116,8 @@ func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model
 		return nil
 	}
 
-	if err := s.sender.SendToToken(ctx, *user.FcmToken, "access deny", "account is deactivated", map[string]string{"type": "account_blocked"}); err != nil {
-		logger.Log.Error(fmt.Sprintf("failed to send push to %s", user.ID), zap.Error(err))
+	if err := s.notifications.CreateAndPushToUser(ctx, id, "access deny", "account is deactivated", "account_blocked", map[string]any{"type": "account_blocked"}, user.FcmToken); err != nil {
+		logger.Log.Error(fmt.Sprintf("failed to create/push notification to %s", user.ID), zap.Error(err))
 	}
 
 	return nil

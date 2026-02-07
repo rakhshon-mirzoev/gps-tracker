@@ -3,33 +3,41 @@ package repository
 import "github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 
 type Repository struct {
-	DB                 *db.DB
-	SystemUsers        SystemUsersRepository
-	Groups             GroupsRepository
-	StaffUsers         StaffUsersRepository
-	Auth               Auth
-	Schedules          ScheduleRepository
-	Visit              VisitRepository
-	Store              StoreRepository
-	Location           LocationHistoryRepository
-	SystemSettings     SystemSettingsRepository
-	StaffStoresMapping StaffStoresMappingRepository
-	Audit              AuditLogsRepository
+	DB                  *db.DB
+	SystemUsers         SystemUsersRepository
+	Groups              GroupsRepository
+	StaffUsers          StaffUsersRepository
+	Notifications       NotificationsRepository
+	Auth                Auth
+	Schedules           ScheduleRepository
+	Visit               VisitRepository
+	Store               StoreRepository
+	Location            LocationHistoryRepository
+	SystemSettings      SystemSettingsRepository
+	StaffStoresMapping  StaffStoresMappingRepository
+	Audit               AuditLogsRepository
+	VisitPhotos         VisitPhotosRepository
+	DailyReportingStats DailyReportingStatsRepository
+	StorePhotos         StorePhotosRepository
 }
 
 func New(db *db.DB) *Repository {
 	return &Repository{
-		DB:                 db,
-		SystemUsers:        NewSystemUsersRepository(db),
-		Groups:             NewGroupsRepository(db),
-		StaffUsers:         NewStaffUsersRepository(db),
-		Auth:               NewAuthRepository(db),
-		Schedules:          NewScheduleRepository(db),
-		Visit:              NewVisitRepository(db),
-		Store:              NewStoreRepository(db),
-		Location:           NewLocationHistoryRepository(db),
-		SystemSettings:     NewSystemSettingsRepository(db),
-		StaffStoresMapping: NewStaffStoresMappingRepository(db),
-		Audit:              NewAuditLogsRepository(db),
+		DB:                  db,
+		SystemUsers:         NewSystemUsersRepository(db),
+		Groups:              NewGroupsRepository(db),
+		StaffUsers:          NewStaffUsersRepository(db),
+		Notifications:       NewNotificationsRepository(db),
+		Auth:                NewAuthRepository(db),
+		Schedules:           NewScheduleRepository(db),
+		Visit:               NewVisitRepository(db),
+		Store:               NewStoreRepository(db),
+		Location:            NewLocationHistoryRepository(db),
+		SystemSettings:      NewSystemSettingsRepository(db),
+		StaffStoresMapping:  NewStaffStoresMappingRepository(db),
+		Audit:               NewAuditLogsRepository(db),
+		VisitPhotos:         NewVisitPhotosRepository(db),
+		DailyReportingStats: NewDailyReportingStatsRepository(db),
+		StorePhotos:         NewStorePhotosRepository(db),
 	}
 }

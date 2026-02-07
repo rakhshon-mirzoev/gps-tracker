@@ -39,6 +39,8 @@ func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Ha
 	{
 		mobi.GET("/profile", h.Profile)
 		mobi.PUT("/device-token", h.AttachDevice)
+		mobi.GET("/notifications", h.ListNotifications)
+		mobi.PATCH("/notifications/:id/read", h.MarkNotificationRead)
 		mobi.GET("/schedule", h.ListShedules)
 		mobi.GET("/my-stores", h.ListStoresByStaffIdStaff)
 		mobi.POST("/location", h.Location)

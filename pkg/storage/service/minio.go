@@ -42,12 +42,12 @@ func NewMinio(cfg config.MinioConfig) (Minio, error) {
 		return nil, err
 	}
 
-	minio := InitMinioService(client, cfg.Bucket)
+	minio := NewMinioService(client, cfg.Bucket)
 
 	return minio, nil
 }
 
-func InitMinioService(client *minio.Client, bucket string) Minio {
+func NewMinioService(client *minio.Client, bucket string) Minio {
 	return &minioService{
 		minio:  client,
 		bucket: bucket,
