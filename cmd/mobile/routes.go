@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/handler"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/middleware"
@@ -11,7 +12,9 @@ import (
 func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Handler, m *miniohandler.MinioHandler) {
 	api := r.Group("/api/v1")
 
-	api.Use(mw.CorsMiddleWare(),
+	api.Use(cors.Default())
+
+	api.Use(
 		mw.Recovery(),
 		mw.RequestID(),
 		mw.Logger(),
