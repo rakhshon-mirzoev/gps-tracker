@@ -10,9 +10,9 @@ import (
 )
 
 func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Handler, m *miniohandler.MinioHandler) {
-	api := r.Group("/api/v1")
+	r.Use(cors.Default())
 
-	api.Use(cors.Default())
+	api := r.Group("/api/v1")
 
 	api.Use(
 		mw.Recovery(),
