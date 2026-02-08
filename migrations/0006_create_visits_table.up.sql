@@ -45,3 +45,7 @@ CREATE INDEX idx_visits_staff_date
 
 CREATE INDEX idx_visits_store_date_status 
     ON visits (store_id, check_in_at, review_status);
+
+CREATE UNIQUE INDEX uniq_active_visit
+    ON visits(staff_id)
+    WHERE check_out_at IS NULL;

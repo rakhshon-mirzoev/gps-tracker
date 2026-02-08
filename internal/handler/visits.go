@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -13,7 +14,7 @@ import (
 )
 
 func (h *Handler) VisitCheckIn(c *gin.Context) {
-	var visit *model.CreateVisit
+	var visit model.CreateVisit
 	user_id, err := checkStaffUser(c)
 	if err != nil {
 		h.handleError(c, "VisitCheckIn: check staff user", err, http.StatusBadRequest)
@@ -27,6 +28,10 @@ func (h *Handler) VisitCheckIn(c *gin.Context) {
 
 	err = h.s.Visit.Create(c.Request.Context(), visit, user_id)
 	if err != nil {
+		if errors.Is(err, errs.ErrorAlreadyReviewed) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "already reviewed"})
+			return
+		}
 		h.handleError(c, "VisitCheckIn: create visit", err, http.StatusInternalServerError)
 		return
 	}
@@ -59,6 +64,12 @@ func (h *Handler) VisitPhoto(c *gin.Context) {
 func (h *Handler) VisitComplete(c *gin.Context) {
 	var dto model.UpdateVisit
 
+	staff_id, err := checkStaffUser(c)
+	if err != nil {
+		h.handleFieldError(c, "VisitComplete: check staff user", err)
+		return
+	}
+
 	vID := c.Param("id")
 
 	if err := c.ShouldBindJSON(&dto); err != nil {
@@ -66,7 +77,7 @@ func (h *Handler) VisitComplete(c *gin.Context) {
 		return
 	}
 
-	err := h.s.Visit.VisitComplete(c.Request.Context(), vID, dto)
+	err = h.s.Visit.VisitComplete(c.Request.Context(), vID, dto, staff_id)
 	if err != nil {
 		h.handleError(c, "VisitComplete: update visit", err, http.StatusInternalServerError)
 		return

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,19 +12,21 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
+	"go.uber.org/zap"
 )
 
 type Visits interface {
-	Create(ctx context.Context, v *model.CreateVisit, user_id uuid.UUID) error
+	Create(ctx context.Context, v model.CreateVisit, user_id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
-	VisitComplete(ctx context.Context, id string, dto model.UpdateVisit) error
+	VisitComplete(ctx context.Context, id string, dto model.UpdateVisit, staff_id uuid.UUID) error
 	VisitPhoto(ctx context.Context, id string, dto model.UpdateVisit, file *multipart.Form) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.Visit, int, error)
@@ -40,17 +43,17 @@ type visitsService struct {
 	audit         AuditLogs
 }
 
-func NewVisitsService(repo repository.VisitRepository, minio minioservice.Minio, store Stores, photo VisitPhotos, staff StaffUsers, notifications Notification, audit AuditLogs) Visits {
+func NewVisitsService(repo repository.VisitRepository, minio minioservice.Minio, store Stores, photo VisitPhotos, staff StaffUsers, notifications Notification, audit AuditLogs, schedule Schedule) Visits {
 	return &visitsService{repo: repo, minio: minio, store: store, photo: photo, staff: staff, notifications: notifications, audit: audit}
 }
 
-func (s *visitsService) Create(ctx context.Context, v *model.CreateVisit, user_id uuid.UUID) error {
-	storeID, err := uuid.Parse(v.StoreID)
+func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, user_id uuid.UUID) error {
+	storeID, err := uuid.Parse(vCreate.StoreID)
 	if err != nil {
 		return err
 	}
 
-	scheduleID, err := uuid.Parse(v.ScheduleID)
+	scheduleID, err := uuid.Parse(vCreate.ScheduleID)
 	if err != nil {
 		return err
 	}
@@ -60,21 +63,71 @@ func (s *visitsService) Create(ctx context.Context, v *model.CreateVisit, user_i
 		return err
 	}
 
-	m := utils.Distance(store.Latitude, store.Longitude, v.Lat, v.Lon)
-	if m > 10 {
+	v, err := s.repo.GetByStoreScheduleId(ctx, storeID, scheduleID, user_id)
+	if err != nil {
+		return err
+	}
+
+	if v.CheckOutAt != nil {
+		return errs.ErrorAlreadyReviewed
+	}
+
+	distance := utils.Distance(store.Latitude, store.Longitude, vCreate.Lat, vCreate.Lon)
+	if distance > constants.MaxDistanceMeters {
 		return errs.ErrorUnprocessable
 	}
 
-	visit := &model.Visit{
-		StaffID:    user_id,
-		StoreID:    storeID,
-		ScheduleID: &scheduleID,
-		CheckInLat: &v.Lat,
-		CheckInLon: &v.Lon,
-		CheckInAt:  &v.CheckInAt,
+	tx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	now := time.Now().UTC()
+
+	visit := model.Visit{
+		StaffID:           user_id,
+		StoreID:           storeID,
+		ScheduleID:        &scheduleID,
+		CheckInLat:        &vCreate.Lat,
+		CheckInLon:        &vCreate.Lon,
+		CheckInAt:         &now,
+		DistanceDeviation: int(distance),
 	}
 
-	return s.repo.Create(ctx, visit)
+	if err := s.repo.CreateTx(ctx, tx, &visit); err != nil {
+		return err
+	}
+
+	meta := map[string]any{"type": "visit_check_in"}
+
+	b, err := json.Marshal(meta)
+	if err != nil {
+		return err
+	}
+
+	n := &model.Notification{
+		UserID:   &user_id,
+		Title:    "Задание принято в работу",
+		Body:     fmt.Sprintf("Магазин %s, время начала %s.", store.Name, now),
+		Type:     "visit_check_in",
+		Meta:     b,
+		IsRead:   false,
+		PushSent: false,
+	}
+	if err := s.notifications.CreateTx(
+		ctx,
+		tx,
+		n,
+	); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *visitsService) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error) {
@@ -93,13 +146,41 @@ func (s *visitsService) List(ctx context.Context, scheduleID uuid.UUID) ([]model
 	return s.repo.List(ctx, scheduleID)
 }
 
-func (s *visitsService) VisitComplete(ctx context.Context, id string, dto model.UpdateVisit) error {
-	uid, err := uuid.FromBytes([]byte(id))
+func (s *visitsService) VisitComplete(ctx context.Context, id string, dto model.UpdateVisit, staff_id uuid.UUID) error {
+	uid, err := uuid.Parse(id)
 	if err != nil {
 		return err
 	}
 	*dto.ReviewStatus = "pending"
-	return s.repo.Update(ctx, uid, dto)
+	if err := s.repo.Update(ctx, uid, dto); err != nil {
+		return err
+	}
+
+	user, err := s.staff.GetByID(ctx, staff_id)
+	if err != nil {
+		return err
+	}
+
+	storeId, err := uuid.Parse(*dto.StoreID)
+	if err != nil {
+		return err
+	}
+
+	store, err := s.store.GetByID(ctx, storeId)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now().UTC()
+
+	if err := s.notifications.CreateAndPushToUser(ctx, staff_id, "Задание отправлено", fmt.Sprintf("Магазин %s, время окончания %s.", store.Name, now), "visit_complete", map[string]any{"type": "visit_complete"}, user.FcmToken); err != nil {
+		logger.Log.Error(
+			fmt.Sprintf("%s: failed operation", "CreateAndPushToUser in visit complete"),
+			zap.Error(err),
+		)
+	}
+
+	return nil
 }
 
 func (s *visitsService) VisitPhoto(ctx context.Context, id string, dto model.UpdateVisit, file *multipart.Form) error {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
@@ -18,6 +19,7 @@ type Notification interface {
 	CreateAndPushToGroup(ctx context.Context, groupID uuid.UUID, title, body, ntype string, meta map[string]any) error
 	ListByUser(ctx context.Context, userID uuid.UUID, limit, offset int) ([]model.Notification, int, error)
 	MarkRead(ctx context.Context, notificationID uuid.UUID, userID uuid.UUID) error
+	CreateTx(ctx context.Context, tx pgx.Tx, n *model.Notification) error
 }
 
 type notificationService struct {
@@ -28,6 +30,10 @@ type notificationService struct {
 
 func NewNotificationService(r repository.NotificationsRepository, staff repository.StaffUsersRepository, sender fcm.PushSender) Notification {
 	return &notificationService{r: r, staffRepo: staff, sender: sender}
+}
+
+func (s *notificationService) CreateTx(ctx context.Context, tx pgx.Tx, n *model.Notification) error {
+	return s.r.CreateTx(ctx, tx, n)
 }
 
 func (s *notificationService) CreateAndPushToUser(ctx context.Context, userID uuid.UUID, title, body, ntype string, meta map[string]any, token *string) error {

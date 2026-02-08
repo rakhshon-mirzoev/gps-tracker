@@ -20,12 +20,14 @@ type Admin struct {
 	Host       string `json:"host"`
 	Port       string `json:"port"`
 	TTLMinutes int    `json:"ttl_minutes"`
+	Interval   int    `json:"interval"`
 }
 
 type Mobile struct {
 	Host       string `json:"host"`
 	Port       string `json:"port"`
 	TTLMinutes int    `json:"ttl_minutes"`
+	Interval   int    `json:"interval"`
 }
 
 type MinioConfig struct {

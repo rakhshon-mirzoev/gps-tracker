@@ -28,7 +28,6 @@ type Visit struct {
 
 type UpdateVisit struct {
 	ScheduleID        *string    `json:"schedule_id"`
-	StaffID           *string    `json:"staff_id"`
 	StoreID           *string    `json:"store_id"`
 	CheckInAt         *time.Time `json:"check_in_at"`
 	CheckOutAt        *time.Time `json:"check_out_at"`
@@ -45,11 +44,10 @@ type UpdateVisit struct {
 }
 
 type CreateVisit struct {
-	ScheduleID string    `json:"schedule_id" binding:"required"`
-	StoreID    string    `json:"store_id" binding:"required"`
-	Lat        float64   `json:"lat" binding:"required"`
-	Lon        float64   `json:"lon" binding:"required"`
-	CheckInAt  time.Time `json:"check_in_at" binding:"required"`
+	ScheduleID string  `json:"schedule_id" binding:"required"`
+	StoreID    string  `json:"store_id" binding:"required"`
+	Lat        float64 `json:"lat" binding:"required"`
+	Lon        float64 `json:"lon" binding:"required"`
 }
 
 type VisitExcel struct {

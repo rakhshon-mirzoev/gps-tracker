@@ -32,4 +32,6 @@ var (
 	ErrorFileExt             = errors.New("ext file error")
 	ErrorInvalidGroup        = errors.New("invalid group_id format")
 	ErrorRoleEmpty           = errors.New("role empty")
+	ErrorAlreadyReviewed     = errors.New("already reviewed")
+	ErrroActiveVisitExists   = errors.New("active visit already exists")
 )

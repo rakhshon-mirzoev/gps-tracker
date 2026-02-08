@@ -18,6 +18,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/middleware"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/worker/notifications"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
 	miniohandler "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/handler"
@@ -60,14 +61,14 @@ func run() error {
 
 	tokenService := token.NewTokenService(os.Getenv("SECRET_KEY"), time.Duration(cfg.Mobile.TTLMinutes)*time.Minute)
 
-	ctxFB := context.Background()
+	ctx := context.Background()
 
-	firebaseApp, err := fcm.NewFirebaseApp(ctxFB, creds)
+	firebaseApp, err := fcm.NewFirebaseApp(ctx, creds)
 	if err != nil {
 		return err
 	}
 
-	firebaseService, err := fcm.NewFirebaseService(ctxFB, firebaseApp)
+	firebaseService, err := fcm.NewFirebaseService(ctx, firebaseApp)
 	if err != nil {
 		return err
 	}
@@ -91,6 +92,10 @@ func run() error {
 	)
 	defer stop()
 
+	worker := notifications.New(repo.Notifications, repo.StaffUsers, firebaseService, time.Duration(cfg.Mobile.Interval)*time.Second)
+
+	go worker.Run()
+
 	go func() {
 		addr := fmt.Sprintf(":%s", cfg.Mobile.Port)
 		if err := app.Run(addr); err != nil && err != http.ErrServerClosed {
@@ -100,6 +105,8 @@ func run() error {
 
 	<-ctx.Done()
 	log.Println("shutdown signal received")
+
+	worker.Stop()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

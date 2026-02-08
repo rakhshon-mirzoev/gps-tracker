@@ -7,18 +7,24 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
+	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type VisitRepository interface {
-	Create(ctx context.Context, v *model.Visit) error
+	Create(ctx context.Context, v model.Visit) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
 	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.Visit, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUID, begin, end time.Time) ([]model.VisitExcel, error)
+	GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, staffID uuid.UUID) (*model.Visit, error)
+	CreateTx(ctx context.Context, tx pgx.Tx, v *model.Visit) error
+	BeginTx(ctx context.Context) (pgx.Tx, error)
 }
 
 type visit struct {
@@ -29,7 +35,56 @@ func NewVisitRepository(db *db.DB) VisitRepository {
 	return &visit{DB: db}
 }
 
-func (r *visit) Create(ctx context.Context, v *model.Visit) error {
+func (r *visit) BeginTx(ctx context.Context) (pgx.Tx, error) {
+	return r.DB.Pool.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel: pgx.ReadCommitted,
+	})
+
+}
+
+func (r *visit) CreateTx(ctx context.Context, tx pgx.Tx, v *model.Visit) error {
+	sql := `
+		INSERT INTO visits (
+			schedule_id,
+			staff_id,
+			store_id,
+			check_in_at,
+			check_in_lat,
+			check_in_lon,
+			distance_deviation,
+			is_offline
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8
+		)
+		RETURNING id, created_at
+	`
+
+	err := tx.QueryRow(
+		ctx,
+		sql,
+		v.ScheduleID,
+		v.StaffID,
+		v.StoreID,
+		v.CheckInAt,
+		v.CheckInLat,
+		v.CheckInLon,
+		v.DistanceDeviation,
+		v.IsOffline,
+	).Scan(&v.ID, &v.CreatedAt)
+
+	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			if pgErr.Code == "23505" {
+				return errs.ErrroActiveVisitExists
+			}
+		}
+		return fmt.Errorf("create visit tx: %w", err)
+	}
+
+	return nil
+}
+
+func (r *visit) Create(ctx context.Context, v model.Visit) error {
 	sql := `
         INSERT INTO visits (
             schedule_id,
@@ -37,10 +92,10 @@ func (r *visit) Create(ctx context.Context, v *model.Visit) error {
             store_id,
             check_in_at,
             check_in_lat,
-			check_in_lon,
+			check_in_lon
         ) VALUES (
             $1, $2, $3, $4, $5, $6
-    	) RETURNING id, created_at;
+    	);
     `
 
 	err := r.DB.Pool.QueryRow(ctx, sql,
@@ -123,12 +178,6 @@ func (r *visit) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit)
 	if dto.ScheduleID != nil {
 		sql += fmt.Sprintf("schedule_id = $%d, ", n)
 		args = append(args, *dto.ScheduleID)
-		n++
-	}
-
-	if dto.StaffID != nil {
-		sql += fmt.Sprintf("staff_id = $%d, ", n)
-		args = append(args, *dto.StaffID)
 		n++
 	}
 
@@ -369,4 +418,38 @@ func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUI
 	}
 
 	return visits, nil
+}
+
+func (s *visit) GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, staffID uuid.UUID) (*model.Visit, error) {
+	sql := `
+		SELECT id, check_in_at, check_out_at,
+			   check_in_lat, check_in_lon, distance_deviation, selfie_url, comment,
+			   is_offline, review_status, review_comment, reviewer_id,
+			   reviewed_at, created_at
+		FROM visits 
+		WHERE store_id = $1	AND schedule_id = $2 AND staff_id = $3
+	`
+
+	var v model.Visit
+
+	if err := s.DB.Pool.QueryRow(ctx, sql, storeID, scheduleID, staffID).Scan(
+		&v.ID,
+		&v.CheckInAt,
+		&v.CheckOutAt,
+		&v.CheckInLat,
+		&v.CheckInLon,
+		&v.DistanceDeviation,
+		&v.SelfieURL,
+		&v.Comment,
+		&v.IsOffline,
+		&v.ReviewStatus,
+		&v.ReviewComment,
+		&v.ReviewerID,
+		&v.ReviewedAt,
+		&v.CreatedAt,
+	); err != nil {
+		return nil, fmt.Errorf("scan get by store id visit: %w", err)
+	}
+
+	return &v, nil
 }
