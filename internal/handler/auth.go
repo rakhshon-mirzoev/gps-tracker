@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -61,12 +60,14 @@ func (h *Handler) register(c *gin.Context, utype string) {
 		return
 	}
 
-	_, err := h.s.Authorize.GetByLogin(c.Request.Context(), user.Login)
-	if err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "not found user with login"})
-		}
+	existingUser, err := h.s.Authorize.GetByLogin(c.Request.Context(), user.Login)
+	if err != nil && err != errs.ErrorNotFound {
 		h.handleError(c, "Register", err, http.StatusInternalServerError)
+		return
+	}
+
+	if existingUser != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "already exists with that login"})
 		return
 	}
 
