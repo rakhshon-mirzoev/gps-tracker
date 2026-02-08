@@ -52,22 +52,11 @@ func (h *Handler) AssignSchedule(c *gin.Context) {
 		return
 	}
 
-	if err := h.s.Schedule.Create(c.Request.Context(), dto, adminID); err != nil {
-		h.handleError(c, "AssignSchedule: create schedule", err, http.StatusInternalServerError)
-		return
-	}
-
 	ip := c.ClientIP()
 	schedule := constants.Schedule
 
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     adminID,
-		ActorType:   role.(string),
-		Action:      "AssignSchedule",
-		TargetTable: &schedule,
-		IPAddress:   &ip,
-	}); err != nil {
-		h.handleError(c, "AssignSchedule", err, http.StatusInternalServerError)
+	if err := h.s.Schedule.Create(c.Request.Context(), dto, adminID, ip, schedule, role.(string), "AssignSchedule"); err != nil {
+		h.handleError(c, "AssignSchedule: create schedule", err, http.StatusInternalServerError)
 		return
 	}
 

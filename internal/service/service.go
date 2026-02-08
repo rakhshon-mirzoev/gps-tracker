@@ -26,20 +26,20 @@ type Service struct {
 }
 
 func New(r *repository.Repository, t token.Token, minio minioservice.Minio, sender fcm.PushSender) *Service {
-	sch := NewScheduleService(r.Schedules)
+	audit := NewAuditLogsService(r.Audit)
+	sch := NewScheduleService(r.Schedules, audit)
 	sys := NewSystemUsersService(r.SystemUsers)
-	group := NewGroupService(r.Groups)
+	group := NewGroupService(r.Groups, audit)
 	notifSvc := NewNotificationService(r.Notifications, r.StaffUsers, sender)
-	staff := NewStaffUserService(r.StaffUsers, sch, sender, notifSvc)
+	staff := NewStaffUserService(r.StaffUsers, sch, sender, notifSvc, audit)
 	authorize := NewAuthorizeService(t, r.Auth, sys, staff)
 	visitPhotos := NewVisitPhotosService(r.VisitPhotos)
-	store := NewStoresService(r.Store)
-	visit := NewVisitsService(r.Visit, minio, store, visitPhotos, staff)
+	store := NewStoresService(r.Store, audit)
+	visit := NewVisitsService(r.Visit, minio, store, visitPhotos, staff, notifSvc, audit)
 	location := NewLocationHistoryService(r.Location)
-	ss := NewSystemSettingsService(r.SystemSettings)
+	ss := NewSystemSettingsService(r.SystemSettings, audit)
 	ssm := NewStaffStoresMappingService(r.StaffStoresMapping)
 	excel := NewExcelService()
-	audit := NewAuditLogsService(r.Audit)
 	storePhotos := NewStorePhotosService(r.StorePhotos)
 	return &Service{
 		SystemUsers:        sys,

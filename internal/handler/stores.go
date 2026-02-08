@@ -19,12 +19,6 @@ func (h *Handler) CreateStore(c *gin.Context) {
 		return
 	}
 
-	role, ok := c.Get("role")
-	if !ok {
-		h.handleFieldError(c, "CreateStore: get role", errs.ErrorRoleEmpty)
-		return
-	}
-
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		h.handleFieldError(c, "CreateStore", err)
 		return
@@ -33,20 +27,6 @@ func (h *Handler) CreateStore(c *gin.Context) {
 	err = h.s.Store.Create(c.Request.Context(), dto, user_id)
 	if err != nil {
 		h.handleError(c, "CreateStore: create store", err, http.StatusInternalServerError)
-		return
-	}
-
-	ip := c.ClientIP()
-	stores := constants.Stores
-
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     user_id,
-		ActorType:   role.(string),
-		Action:      "CreateStore",
-		TargetTable: &stores,
-		IPAddress:   &ip,
-	}); err != nil {
-		h.handleError(c, "CreateStore", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -95,7 +75,7 @@ func (h *Handler) ApproveStore(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Store.Update(c.Request.Context(), s, uID)
+	err = h.s.Store.Update(c.Request.Context(), s, uID, user_id, c.ClientIP(), role.(string), constants.Stores, "ApproveStore")
 	if err != nil {
 		if errors.Is(err, errs.ErrorNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "no store found"})
@@ -105,18 +85,35 @@ func (h *Handler) ApproveStore(c *gin.Context) {
 		return
 	}
 
-	ip := c.ClientIP()
-	stores := constants.Stores
+	c.Status(http.StatusOK)
+}
 
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     user_id,
-		ActorType:   role.(string),
-		Action:      "ApproveStore",
-		TargetID:    &uID,
-		TargetTable: &stores,
-		IPAddress:   &ip,
-	}); err != nil {
-		h.handleError(c, "ApproveStore", err, http.StatusInternalServerError)
+func (h *Handler) DeleteStore(c *gin.Context) {
+	uID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		h.handleFieldError(c, "ApproveStore: parse id", err)
+		return
+	}
+
+	user_id, err := checkSystemUser(c)
+	if err != nil {
+		h.handleError(c, "ApproveStore: check system", err, http.StatusBadRequest)
+		return
+	}
+
+	role, ok := c.Get("role")
+	if !ok {
+		h.handleFieldError(c, "ApproveStore: get role", errs.ErrorRoleEmpty)
+		return
+	}
+
+	err = h.s.Store.Delete(c.Request.Context(), uID, user_id, c.ClientIP(), role.(string), constants.Stores, "DeleteStore")
+	if err != nil {
+		if errors.Is(err, errs.ErrorNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "no store found"})
+			return
+		}
+		h.handleError(c, "ApproveStore: update store", err, http.StatusInternalServerError)
 		return
 	}
 

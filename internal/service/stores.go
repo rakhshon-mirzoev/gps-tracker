@@ -13,16 +13,17 @@ type Stores interface {
 	Create(ctx context.Context, s *model.CreateStore, user_id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error)
 	List(ctx context.Context, filter model.StoreListFilter) ([]model.Store, int, error)
-	Update(ctx context.Context, s model.UpdateStore, id uuid.UUID) error
-	Delete(ctx context.Context, id uuid.UUID) error
+	Update(ctx context.Context, s model.UpdateStore, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error
+	Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error
 }
 
 type storesService struct {
-	r repository.StoreRepository
+	r     repository.StoreRepository
+	audit AuditLogs
 }
 
-func NewStoresService(repo repository.StoreRepository) Stores {
-	return &storesService{r: repo}
+func NewStoresService(repo repository.StoreRepository, audit AuditLogs) Stores {
+	return &storesService{r: repo, audit: audit}
 }
 
 func (s *storesService) Create(ctx context.Context, store *model.CreateStore, user_id uuid.UUID) error {
@@ -57,14 +58,41 @@ func (s *storesService) List(ctx context.Context, filter model.StoreListFilter) 
 	return s.r.List(ctx, filter)
 }
 
-func (s *storesService) Update(ctx context.Context, store model.UpdateStore, id uuid.UUID) error {
-	return s.r.Update(ctx, store, id)
-}
-
-func (s *storesService) Delete(ctx context.Context, id uuid.UUID) error {
-	if id == uuid.Nil {
-		return errors.New("id is required")
+func (s *storesService) Update(ctx context.Context, store model.UpdateStore, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error {
+	if err := s.r.Update(ctx, store, id); err != nil {
+		return err
 	}
 
-	return s.r.Delete(ctx, id)
+	if err := s.audit.Create(ctx, &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role,
+		IPAddress:   &ip,
+		TargetID:    &id,
+		TargetTable: &st,
+		Action:      action,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *storesService) Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error {
+
+	if err := s.r.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	if err := s.audit.Create(ctx, &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role,
+		IPAddress:   &ip,
+		TargetID:    &id,
+		TargetTable: &st,
+		Action:      action,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }

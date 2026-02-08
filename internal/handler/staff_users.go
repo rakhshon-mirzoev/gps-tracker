@@ -42,39 +42,18 @@ func (h *Handler) AttachDevice(c *gin.Context) {
 		return
 	}
 
-	role, ok := c.Get("role")
-	if !ok {
-		h.handleFieldError(c, "AttachDevice: get role", errs.ErrorRoleEmpty)
-		return
-	}
-
-	ip := c.ClientIP()
-	staff_users := constants.UserTypeStaff
-
 	if err := c.ShouldBindJSON(&updateStaff); err != nil {
 		h.handleFieldError(c, "AttachDevice", err)
 		return
 	}
 
-	err = h.s.StaffUser.Update(c.Request.Context(), user_id, updateStaff, uuid.Nil)
+	err = h.s.StaffUser.Update(c.Request.Context(), user_id, updateStaff, uuid.Nil, "", "", "", "")
 	if err != nil {
 		if errors.Is(err, errs.ErrorNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "no user found"})
 			return
 		}
 		h.handleError(c, "AttachDevice: update", err, http.StatusInternalServerError)
-		return
-	}
-
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     user_id,
-		ActorType:   role.(string),
-		Action:      "AttachDevice",
-		TargetTable: &staff_users,
-		TargetID:    &user_id,
-		IPAddress:   &ip,
-	}); err != nil {
-		h.handleError(c, "AttachDevice", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -106,27 +85,12 @@ func (h *Handler) CreateStaffUser(c *gin.Context) {
 		return
 	}
 
-	ip := c.ClientIP()
-	staff_users := constants.UserTypeStaff
-
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		h.handleFieldError(c, "CreateStaffUser", err)
 		return
 	}
 
-	if err := h.s.StaffUser.Create(c.Request.Context(), dto, user_id); err != nil {
-		h.handleError(c, "CreateStaffUser", err, http.StatusInternalServerError)
-		return
-	}
-
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     user_id,
-		ActorType:   role.(string),
-		Action:      "CreateStaffUser",
-		TargetTable: &staff_users,
-		TargetID:    &user_id,
-		IPAddress:   &ip,
-	}); err != nil {
+	if err := h.s.StaffUser.Create(c.Request.Context(), dto, user_id, c.ClientIP(), role.(string), constants.UserTypeStaff, "CreateStaffUser"); err != nil {
 		h.handleError(c, "CreateStaffUser", err, http.StatusInternalServerError)
 		return
 	}
@@ -155,31 +119,16 @@ func (h *Handler) UpdateStaffUser(c *gin.Context) {
 		return
 	}
 
-	ip := c.ClientIP()
-	staff_users := constants.UserTypeStaff
-
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		h.handleFieldError(c, "UpdateStaffUser", err)
 		return
 	}
 
-	if err := h.s.StaffUser.Update(c.Request.Context(), uid, dto, user_id); err != nil {
+	if err := h.s.StaffUser.Update(c.Request.Context(), uid, dto, user_id, c.ClientIP(), role.(string), constants.UserTypeStaff, "UpdateStaffUser"); err != nil {
 		if errors.Is(err, errs.ErrorNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "no user found"})
 			return
 		}
-		h.handleError(c, "UpdateStaffUser", err, http.StatusInternalServerError)
-		return
-	}
-
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     user_id,
-		ActorType:   role.(string),
-		Action:      "UpdateStaffUser",
-		TargetTable: &staff_users,
-		TargetID:    &uid,
-		IPAddress:   &ip,
-	}); err != nil {
 		h.handleError(c, "UpdateStaffUser", err, http.StatusInternalServerError)
 		return
 	}
@@ -208,9 +157,6 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 		return
 	}
 
-	ip := c.ClientIP()
-	staff_users := constants.UserTypeStaff
-
 	if err := c.ShouldBindJSON(&deactivate); err != nil {
 		h.handleError(c, "DeactivateStaffUser", err, http.StatusBadRequest)
 		return
@@ -218,19 +164,7 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 
 	deactivate.DeactivatedByID = &user_id
 
-	if err := h.s.StaffUser.Deactivate(c.Request.Context(), uid, deactivate); err != nil {
-		h.handleError(c, "DeactivateStaffUser", err, http.StatusInternalServerError)
-		return
-	}
-
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     user_id,
-		ActorType:   role.(string),
-		Action:      "DeactivateStaffUser",
-		TargetTable: &staff_users,
-		TargetID:    &uid,
-		IPAddress:   &ip,
-	}); err != nil {
+	if err := h.s.StaffUser.Deactivate(c.Request.Context(), uid, deactivate, user_id, c.ClientIP(), role.(string), constants.UserTypeStaff, "Deactivate"); err != nil {
 		h.handleError(c, "DeactivateStaffUser", err, http.StatusInternalServerError)
 		return
 	}

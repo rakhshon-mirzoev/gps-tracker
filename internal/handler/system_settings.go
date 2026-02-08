@@ -31,21 +31,7 @@ func (h *Handler) CreateSystemSetting(c *gin.Context) {
 		return
 	}
 
-	if err := h.s.SystemSettings.Create(c.Request.Context(), ss); err != nil {
-		h.handleError(c, "CreateSystemSetting", err, http.StatusInternalServerError)
-		return
-	}
-
-	ip := c.ClientIP()
-	settings := constants.Settings
-
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     user_id,
-		ActorType:   role.(string),
-		Action:      "CreateSystemSetting",
-		TargetTable: &settings,
-		IPAddress:   &ip,
-	}); err != nil {
+	if err := h.s.SystemSettings.Create(c.Request.Context(), ss, user_id, role.(string), c.ClientIP(), constants.Settings, "CreateSetting"); err != nil {
 		h.handleError(c, "CreateSystemSetting", err, http.StatusInternalServerError)
 		return
 	}
@@ -87,22 +73,7 @@ func (h *Handler) DeleteSystemSetting(c *gin.Context) {
 		return
 	}
 
-	if err := h.s.SystemSettings.Delete(c.Request.Context(), parsedID); err != nil {
-		h.handleError(c, "DeleteSystemSetting", err, http.StatusInternalServerError)
-		return
-	}
-
-	ip := c.ClientIP()
-	settings := constants.Settings
-
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     user_id,
-		ActorType:   role.(string),
-		Action:      "DeleteSystemSetting",
-		TargetTable: &settings,
-		TargetID:    &parsedID,
-		IPAddress:   &ip,
-	}); err != nil {
+	if err := h.s.SystemSettings.Delete(c.Request.Context(), parsedID, user_id, role.(string), c.ClientIP(), constants.Settings, "DeleteSetting"); err != nil {
 		h.handleError(c, "DeleteSystemSetting", err, http.StatusInternalServerError)
 		return
 	}
@@ -136,22 +107,7 @@ func (h *Handler) UpdateSystemSetting(c *gin.Context) {
 		return
 	}
 
-	if err := h.s.SystemSettings.Update(c.Request.Context(), parsedID, dto); err != nil {
-		h.handleError(c, "UpdateSystemSetting", err, http.StatusInternalServerError)
-		return
-	}
-
-	ip := c.ClientIP()
-	settings := constants.Settings
-
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     user_id,
-		ActorType:   role.(string),
-		Action:      "UpdateSystemSetting",
-		TargetTable: &settings,
-		TargetID:    &parsedID,
-		IPAddress:   &ip,
-	}); err != nil {
+	if err := h.s.SystemSettings.Update(c.Request.Context(), parsedID, dto, user_id, role.(string), c.ClientIP(), constants.Settings, "UpdateSetting"); err != nil {
 		h.handleError(c, "UpdateSystemSetting", err, http.StatusInternalServerError)
 		return
 	}

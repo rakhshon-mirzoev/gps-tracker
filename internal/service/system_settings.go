@@ -10,30 +10,39 @@ import (
 )
 
 type SystemSettings interface {
-	Create(ctx context.Context, ss *model.SystemSettings) error
+	Create(ctx context.Context, ss *model.SystemSettings, user_id uuid.UUID, role, ip, settings, action string) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemSettings, error)
 	List(ctx context.Context) ([]model.SystemSettings, error)
-	Update(ctx context.Context, id uuid.UUID, dto model.UpdateSystemSettings) error
-	Delete(ctx context.Context, id uuid.UUID) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateSystemSettings, user_id uuid.UUID, role, ip, settings, action string) error
+	Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, role, ip, settings, action string) error
 }
 
 type systemSettingsService struct {
-	repo repository.SystemSettingsRepository
+	repo  repository.SystemSettingsRepository
+	audit AuditLogs
 }
 
-func NewSystemSettingsService(repo repository.SystemSettingsRepository) SystemSettings {
-	return &systemSettingsService{repo: repo}
+func NewSystemSettingsService(repo repository.SystemSettingsRepository, audit AuditLogs) SystemSettings {
+	return &systemSettingsService{repo: repo, audit: audit}
 }
 
-func (s *systemSettingsService) Create(ctx context.Context, ss *model.SystemSettings) error {
-	if ss.Key == "" {
-		return errors.New("key is required")
-	}
-	if ss.Value == "" {
-		return errors.New("value is required")
+func (s *systemSettingsService) Create(ctx context.Context, ss *model.SystemSettings, user_id uuid.UUID, role, ip, settings, action string) error {
+
+	if err := s.repo.Create(ctx, ss); err != nil {
+		return err
 	}
 
-	return s.repo.Create(ctx, ss)
+	if err := s.audit.Create(ctx, &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role,
+		IPAddress:   &ip,
+		Action:      action,
+		TargetTable: &settings,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *systemSettingsService) GetByID(ctx context.Context, id uuid.UUID) (*model.SystemSettings, error) {
@@ -48,14 +57,38 @@ func (s *systemSettingsService) List(ctx context.Context) ([]model.SystemSetting
 	return s.repo.List(ctx)
 }
 
-func (s *systemSettingsService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateSystemSettings) error {
-	return s.repo.Update(ctx, id, dto)
-}
-
-func (s *systemSettingsService) Delete(ctx context.Context, id uuid.UUID) error {
-	if id == uuid.Nil {
-		return errors.New("id is required")
+func (s *systemSettingsService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateSystemSettings, user_id uuid.UUID, role, ip, settings, action string) error {
+	if err := s.repo.Update(ctx, id, dto); err != nil {
+		return err
 	}
 
-	return s.repo.Delete(ctx, id)
+	if err := s.audit.Create(ctx, &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role,
+		IPAddress:   &ip,
+		Action:      action,
+		TargetTable: &settings,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *systemSettingsService) Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, role, ip, settings, action string) error {
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	if err := s.audit.Create(ctx, &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role,
+		IPAddress:   &ip,
+		Action:      action,
+		TargetTable: &settings,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }

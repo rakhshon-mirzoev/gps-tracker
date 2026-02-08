@@ -138,27 +138,12 @@ func (h *Handler) ReviewVisit(c *gin.Context) {
 		ReviewedAt:    &now,
 	}
 
-	if err := h.s.Visit.UpdateVisit(c.Request.Context(), visitID, dto); err != nil {
+	if err := h.s.Visit.UpdateVisit(c.Request.Context(), visitID, dto, reviewerID, role.(string), c.ClientIP(), constants.VisitGroup, "ReviewVisit"); err != nil {
 		if err == errs.ErrorNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "visit not found"})
 			return
 		}
 		h.handleError(c, "ReviewVisit: update visit", err, http.StatusInternalServerError)
-		return
-	}
-
-	ip := c.ClientIP()
-	v := constants.VisitGroup
-
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     reviewerID,
-		ActorType:   role.(string),
-		Action:      "ReviewVisit",
-		TargetTable: &v,
-		TargetID:    &visitID,
-		IPAddress:   &ip,
-	}); err != nil {
-		h.handleError(c, "ReviewVisit", err, http.StatusInternalServerError)
 		return
 	}
 

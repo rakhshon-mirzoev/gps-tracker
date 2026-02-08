@@ -31,21 +31,7 @@ func (h *Handler) CreateGroup(c *gin.Context) {
 		return
 	}
 
-	if err := h.s.Group.Create(c.Request.Context(), group); err != nil {
-		h.handleError(c, "CreateGroup", err, http.StatusInternalServerError)
-		return
-	}
-
-	ip := c.ClientIP()
-	groups := constants.Group
-
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     user_id,
-		ActorType:   role.(string),
-		Action:      "CreateGroup",
-		TargetTable: &groups,
-		IPAddress:   &ip,
-	}); err != nil {
+	if err := h.s.Group.Create(c.Request.Context(), group, user_id, c.ClientIP(), constants.Group, role.(string), "CreateGroup"); err != nil {
 		h.handleError(c, "CreateGroup", err, http.StatusInternalServerError)
 		return
 	}
@@ -72,26 +58,11 @@ func (h *Handler) DeleteGroup(c *gin.Context) {
 		return
 	}
 
-	if err := h.s.Group.Delete(c.Request.Context(), uid); err != nil {
+	if err := h.s.Group.Delete(c.Request.Context(), uid, user_id, c.ClientIP(), constants.Group, role.(string), "DeleteGroup"); err != nil {
 		if errors.Is(err, errs.ErrorNotFound) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "not found group"})
 			return
 		}
-		h.handleError(c, "DeleteGroup", err, http.StatusInternalServerError)
-		return
-	}
-
-	ip := c.ClientIP()
-	groups := constants.Group
-
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     user_id,
-		ActorType:   role.(string),
-		Action:      "DeleteGroup",
-		TargetTable: &groups,
-		TargetID:    &uid,
-		IPAddress:   &ip,
-	}); err != nil {
 		h.handleError(c, "DeleteGroup", err, http.StatusInternalServerError)
 		return
 	}
@@ -160,26 +131,11 @@ func (h *Handler) UpdateGroup(c *gin.Context) {
 		return
 	}
 
-	if err := h.s.Group.Update(c.Request.Context(), dto, uid); err != nil {
+	if err := h.s.Group.Update(c.Request.Context(), dto, uid, user_id, c.ClientIP(), constants.Group, role.(string), "UpdateGroup"); err != nil {
 		if errors.Is(err, errs.ErrorNotFound) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "not found group"})
 			return
 		}
-		h.handleError(c, "UpdateGroup", err, http.StatusInternalServerError)
-		return
-	}
-
-	ip := c.ClientIP()
-	groups := constants.Group
-
-	if err := h.s.Audit.Create(c.Request.Context(), &model.AuditLogs{
-		ActorID:     user_id,
-		ActorType:   role.(string),
-		Action:      "UpdateGroup",
-		TargetTable: &groups,
-		TargetID:    &uid,
-		IPAddress:   &ip,
-	}); err != nil {
 		h.handleError(c, "UpdateGroup", err, http.StatusInternalServerError)
 		return
 	}

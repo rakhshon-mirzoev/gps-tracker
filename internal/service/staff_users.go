@@ -17,12 +17,12 @@ import (
 )
 
 type StaffUsers interface {
-	Create(ctx context.Context, dto model.CreateStaffUser, admin_id uuid.UUID) error
+	Create(ctx context.Context, dto model.CreateStaffUser, admin_id uuid.UUID, ip, role, st, action string) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error)
-	Delete(ctx context.Context, id uuid.UUID) error
-	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser, user_id uuid.UUID) error
+	Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser, user_id uuid.UUID, ip, role, st, action string) error
 	List(ctx context.Context) ([]model.StaffUser, error)
-	Deactivate(ctx context.Context, id uuid.UUID, d model.DeactivateStaffUser) error
+	Deactivate(ctx context.Context, id uuid.UUID, d model.DeactivateStaffUser, user_id uuid.UUID, ip, role, st, action string) error
 	GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error)
 	ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error)
 	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
@@ -34,8 +34,8 @@ type staffUserService struct {
 	notifications Notification
 }
 
-func NewStaffUserService(r repository.StaffUsersRepository, sch Schedule, sender fcm.PushSender, notifications Notification) StaffUsers {
-	return &staffUserService{r: r, schedules: sch, notifications: notifications}
+func NewStaffUserService(r repository.StaffUsersRepository, sch Schedule, sender fcm.PushSender, notifications Notification, audit AuditLogs) StaffUsers {
+	return &staffUserService{r: r, schedules: sch, notifications: notifications, audit: audit}
 }
 
 func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error) {
@@ -57,7 +57,7 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 	}, nil
 }
 
-func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser, admin_id uuid.UUID) error {
+func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser, admin_id uuid.UUID, ip, role, st, action string) error {
 	if dto.Password != dto.ConfirmPassword {
 		return errs.ErrorPasswordsDoNotMatch
 	}
@@ -87,6 +87,18 @@ func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser
 		return err
 	}
 
+	if admin_id != uuid.Nil {
+		if err := s.audit.Create(ctx, &model.AuditLogs{
+			ActorID:     admin_id,
+			ActorType:   role,
+			TargetTable: &st,
+			IPAddress:   &ip,
+			Action:      action,
+		}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -98,15 +110,47 @@ func (s *staffUserService) List(ctx context.Context) ([]model.StaffUser, error) 
 	return s.r.List(ctx)
 }
 
-func (s *staffUserService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser, user_id uuid.UUID) error {
-	return s.r.Update(ctx, id, dto)
+func (s *staffUserService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser, user_id uuid.UUID, ip, role, st, action string) error {
+	if err := s.r.Update(ctx, id, dto); err != nil {
+		return err
+	}
+
+	if user_id != uuid.Nil {
+		if err := s.audit.Create(ctx, &model.AuditLogs{
+			ActorID:     user_id,
+			ActorType:   role,
+			TargetID:    &id,
+			TargetTable: &st,
+			Action:      action,
+			IPAddress:   &ip,
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func (s *staffUserService) Delete(ctx context.Context, id uuid.UUID) error {
-	return s.r.Delete(ctx, id)
+func (s *staffUserService) Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error {
+	if err := s.r.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	if err := s.audit.Create(ctx, &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role,
+		TargetID:    &id,
+		TargetTable: &st,
+		Action:      action,
+		IPAddress:   &ip,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model.DeactivateStaffUser) error {
+func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model.DeactivateStaffUser, user_id uuid.UUID, ip, role, st, action string) error {
 	if err := s.r.Deactivate(ctx, id, d); err != nil {
 		return err
 	}
@@ -118,6 +162,17 @@ func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model
 
 	if err := s.notifications.CreateAndPushToUser(ctx, id, "access deny", "account is deactivated", "account_blocked", map[string]any{"type": "account_blocked"}, user.FcmToken); err != nil {
 		logger.Log.Error(fmt.Sprintf("failed to create/push notification to %s", user.ID), zap.Error(err))
+	}
+
+	if err := s.audit.Create(ctx, &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role,
+		TargetID:    &id,
+		TargetTable: &st,
+		Action:      action,
+		IPAddress:   &ip,
+	}); err != nil {
+		return err
 	}
 
 	return nil

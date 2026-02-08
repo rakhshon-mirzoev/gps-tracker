@@ -194,6 +194,7 @@ func (s *systemUsers) List(ctx context.Context) ([]model.SystemUser, error) {
 
 func (s *systemUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
 	sql := `
+		UPDATE system_users
 		SET is_active = false,
 		 	deactivated_by_id = $1
 			deactivated_at = $2

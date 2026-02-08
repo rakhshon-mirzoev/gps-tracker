@@ -9,7 +9,7 @@ import (
 )
 
 type Schedule interface {
-	Create(ctx context.Context, dto *model.CreateSchedule, adminID uuid.UUID) error
+	Create(ctx context.Context, dto *model.CreateSchedule, adminID uuid.UUID, ip, schedule, role, action string) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Schedule, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateSchedule) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -20,14 +20,15 @@ type Schedule interface {
 }
 
 type scheduleService struct {
-	r repository.ScheduleRepository
+	r     repository.ScheduleRepository
+	audit AuditLogs
 }
 
-func NewScheduleService(r repository.ScheduleRepository) Schedule {
-	return &scheduleService{r: r}
+func NewScheduleService(r repository.ScheduleRepository, audit AuditLogs) Schedule {
+	return &scheduleService{r: r, audit: audit}
 }
 
-func (s *scheduleService) Create(ctx context.Context, dto *model.CreateSchedule, adminID uuid.UUID) error {
+func (s *scheduleService) Create(ctx context.Context, dto *model.CreateSchedule, adminID uuid.UUID, ip, scheduleConst, role, action string) error {
 	staffID, err := uuid.Parse(dto.StaffID)
 	if err != nil {
 		return err
@@ -56,7 +57,21 @@ func (s *scheduleService) Create(ctx context.Context, dto *model.CreateSchedule,
 		CreatedByAdminID:  createdByAdminID,
 	}
 
-	return s.r.Create(ctx, schedule)
+	if err := s.r.Create(ctx, schedule); err != nil {
+		return err
+	}
+
+	if err := s.audit.Create(ctx, &model.AuditLogs{
+		ActorID:     adminID,
+		ActorType:   role,
+		Action:      "AssignSchedule",
+		TargetTable: &scheduleConst,
+		IPAddress:   &ip,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *scheduleService) GetByID(ctx context.Context, id uuid.UUID) (*model.Schedule, error) {

@@ -27,7 +27,7 @@ type Visits interface {
 	VisitPhoto(ctx context.Context, id string, dto model.UpdateVisit, file *multipart.Form) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.Visit, int, error)
-	UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
+	UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, user_id uuid.UUID, role, ip, settings, action string) error
 	GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUID, begin, end time.Time) ([]model.VisitExcel, error)
 }
 type visitsService struct {
@@ -37,10 +37,11 @@ type visitsService struct {
 	minio         minioservice.Minio
 	notifications Notification
 	staff         StaffUsers
+	audit         AuditLogs
 }
 
-func NewVisitsService(repo repository.VisitRepository, minio minioservice.Minio, store Stores, photo VisitPhotos, staff StaffUsers) Visits {
-	return &visitsService{repo: repo, minio: minio, store: store, photo: photo, staff: staff}
+func NewVisitsService(repo repository.VisitRepository, minio minioservice.Minio, store Stores, photo VisitPhotos, staff StaffUsers, notifications Notification, audit AuditLogs) Visits {
+	return &visitsService{repo: repo, minio: minio, store: store, photo: photo, staff: staff, notifications: notifications, audit: audit}
 }
 
 func (s *visitsService) Create(ctx context.Context, v *model.CreateVisit, user_id uuid.UUID) error {
@@ -222,7 +223,7 @@ func (s *visitsService) ListByReviewStatus(ctx context.Context, status string, l
 	return s.repo.ListByReviewStatus(ctx, status, limit, offset, id)
 }
 
-func (s *visitsService) UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error {
+func (s *visitsService) UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, user_id uuid.UUID, role, ip, settings, action string) error {
 	if err := s.repo.Update(ctx, id, dto); err != nil {
 		return err
 	}
@@ -244,6 +245,18 @@ func (s *visitsService) UpdateVisit(ctx context.Context, id uuid.UUID, dto model
 			return err
 		}
 	}
+
+	if err := s.audit.Create(ctx, &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role,
+		IPAddress:   &ip,
+		TargetTable: &settings,
+		TargetID:    &id,
+		Action:      action,
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
