@@ -7,10 +7,16 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/middleware"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 	miniohandler "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/handler"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "github.com/rakhshon-mirzoev/gps-tracker/docs/mobile"
 )
 
 func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Handler, m *miniohandler.MinioHandler) {
 	r.Use(cors.Default())
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("mobile")))
 
 	api := r.Group("/api/v1")
 
