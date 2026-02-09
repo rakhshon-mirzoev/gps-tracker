@@ -68,7 +68,7 @@ func (r *locationHistory) CreateBatch(ctx context.Context, locations []model.Loc
 			status
 		) VALUES (
 			$1, $2, $3, $4, $5, $6
-		);
+		) RETURNING id;
 	`
 
 	for i := range locations {
