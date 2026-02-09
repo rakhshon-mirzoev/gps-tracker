@@ -27,10 +27,6 @@ func NewStoresService(repo repository.StoreRepository, audit AuditLogs) Stores {
 }
 
 func (s *storesService) Create(ctx context.Context, store *model.CreateStore, user_id uuid.UUID) error {
-	staffID, err := uuid.Parse(store.CreatedByStaffID)
-	if err != nil {
-		return err
-	}
 
 	st := &model.Store{
 		Name:             store.Name,
@@ -40,7 +36,7 @@ func (s *storesService) Create(ctx context.Context, store *model.CreateStore, us
 		OwnerFullName:    store.OwnerFullName,
 		OwnerINN:         store.OwnerINN,
 		OwnerPassport:    store.OwnerPassport,
-		CreatedByStaffID: staffID,
+		CreatedByStaffID: user_id,
 	}
 
 	return s.r.Create(ctx, st)

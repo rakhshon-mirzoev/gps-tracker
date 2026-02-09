@@ -15,7 +15,7 @@ func (h *Handler) CreateStore(c *gin.Context) {
 	var dto *model.CreateStore
 	user_id, err := checkStaffUser(c)
 	if err != nil {
-		h.handleError(c, "CreateStore: check staff", err, http.StatusBadRequest)
+		h.handleFieldError(c, "CreateStore: check staff", err)
 		return
 	}
 
