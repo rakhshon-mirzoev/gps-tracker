@@ -334,7 +334,7 @@ func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, e
 		SELECT
 			s.id, s.full_name, s.login, s.inn, s.birthday, s.group_id, s.phone_number,
 			s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at,
-			l.id, l.latitude, l.longitude, l.battery_level, l.captured_at
+			l.id, l.latitude, l.longitude, l.battery_level, l.captured_at, l.status
 		FROM staff_users s
 		JOIN location_history l ON l.staff_id = s.id
 		WHERE s.id = $1

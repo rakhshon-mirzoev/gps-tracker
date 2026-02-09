@@ -54,12 +54,3 @@ type UpdateStore struct {
 	DeactivatedByID    *string    `json:"deactivated_by_id,omitempty"`
 	DeactivationReason *string    `json:"deactivation_reason,omitempty"`
 }
-
-type StoreListFilter struct {
-	Status    *string
-	IsActive  *bool
-	Limit     int
-	Offset    int
-	SortBy    string
-	SortOrder string
-}

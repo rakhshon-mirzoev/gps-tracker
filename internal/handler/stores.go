@@ -38,12 +38,19 @@ func (h *Handler) CreateStore(c *gin.Context) {
 }
 
 func (h *Handler) ListStores(c *gin.Context) {
-	var f model.StoreListFilter
-	if err := c.ShouldBindJSON(&f); err != nil {
-		h.handleFieldError(c, "ListStores", err)
+	isActive := c.Query("is_active")
+	status := c.Query("status")
+
+	lim, off, err := getLimitOffset(c)
+	if err != nil {
+		h.handleFieldError(c, "ListStores: get lim off", err)
 		return
 	}
-	stores, total, err := h.s.Store.List(c.Request.Context(), f)
+
+	sortBy := c.Query("sort_by")
+	sortOrder := c.Query("sort_order")
+
+	stores, total, err := h.s.Store.List(c.Request.Context(), isActive, status, sortBy, sortOrder, lim, off)
 	if err != nil {
 		h.handleError(c, "ListStores: list stores", err, http.StatusInternalServerError)
 		return

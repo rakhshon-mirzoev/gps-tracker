@@ -13,7 +13,7 @@ import (
 type Stores interface {
 	Create(ctx context.Context, s *model.CreateStore, user_id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error)
-	List(ctx context.Context, filter model.StoreListFilter) ([]model.Store, int, error)
+	List(ctx context.Context, isActive, status, sortBy, sortOrder string, lim, off int) ([]model.Store, int, error)
 	Update(ctx context.Context, s model.UpdateStore, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error
 	Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error
 	IfExists(ctx context.Context, name string) (bool, error)
@@ -61,8 +61,8 @@ func (s *storesService) GetByID(ctx context.Context, id uuid.UUID) (*model.Store
 	return s.r.GetByID(ctx, id)
 }
 
-func (s *storesService) List(ctx context.Context, filter model.StoreListFilter) ([]model.Store, int, error) {
-	return s.r.List(ctx, filter)
+func (s *storesService) List(ctx context.Context, isActive, status, sortBy, sortOrder string, lim, off int) ([]model.Store, int, error) {
+	return s.r.List(ctx, isActive, status, sortBy, sortOrder, lim, off)
 }
 
 func (s *storesService) Update(ctx context.Context, store model.UpdateStore, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error {

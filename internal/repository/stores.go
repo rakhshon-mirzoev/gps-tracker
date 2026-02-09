@@ -22,7 +22,7 @@ type StoreRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error)
 	Update(ctx context.Context, store model.UpdateStore, id uuid.UUID) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	List(ctx context.Context, filter model.StoreListFilter) ([]model.Store, int, error)
+	List(ctx context.Context, isActive, status, sortBy, sortOrder string, lim, off int) ([]model.Store, int, error)
 	Deactivate(ctx context.Context, id, deactivatedBy uuid.UUID, reason string) error
 	IfExists(ctx context.Context, name string) (bool, error)
 }
@@ -275,20 +275,20 @@ func (r *stores) Deactivate(ctx context.Context, id, deactivatedBy uuid.UUID, re
 	return nil
 }
 
-func (r *stores) List(ctx context.Context, f model.StoreListFilter) ([]model.Store, int, error) {
+func (r *stores) List(ctx context.Context, isActive, status, sortBy, sortOrder string, lim, off int) ([]model.Store, int, error) {
 	var conditions []string
 	var args []interface{}
 	argNum := 1
 
-	if f.Status != nil {
+	if status != "" {
 		conditions = append(conditions, fmt.Sprintf("status = $%d", argNum))
-		args = append(args, *f.Status)
+		args = append(args, status)
 		argNum++
 	}
 
-	if f.IsActive != nil {
+	if isActive != "" {
 		conditions = append(conditions, fmt.Sprintf("is_active = $%d", argNum))
-		args = append(args, *f.IsActive)
+		args = append(args, isActive)
 		argNum++
 	}
 
@@ -298,9 +298,9 @@ func (r *stores) List(ctx context.Context, f model.StoreListFilter) ([]model.Sto
 	}
 
 	orderBy := "created_at DESC"
-	if f.SortBy != "" {
-		orderBy = f.SortBy
-		if f.SortOrder == "ASC" {
+	if sortBy != "" {
+		orderBy = sortBy
+		if sortOrder == "ASC" {
 			orderBy += " ASC"
 		} else {
 			orderBy += " DESC"
@@ -309,11 +309,11 @@ func (r *stores) List(ctx context.Context, f model.StoreListFilter) ([]model.Sto
 
 	limit := 5
 	offset := 0
-	if f.Limit > 0 {
-		limit = f.Limit
+	if lim > 0 {
+		limit = lim
 	}
-	if f.Offset > 0 {
-		offset = f.Offset
+	if off > 0 {
+		offset = off
 	}
 
 	baseSQL := `

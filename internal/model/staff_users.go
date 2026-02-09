@@ -80,12 +80,12 @@ type StaffUserLocation struct {
 	Login            string           `json:"login"`
 	PhoneNumber      string           `json:"phone_number"`
 	Inn              string           `json:"inn"`
-	Birthday         time.Time        `json:"birthday"`
-	DeviceID         string           `json:"device_id"`
-	FcmToken         string           `json:"fcm_token"`
-	AppVersion       string           `json:"app_version"`
+	Birthday         *time.Time       `json:"birthday"`
+	DeviceID         *string          `json:"device_id"`
+	FcmToken         *string          `json:"fcm_token"`
+	AppVersion       *string          `json:"app_version"`
 	LastBatteryLevel int              `json:"last_battery_level"`
-	LastSeenAt       time.Time        `json:"last_seen_at"`
+	LastSeenAt       *time.Time       `json:"last_seen_at"`
 	Location         *LocationHistory `json:"location"`
 }
 
@@ -96,11 +96,11 @@ type StaffUserLocationHistory struct {
 	Login            string            `json:"login"`
 	PhoneNumber      string            `json:"phone_number"`
 	Inn              string            `json:"inn"`
-	Birthday         time.Time         `json:"birthday"`
+	Birthday         *time.Time        `json:"birthday"`
 	DeviceID         string            `json:"device_id"`
 	FcmToken         string            `json:"fcm_token"`
 	AppVersion       string            `json:"app_version"`
 	LastBatteryLevel int               `json:"last_battery_level"`
-	LastSeenAt       time.Time         `json:"last_seen_at"`
+	LastSeenAt       *time.Time        `json:"last_seen_at"`
 	Locations        []LocationHistory `json:"location"`
 }
