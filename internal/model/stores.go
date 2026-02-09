@@ -33,9 +33,9 @@ type CreateStore struct {
 	Latitude         float64 `json:"latitude" binding:"required"`
 	Longitude        float64 `json:"longitude" binding:"required"`
 	OwnerFullName    string  `json:"owner_full_name" binding:"required"`
-	OwnerINN         string  `json:"owner_inn" binding:"required,len=12"`
+	OwnerINN         string  `json:"owner_inn" binding:"required"`
 	OwnerPassport    *string `json:"owner_passport"`
-	CreatedByStaffID string  `json:"created_by_staff_id" binding:"required"`
+	CreatedByStaffID string  `json:"created_by_staff_id"`
 }
 
 type UpdateStore struct {

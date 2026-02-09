@@ -44,7 +44,7 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 	`
-	err := r.DB.Pool.QueryRow(
+	_, err := r.DB.Pool.Exec(
 		ctx,
 		sql,
 		store.Name,
@@ -55,7 +55,7 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 		store.OwnerINN,
 		store.OwnerPassport,
 		store.CreatedByStaffID,
-	).Scan(&store.ID, &store.CreatedAt)
+	)
 
 	if err != nil {
 		return fmt.Errorf("create store: %w", err)

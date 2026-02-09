@@ -18,15 +18,12 @@ CREATE TABLE stores
     created_by_staff_id UUID NOT NULL 
         REFERENCES staff_users(id)
         ON DELETE RESTRICT,
-    created_by_admin_id UUID NOT NULL 
-        REFERENCES system_users(id)
-        ON DELETE RESTRICT,
 
     is_active  BOOLEAN             NOT NULL DEFAULT TRUE,
     is_frozen    BOOLEAN             NOT NULL DEFAULT FALSE,
 
     deactivated_at    TIMESTAMP,
-    deactivated_by_id  UUID NOT NULL 
+    deactivated_by_id  UUID 
         REFERENCES system_users(id)
         ON DELETE RESTRICT,
     deactivation_reason TEXT,
