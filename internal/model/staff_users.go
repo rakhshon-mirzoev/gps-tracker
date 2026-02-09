@@ -84,7 +84,7 @@ type StaffUserLocation struct {
 	DeviceID         *string          `json:"device_id"`
 	FcmToken         *string          `json:"fcm_token"`
 	AppVersion       *string          `json:"app_version"`
-	LastBatteryLevel int              `json:"last_battery_level"`
+	LastBatteryLevel *int             `json:"last_battery_level"`
 	LastSeenAt       *time.Time       `json:"last_seen_at"`
 	Location         *LocationHistory `json:"location"`
 }
