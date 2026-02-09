@@ -19,7 +19,7 @@ CREATE TABLE stores
         REFERENCES staff_users(id)
         ON DELETE RESTRICT,
 
-    is_active  BOOLEAN             NOT NULL DEFAULT TRUE,
+    is_active  BOOLEAN             NOT NULL DEFAULT FALSE,
     is_frozen    BOOLEAN             NOT NULL DEFAULT FALSE,
 
     deactivated_at    TIMESTAMP,
