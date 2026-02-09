@@ -284,7 +284,7 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) ([]mo
 		JOIN groups g ON g.id = s.group_id
 		JOIN location_history l ON l.staff_id = s.id
 		WHERE g.supervisor_id = $1 AND s.is_active = true
-		ORDER BY s.id, l.captured_at DESС
+		ORDER BY s.id, l.captured_at DESC
 	`
 
 	rows, err := s.DB.Pool.Query(ctx, sql, user_id)
