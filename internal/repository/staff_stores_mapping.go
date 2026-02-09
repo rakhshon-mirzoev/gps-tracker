@@ -141,8 +141,7 @@ func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, li
 		       s.owner_passport, s.status, s.rejection_comment, s.created_by_staff_id, s.is_active, 
 			   s.is_frozen, s.deactivated_at, s.deactivated_by_id, s.deactivation_reason, s.created_at
 		FROM stores s
-		JOIN staff_stores_mapping ssm ON s.id = ssm.store_id
-		WHERE ssm.staff_id = $1
+		WHERE s.created_by_staff_id = $1
 		ORDER BY s.created_at DESC
 		LIMIT $2 OFFSET $3
 	`
