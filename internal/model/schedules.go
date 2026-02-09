@@ -31,7 +31,6 @@ type CreateSchedule struct {
 	IsPhotoRequired   bool      `json:"is_photo_required"`
 	IsSelfieRequired  bool      `json:"is_selfie_required"`
 	IsCommentRequired bool      `json:"is_comment_required"`
-	CreatedByAdminID  string    `json:"created_by_admin_id" binding:"required"`
 }
 
 type UpdateSchedule struct {

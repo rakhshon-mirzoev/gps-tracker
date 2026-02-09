@@ -448,6 +448,9 @@ func (s *visit) GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, s
 		&v.ReviewedAt,
 		&v.CreatedAt,
 	); err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("scan get by store id visit: %w", err)
 	}
 

@@ -39,11 +39,6 @@ func (s *scheduleService) Create(ctx context.Context, dto *model.CreateSchedule,
 		return err
 	}
 
-	createdByAdminID, err := uuid.Parse(dto.CreatedByAdminID)
-	if err != nil {
-		return err
-	}
-
 	schedule := &model.Schedule{
 		StaffID:           staffID,
 		StoreID:           storeID,
@@ -54,7 +49,7 @@ func (s *scheduleService) Create(ctx context.Context, dto *model.CreateSchedule,
 		IsPhotoRequired:   dto.IsPhotoRequired,
 		IsSelfieRequired:  dto.IsSelfieRequired,
 		IsCommentRequired: dto.IsCommentRequired,
-		CreatedByAdminID:  createdByAdminID,
+		CreatedByAdminID:  adminID,
 	}
 
 	if err := s.r.Create(ctx, schedule); err != nil {
