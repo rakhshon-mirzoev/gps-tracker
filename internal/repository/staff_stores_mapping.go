@@ -138,8 +138,8 @@ func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, li
 
 	sqlStores := `
 		SELECT s.id, s.name, s.address, s.latitude, s.longitude, s.owner_full_name, s.owner_inn, 
-		       s.owner_passport, s.status, s.rejection_comment, s.created_by_staff_id, s.created_by_admin_id, 
-		       s.is_active, s.is_frozen, s.deactivated_at, s.deactivated_by_id, s.deactivation_reason, s.created_at
+		       s.owner_passport, s.status, s.rejection_comment, s.created_by_staff_id, s.is_active, 
+			   s.is_frozen, s.deactivated_at, s.deactivated_by_id, s.deactivation_reason, s.created_at
 		FROM stores s
 		JOIN staff_stores_mapping ssm ON s.id = ssm.store_id
 		WHERE ssm.staff_id = $1
@@ -170,7 +170,6 @@ func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, li
 			&store.Status,
 			&store.RejectionComment,
 			&store.CreatedByStaffID,
-			&store.CreatedByAdminID,
 			&store.IsActive,
 			&store.IsFrozen,
 			&store.DeactivatedAt,

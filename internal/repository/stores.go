@@ -72,7 +72,7 @@ func (r *stores) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error
 			id, name, address, latitude, longitude,
 			owner_full_name, owner_inn, owner_passport,
 			status, rejection_comment,
-			created_by_staff_id, created_by_admin_id,
+			created_by_staff_id,
 			is_active, is_frozen,
 			deactivated_at, deactivated_by_id, deactivation_reason,
 			created_at
@@ -91,7 +91,6 @@ func (r *stores) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error
 		&store.Status,
 		&store.RejectionComment,
 		&store.CreatedByStaffID,
-		&store.CreatedByAdminID,
 		&store.IsActive,
 		&store.IsFrozen,
 		&store.DeactivatedAt,
@@ -191,16 +190,6 @@ func (r *stores) Update(ctx context.Context, store model.UpdateStore, id uuid.UU
 		}
 		updates = append(updates, fmt.Sprintf("created_by_staff_id = $%d", argNum))
 		args = append(args, staffID)
-		argNum++
-	}
-
-	if store.CreatedByAdminID != nil {
-		adminID, err := uuid.Parse(*store.CreatedByAdminID)
-		if err != nil {
-			return fmt.Errorf("invalid created_by_admin_id: %w", err)
-		}
-		updates = append(updates, fmt.Sprintf("created_by_admin_id = $%d", argNum))
-		args = append(args, adminID)
 		argNum++
 	}
 
@@ -331,7 +320,7 @@ func (r *stores) List(ctx context.Context, f model.StoreListFilter) ([]model.Sto
 			id, name, address, latitude, longitude,
 			owner_full_name, owner_inn, owner_passport,
 			status, rejection_comment,
-			created_by_staff_id, created_by_admin_id,
+			created_by_staff_id,
 			is_active, is_frozen,
 			created_at
 		FROM stores %s
@@ -364,7 +353,7 @@ func (r *stores) List(ctx context.Context, f model.StoreListFilter) ([]model.Sto
 			&s.ID, &s.Name, &s.Address, &s.Latitude, &s.Longitude,
 			&s.OwnerFullName, &s.OwnerINN, &s.OwnerPassport,
 			&s.Status, &s.RejectionComment,
-			&s.CreatedByStaffID, &s.CreatedByAdminID,
+			&s.CreatedByStaffID,
 			&s.IsActive, &s.IsFrozen,
 			&s.CreatedAt,
 		); err != nil {

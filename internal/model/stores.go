@@ -18,7 +18,6 @@ type Store struct {
 	Status             string     `json:"status" db:"status"`
 	RejectionComment   *string    `json:"rejection_comment,omitempty" db:"rejection_comment"`
 	CreatedByStaffID   uuid.UUID  `json:"created_by_staff_id" db:"created_by_staff_id"`
-	CreatedByAdminID   uuid.UUID  `json:"created_by_admin_id" db:"created_by_admin_id"`
 	IsActive           bool       `json:"is_active" db:"is_active"`
 	IsFrozen           bool       `json:"is_frozen" db:"is_frozen"`
 	DeactivatedAt      *time.Time `json:"deactivated_at,omitempty" db:"deactivated_at"`
@@ -47,7 +46,6 @@ type UpdateStore struct {
 	OwnerINN           *string    `json:"owner_inn"`
 	OwnerPassport      *string    `json:"owner_passport"`
 	CreatedByStaffID   *string    `json:"created_by_staff_id"`
-	CreatedByAdminID   *string    `json:"created_by_admin_id"`
 	Status             *string    `json:"status"`
 	RejectionComment   *string    `json:"rejection_comment"`
 	IsActive           *bool      `json:"is_active"`
