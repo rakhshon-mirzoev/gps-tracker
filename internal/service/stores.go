@@ -8,6 +8,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
 type Stores interface {
@@ -62,6 +63,11 @@ func (s *storesService) GetByID(ctx context.Context, id uuid.UUID) (*model.Store
 }
 
 func (s *storesService) List(ctx context.Context, isActive, status, sortBy, sortOrder string, lim, off int) ([]model.Store, int, error) {
+
+	if err := utils.ValidateStoreStatus(status); err != nil {
+		return nil, 0, err
+	}
+
 	return s.r.List(ctx, isActive, status, sortBy, sortOrder, lim, off)
 }
 

@@ -100,3 +100,21 @@ func Distance(lat1, lon1, lat2, lon2 float64) float64 {
 
 	return earthRadius * c
 }
+
+func ValidateStoreStatus(status string) error {
+	m := map[string]struct{}{
+		"pending":     {},
+		"approved":    {},
+		"deactivated": {},
+		"frozen":      {},
+		"rejected":    {},
+	}
+
+	_, ok := m[status]
+	if !ok {
+		return errs.ErrorInvalidStatus
+	}
+
+	return nil
+
+}

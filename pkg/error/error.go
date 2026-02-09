@@ -34,4 +34,5 @@ var (
 	ErrorRoleEmpty           = errors.New("role empty")
 	ErrorAlreadyReviewed     = errors.New("already reviewed")
 	ErrroActiveVisitExists   = errors.New("active visit already exists")
+	ErrorInvalidStatus       = errors.New("invalid status")
 )
