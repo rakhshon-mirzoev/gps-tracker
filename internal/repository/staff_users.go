@@ -376,6 +376,7 @@ func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, e
 			&loc.Longitude,
 			&loc.BatteryLevel,
 			&loc.CapturedAt,
+			&loc.Status,
 		); err != nil {
 			return nil, fmt.Errorf("scan location history: %w", err)
 		}
