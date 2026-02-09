@@ -28,8 +28,8 @@ func (h *Handler) VisitCheckIn(c *gin.Context) {
 
 	err = h.s.Visit.Create(c.Request.Context(), visit, user_id)
 	if err != nil {
-		if errors.Is(err, errs.ErrorAlreadyReviewed) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "already reviewed"})
+		if errors.Is(err, errs.ErrorAlreadyReviewed) || errors.Is(err, errs.ErrroActiveVisitExists) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "already reviewed or active visit"})
 			return
 		}
 		h.handleError(c, "VisitCheckIn: create visit", err, http.StatusInternalServerError)
@@ -99,7 +99,9 @@ func (h *Handler) ReviewQueue(c *gin.Context) {
 		return
 	}
 
-	visits, total, err := h.s.Visit.ListByReviewStatus(c.Request.Context(), "pending", lim, off, id)
+	status := c.Param("status")
+
+	visits, total, err := h.s.Visit.ListByReviewStatus(c.Request.Context(), status, lim, off, id)
 	if err != nil {
 		h.handleError(c, "ReviewQueue: list visits", err, http.StatusInternalServerError)
 		return
@@ -145,7 +147,6 @@ func (h *Handler) ReviewVisit(c *gin.Context) {
 	dto := model.UpdateVisit{
 		ReviewStatus:  &reviewDTO.Status,
 		ReviewComment: &reviewDTO.ReviewComment,
-		ReviewerID:    &reviewerID,
 		ReviewedAt:    &now,
 	}
 

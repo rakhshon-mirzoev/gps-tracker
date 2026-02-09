@@ -35,7 +35,7 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio, send
 	authorize := NewAuthorizeService(t, r.Auth, sys, staff)
 	visitPhotos := NewVisitPhotosService(r.VisitPhotos)
 	store := NewStoresService(r.Store, audit)
-	visit := NewVisitsService(r.Visit, minio, store, visitPhotos, staff, notifSvc, audit, sch)
+	visit := NewVisitsService(r.Visit, minio, store, visitPhotos, staff, notifSvc, audit, sch, group)
 	location := NewLocationHistoryService(r.Location)
 	ss := NewSystemSettingsService(r.SystemSettings, audit)
 	ssm := NewStaffStoresMappingService(r.StaffStoresMapping)

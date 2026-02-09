@@ -41,10 +41,11 @@ type visitsService struct {
 	notifications Notification
 	staff         StaffUsers
 	audit         AuditLogs
+	group         Group
 }
 
-func NewVisitsService(repo repository.VisitRepository, minio minioservice.Minio, store Stores, photo VisitPhotos, staff StaffUsers, notifications Notification, audit AuditLogs, schedule Schedule) Visits {
-	return &visitsService{repo: repo, minio: minio, store: store, photo: photo, staff: staff, notifications: notifications, audit: audit}
+func NewVisitsService(repo repository.VisitRepository, minio minioservice.Minio, store Stores, photo VisitPhotos, staff StaffUsers, notifications Notification, audit AuditLogs, schedule Schedule, group Group) Visits {
+	return &visitsService{repo: repo, minio: minio, store: store, photo: photo, staff: staff, notifications: notifications, audit: audit, group: group}
 }
 
 func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, user_id uuid.UUID) error {
@@ -72,6 +73,16 @@ func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, u
 		return errs.ErrorAlreadyReviewed
 	}
 
+	staff, err := s.staff.GetByID(ctx, user_id)
+	if err != nil {
+		return err
+	}
+
+	group, err := s.group.GetByID(ctx, staff.GroupID)
+	if err != nil {
+		return err
+	}
+
 	distance := utils.Distance(store.Latitude, store.Longitude, vCreate.Lat, vCreate.Lon)
 	if distance > constants.MaxDistanceMeters {
 		return errs.ErrorUnprocessable
@@ -93,6 +104,7 @@ func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, u
 		CheckInLon:        &vCreate.Lon,
 		CheckInAt:         &now,
 		DistanceDeviation: int(distance),
+		ReviewerID:        group.SupervisorID,
 	}
 
 	if err := s.repo.CreateTx(ctx, tx, &visit); err != nil {
