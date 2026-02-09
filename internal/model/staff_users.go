@@ -97,10 +97,10 @@ type StaffUserLocationHistory struct {
 	PhoneNumber      string            `json:"phone_number"`
 	Inn              string            `json:"inn"`
 	Birthday         *time.Time        `json:"birthday"`
-	DeviceID         string            `json:"device_id"`
-	FcmToken         string            `json:"fcm_token"`
-	AppVersion       string            `json:"app_version"`
-	LastBatteryLevel int               `json:"last_battery_level"`
+	DeviceID         *string           `json:"device_id"`
+	FcmToken         *string           `json:"fcm_token"`
+	AppVersion       *string           `json:"app_version"`
+	LastBatteryLevel *int              `json:"last_battery_level"`
 	LastSeenAt       *time.Time        `json:"last_seen_at"`
 	Locations        []LocationHistory `json:"location"`
 }
