@@ -68,7 +68,7 @@ func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, u
 		return err
 	}
 
-	if v.CheckOutAt != nil {
+	if v != nil && v.CheckOutAt != nil {
 		return errs.ErrorAlreadyReviewed
 	}
 

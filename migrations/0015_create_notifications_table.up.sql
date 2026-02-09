@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_group_id ON notifications(group_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
 CREATE INDEX idx_notifications_unsent
     ON notifications (push_sent)
