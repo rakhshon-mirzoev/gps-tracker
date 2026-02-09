@@ -52,7 +52,8 @@ func (r *visit) CreateTx(ctx context.Context, tx pgx.Tx, v *model.Visit) error {
 			check_in_lat,
 			check_in_lon,
 			distance_deviation,
-			is_offline
+			is_offline,
+			reviewer_id
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8
 		)
@@ -70,6 +71,7 @@ func (r *visit) CreateTx(ctx context.Context, tx pgx.Tx, v *model.Visit) error {
 		v.CheckInLon,
 		v.DistanceDeviation,
 		v.IsOffline,
+		v.ReviewerID,
 	).Scan(&v.ID, &v.CreatedAt)
 
 	if err != nil {
