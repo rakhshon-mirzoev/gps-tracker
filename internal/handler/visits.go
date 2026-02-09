@@ -99,7 +99,7 @@ func (h *Handler) ReviewQueue(c *gin.Context) {
 		return
 	}
 
-	status := c.Param("status")
+	status := c.Query("status")
 
 	visits, total, err := h.s.Visit.ListByReviewStatus(c.Request.Context(), status, lim, off, id)
 	if err != nil {

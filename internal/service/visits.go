@@ -164,6 +164,7 @@ func (s *visitsService) VisitComplete(ctx context.Context, id string, dto model.
 		return err
 	}
 	pending := "pending"
+	now := time.Now().UTC()
 	dto.ReviewStatus = &pending
 	if err := s.repo.Update(ctx, uid, dto); err != nil {
 		return err
@@ -174,21 +175,15 @@ func (s *visitsService) VisitComplete(ctx context.Context, id string, dto model.
 		return err
 	}
 
-	if dto.StoreID == nil {
-		return errors.New("store_id is required")
-	}
-
-	storeId, err := uuid.Parse(*dto.StoreID)
+	vSt, err := s.GetByID(ctx, uid)
 	if err != nil {
 		return err
 	}
 
-	store, err := s.store.GetByID(ctx, storeId)
+	store, err := s.store.GetByID(ctx, vSt.StoreID)
 	if err != nil {
 		return err
 	}
-
-	now := time.Now().UTC()
 
 	if err := s.notifications.CreateAndPushToUser(ctx, staff_id, "Задание отправлено", fmt.Sprintf("Магазин %s, время окончания %s.", store.Name, now), "visit_complete", map[string]any{"type": "visit_complete"}, user.FcmToken); err != nil {
 		logger.Log.Error(
