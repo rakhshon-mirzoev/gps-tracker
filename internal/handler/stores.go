@@ -26,6 +26,10 @@ func (h *Handler) CreateStore(c *gin.Context) {
 
 	err = h.s.Store.Create(c.Request.Context(), dto, user_id)
 	if err != nil {
+		if errors.Is(err, errs.ErrorAlreadyExists) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "store already exists by that name"})
+			return
+		}
 		h.handleError(c, "CreateStore: create store", err, http.StatusInternalServerError)
 		return
 	}
@@ -35,7 +39,6 @@ func (h *Handler) CreateStore(c *gin.Context) {
 
 func (h *Handler) ListStores(c *gin.Context) {
 	var f model.StoreListFilter
-
 	if err := c.ShouldBindJSON(&f); err != nil {
 		h.handleFieldError(c, "ListStores", err)
 		return

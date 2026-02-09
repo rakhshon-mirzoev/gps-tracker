@@ -151,7 +151,8 @@ func (s *visitsService) VisitComplete(ctx context.Context, id string, dto model.
 	if err != nil {
 		return err
 	}
-	*dto.ReviewStatus = "pending"
+	pending := "pending"
+	dto.ReviewStatus = &pending
 	if err := s.repo.Update(ctx, uid, dto); err != nil {
 		return err
 	}
@@ -159,6 +160,10 @@ func (s *visitsService) VisitComplete(ctx context.Context, id string, dto model.
 	user, err := s.staff.GetByID(ctx, staff_id)
 	if err != nil {
 		return err
+	}
+
+	if dto.StoreID == nil {
+		return errors.New("store_id is required")
 	}
 
 	storeId, err := uuid.Parse(*dto.StoreID)

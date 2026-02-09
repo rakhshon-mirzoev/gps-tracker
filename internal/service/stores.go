@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
+	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type Stores interface {
@@ -15,6 +16,7 @@ type Stores interface {
 	List(ctx context.Context, filter model.StoreListFilter) ([]model.Store, int, error)
 	Update(ctx context.Context, s model.UpdateStore, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error
 	Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error
+	IfExists(ctx context.Context, name string) (bool, error)
 }
 
 type storesService struct {
@@ -37,6 +39,15 @@ func (s *storesService) Create(ctx context.Context, store *model.CreateStore, us
 		OwnerINN:         store.OwnerINN,
 		OwnerPassport:    store.OwnerPassport,
 		CreatedByStaffID: user_id,
+	}
+
+	exists, err := s.IfExists(ctx, st.Name)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return errs.ErrorAlreadyExists
 	}
 
 	return s.r.Create(ctx, st)
@@ -91,4 +102,8 @@ func (s *storesService) Delete(ctx context.Context, id uuid.UUID, user_id uuid.U
 	}
 
 	return nil
+}
+
+func (s *storesService) IfExists(ctx context.Context, name string) (bool, error) {
+	return s.r.IfExists(ctx, name)
 }

@@ -112,7 +112,7 @@ func (r *visit) Create(ctx context.Context, v model.Visit) error {
 func (r *visit) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error) {
 	sql := `
         SELECT id, schedule_id, staff_id, store_id, check_in_at, check_out_at, 
-			   check_in_lat, check_in_lon,, distance_deviation, selfie_url, comment,
+			   check_in_lat, check_in_lon, distance_deviation, selfie_url, comment,
                is_offline, review_status, review_comment, reviewer_id,
                reviewed_at, created_at
         FROM visits WHERE id = $1
@@ -301,7 +301,7 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 		LIMIT $3 OFFSET $4
 	`
 
-	rows, err := r.DB.Pool.Query(ctx, sql, status, limit, offset)
+	rows, err := r.DB.Pool.Query(ctx, sql, status, id, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list visits by review status: %w", err)
 	}

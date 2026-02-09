@@ -24,6 +24,7 @@ type StoreRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context, filter model.StoreListFilter) ([]model.Store, int, error)
 	Deactivate(ctx context.Context, id, deactivatedBy uuid.UUID, reason string) error
+	IfExists(ctx context.Context, name string) (bool, error)
 }
 
 func NewStoreRepository(db *db.DB) StoreRepository {
@@ -367,4 +368,21 @@ func (r *stores) List(ctx context.Context, f model.StoreListFilter) ([]model.Sto
 	}
 
 	return storesList, total, nil
+}
+
+func (r *stores) IfExists(ctx context.Context, name string) (bool, error) {
+	var s model.Store
+
+	sql := `
+		select id, owner_full_name from stores where name = $1
+	`
+
+	if err := r.DB.Pool.QueryRow(ctx, sql, name).Scan(&s.ID, &s.OwnerFullName); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("scan error: %w", err)
+	}
+
+	return true, nil
 }
