@@ -30,7 +30,7 @@ func (a *App) Run(addr string) error {
 
 func (a *App) Shutdown(ctx context.Context) error {
 	if a.server == nil {
-		return errors.New("server is nil")
+		return errors.New("server is nil.")
 	}
 	return a.server.Shutdown(ctx)
 }
