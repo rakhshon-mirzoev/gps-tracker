@@ -102,6 +102,15 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			settings.GET("/:id", h.GetSystemSettingByID)
 		}
 
+		administrate := admin.Group(constants.UserTypeSystem)
+		administrate.Use(mw.System())
+		{
+			administrate.GET("", h.ListSystemUsers)
+			administrate.DELETE("/:id", h.DeleteSystemUser)
+			administrate.PUT("/:id", h.UpdateSystemUser)
+			administrate.POST("", h.CreateSystemUser)
+		}
+
 	}
 
 }

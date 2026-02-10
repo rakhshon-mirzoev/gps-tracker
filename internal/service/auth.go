@@ -67,7 +67,7 @@ func (s *authorizeService) Create(ctx context.Context, u *model.CreateUser, utyp
 			Password:        u.Password,
 			ConfirmPassword: u.ConfirmPassword,
 		}
-		if err := s.sys.Create(ctx, user); err != nil {
+		if err := s.sys.Create(ctx, user, uuid.Nil, "", ""); err != nil {
 			return err
 		}
 

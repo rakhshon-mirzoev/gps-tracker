@@ -18,4 +18,5 @@ const (
 	Settings          = "settings"
 	Schedule          = "schedules"
 	MaxDistanceMeters = 10
+	Top               = "tope"
 )

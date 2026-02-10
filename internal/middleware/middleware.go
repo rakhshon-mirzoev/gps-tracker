@@ -13,6 +13,7 @@ type Middleware interface {
 	RequestID() gin.HandlerFunc
 	Admin() gin.HandlerFunc
 	Mobile() gin.HandlerFunc
+	System() gin.HandlerFunc
 }
 
 type MiddlewareService struct {

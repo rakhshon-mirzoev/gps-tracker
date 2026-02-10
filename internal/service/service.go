@@ -28,7 +28,7 @@ type Service struct {
 func New(r *repository.Repository, t token.Token, minio minioservice.Minio, sender fcm.PushSender) *Service {
 	audit := NewAuditLogsService(r.Audit)
 	sch := NewScheduleService(r.Schedules, audit)
-	sys := NewSystemUsersService(r.SystemUsers)
+	sys := NewSystemUsersService(r.SystemUsers, audit)
 	group := NewGroupService(r.Groups, audit)
 	notifSvc := NewNotificationService(r.Notifications, r.StaffUsers, sender)
 	staff := NewStaffUserService(r.StaffUsers, sch, sender, notifSvc, audit)

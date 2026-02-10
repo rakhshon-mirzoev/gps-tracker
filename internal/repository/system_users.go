@@ -100,12 +100,6 @@ func (s *systemUsers) Update(ctx context.Context, dto *model.UpdateSystemUser, i
 	var args []any
 	n := 1
 
-	if dto.Role != nil {
-		sql += fmt.Sprintf("role = $%d,", n)
-		args = append(args, *dto.Role)
-		n++
-	}
-
 	if dto.FullName != nil {
 		sql += fmt.Sprintf("full_name = $%d,", n)
 		args = append(args, *dto.FullName)

@@ -29,7 +29,6 @@ type CreateSystemUser struct {
 
 type UpdateSystemUser struct {
 	FullName           *string    `db:"full_name" json:"full_name"`
-	Role               *string    `db:"role" json:"role"`
 	IsActive           *bool      `db:"is_active" json:"is_active"`
 	DeactivatedAt      *time.Time `db:"deactivated_at" json:"deactivated_at"`
 	DeactivatedByID    *int64     `db:"deactivated_by_id" json:"deactivated_by_id"`

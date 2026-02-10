@@ -6,29 +6,31 @@ import (
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
 type SystemUsers interface {
-	Create(ctx context.Context, sysUser *model.CreateSystemUser) error
+	Create(ctx context.Context, sysUser *model.CreateSystemUser, user_id uuid.UUID, ip, role string) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error)
 	Delete(ctx context.Context, id uuid.UUID) error
-	Update(ctx context.Context, u *model.UpdateSystemUser, id uuid.UUID) error
+	Update(ctx context.Context, u *model.UpdateSystemUser, id, user_id uuid.UUID, ip, role string) error
 	List(ctx context.Context) ([]model.SystemUser, error)
 	GetByLogin(ctx context.Context, login string) (*model.SystemUser, error)
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 }
 
 type systemUserService struct {
-	r repository.SystemUsersRepository
+	r     repository.SystemUsersRepository
+	audit AuditLogs
 }
 
-func NewSystemUsersService(r repository.SystemUsersRepository) SystemUsers {
-	return &systemUserService{r: r}
+func NewSystemUsersService(r repository.SystemUsersRepository, audit AuditLogs) SystemUsers {
+	return &systemUserService{r: r, audit: audit}
 }
 
-func (s *systemUserService) Create(ctx context.Context, sysUser *model.CreateSystemUser) error {
+func (s *systemUserService) Create(ctx context.Context, sysUser *model.CreateSystemUser, user_id uuid.UUID, ip, role string) error {
 
 	if sysUser.Password != sysUser.ConfirmPassword {
 		return errors.ErrorPasswordsDoNotMatch
@@ -46,9 +48,22 @@ func (s *systemUserService) Create(ctx context.Context, sysUser *model.CreateSys
 		PasswordHash: hash,
 	}
 
-	err = s.r.Create(ctx, u)
-	if err != nil {
+	if err := s.r.Create(ctx, u); err != nil {
 		return err
+	}
+
+	if user_id != uuid.Nil {
+		system := constants.UserTypeSystem
+
+		if err := s.audit.Create(ctx, &model.AuditLogs{
+			ActorID:     user_id,
+			ActorType:   role,
+			TargetTable: &system,
+			Action:      "CreateSystemUser",
+			IPAddress:   &ip,
+		}); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -66,8 +81,25 @@ func (s *systemUserService) List(ctx context.Context) ([]model.SystemUser, error
 	return s.r.List(ctx)
 }
 
-func (s *systemUserService) Update(ctx context.Context, u *model.UpdateSystemUser, id uuid.UUID) error {
-	return s.r.Update(ctx, u, id)
+func (s *systemUserService) Update(ctx context.Context, u *model.UpdateSystemUser, id, user_id uuid.UUID, ip, role string) error {
+	if err := s.r.Update(ctx, u, id); err != nil {
+		return err
+	}
+
+	system := constants.UserTypeSystem
+
+	if err := s.audit.Create(ctx, &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role,
+		Action:      "UpdateSystemUser",
+		TargetTable: &system,
+		TargetID:    &id,
+		IPAddress:   &ip,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *systemUserService) Delete(ctx context.Context, id uuid.UUID) error {
