@@ -176,6 +176,7 @@ func (r *notificationsRepo) GetUnsent(ctx context.Context, limit int) (notif []m
 			&n.ID,
 			&n.UserID,
 			&n.Type,
+			&n.Title,
 			&n.Body,
 			&n.Meta,
 		); err != nil {
