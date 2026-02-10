@@ -61,5 +61,6 @@ func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Ha
 		visit.POST("/check-in", h.VisitCheckIn)
 		visit.POST("/:id/photo", h.VisitPhoto)
 		visit.POST("/:id/complete", h.VisitComplete)
+		visit.GET("", h.ListVisitsByStaffID)
 	}
 }
