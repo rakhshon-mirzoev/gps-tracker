@@ -16,6 +16,7 @@ import (
 type Authorize interface {
 	Authenticate(password string, user *model.User) (string, string, error)
 	GetByLogin(ctx context.Context, login string) (*model.User, error)
+	GetLoginUserInfo(ctx context.Context, user *model.User) (*model.LoginUserInfo, error)
 	Create(ctx context.Context, u *model.CreateUser, utype string) error
 	UpsertRefreshToken(ctx context.Context, id uuid.UUID, user_type, token string) error
 	Refresh(ctx context.Context, oldRefreshToken string) (accessToken string, refreshToken string, err error)
@@ -54,6 +55,38 @@ func (s *authorizeService) Authenticate(password string, user *model.User) (stri
 
 func (s *authorizeService) GetByLogin(ctx context.Context, login string) (*model.User, error) {
 	return s.r.GetByLoginUnified(ctx, login)
+}
+
+func (s *authorizeService) GetLoginUserInfo(ctx context.Context, user *model.User) (*model.LoginUserInfo, error) {
+	switch user.Type {
+	case constants.UserTypeSystem:
+		su, err := s.sys.GetByID(ctx, user.ID)
+		if err != nil {
+			return nil, err
+		}
+		return &model.LoginUserInfo{
+			ID:        su.ID,
+			FullName:  su.FullName,
+			Login:     su.Login,
+			Role:      su.Role,
+			CreatedAt: su.CreatedAt,
+		}, nil
+	case constants.UserTypeStaff:
+		su, err := s.staff.GetByID(ctx, user.ID)
+		if err != nil {
+			return nil, err
+		}
+		return &model.LoginUserInfo{
+			ID:          su.ID,
+			FullName:    su.FullName,
+			Login:       su.Login,
+			Role:        su.Role,
+			PhoneNumber: su.PhoneNumber,
+			CreatedAt:   su.CreatedAt,
+		}, nil
+	default:
+		return nil, errs.ErrorInvalidLoginType
+	}
 }
 
 func (s *authorizeService) Create(ctx context.Context, u *model.CreateUser, utype string) error {

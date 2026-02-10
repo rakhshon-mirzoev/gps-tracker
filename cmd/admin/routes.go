@@ -56,6 +56,7 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			staff.POST("", h.CreateStaffUser)
 			staff.PUT("/:id", h.UpdateStaffUser)
 			staff.PATCH("/:id/deactivate", h.DeactivateStaffUser)
+			staff.GET("/schedules", h.ListSchedulesAdmin)
 			staff.POST("/schedules/assign", h.AssignSchedule)
 			staff.GET("/:id", h.GetStaffUserByID)
 			staff.GET("/online-offline", h.AllStaffOnlineOffline)
@@ -70,6 +71,7 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 		store := admin.Group(constants.Stores)
 		{
 			store.GET("", h.ListStores)
+			store.GET("/:id", h.GetStoreByID)
 			store.PATCH("/:id/approve", h.ApproveStore)
 		}
 

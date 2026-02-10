@@ -26,6 +26,7 @@ type ScheduleRepository interface {
 	ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]model.Schedule, int, error)
 	ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]model.Schedule, int, error)
 	ListByStatus(ctx context.Context, status string, limit, offset int) ([]model.Schedule, int, error)
+	ListAll(ctx context.Context, staffID, storeID *uuid.UUID, dateFrom, dateTo string, limit, offset int) ([]model.Schedule, int, error)
 }
 
 func NewScheduleRepository(db *db.DB) ScheduleRepository {
@@ -404,6 +405,92 @@ func (r *schedules) ListByStatus(ctx context.Context, status string, limit, offs
 	rows, err := r.DB.Pool.Query(ctx, sql, status, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list schedules by status: %w", err)
+	}
+	defer rows.Close()
+
+	var schedulesList = make([]model.Schedule, 0)
+	for rows.Next() {
+		s := model.Schedule{}
+		if err := rows.Scan(
+			&s.ID, &s.StaffID, &s.StoreID, &s.PlannedDate, &s.Description,
+			&s.WindowOpen, &s.WindowClose,
+			&s.IsPhotoRequired, &s.IsSelfieRequired, &s.IsCommentRequired,
+			&s.Status, &s.CreatedByAdminID,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan schedule: %w", err)
+		}
+		schedulesList = append(schedulesList, s)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("rows error: %w", err)
+	}
+
+	return schedulesList, total, nil
+}
+
+func (r *schedules) ListAll(ctx context.Context, staffID, storeID *uuid.UUID, dateFrom, dateTo string, limit, offset int) ([]model.Schedule, int, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	var conditions []string
+	var args []any
+	argNum := 1
+
+	if staffID != nil {
+		conditions = append(conditions, fmt.Sprintf("staff_id = $%d", argNum))
+		args = append(args, *staffID)
+		argNum++
+	}
+
+	if storeID != nil {
+		conditions = append(conditions, fmt.Sprintf("store_id = $%d", argNum))
+		args = append(args, *storeID)
+		argNum++
+	}
+
+	if dateFrom != "" {
+		conditions = append(conditions, fmt.Sprintf("planned_date >= $%d", argNum))
+		args = append(args, dateFrom)
+		argNum++
+	}
+
+	if dateTo != "" {
+		conditions = append(conditions, fmt.Sprintf("planned_date <= $%d", argNum))
+		args = append(args, dateTo)
+		argNum++
+	}
+
+	whereClause := ""
+	if len(conditions) > 0 {
+		whereClause = "WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	var total int
+	countSQL := fmt.Sprintf(`SELECT COUNT(*) FROM schedules %s`, whereClause)
+	if err := r.DB.Pool.QueryRow(ctx, countSQL, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count schedules: %w", err)
+	}
+
+	sql := fmt.Sprintf(`
+		SELECT 
+			id, staff_id, store_id, planned_date, description,
+			window_open, window_close,
+			is_photo_required, is_selfie_required, is_comment_required,
+			status, created_by_admin_id
+		FROM schedules %s
+		ORDER BY planned_date DESC
+		LIMIT $%d OFFSET $%d`, whereClause, argNum, argNum+1)
+
+	args = append(args, limit, offset)
+
+	rows, err := r.DB.Pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list all schedules: %w", err)
 	}
 	defer rows.Close()
 

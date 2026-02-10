@@ -15,7 +15,7 @@ type StaffStoresMappingRepository interface {
 	List(ctx context.Context, staffID uuid.UUID) ([]model.StaffStoresMapping, error)
 	Update(ctx context.Context, ssm *model.StaffStoresMapping) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]model.Store, error)
+	ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]model.Store, int, error)
 }
 
 type staffStoresMapping struct {
@@ -125,15 +125,18 @@ func (r *staffStoresMapping) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]model.Store, error) {
-	defaultLim := 5
-
+func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]model.Store, int, error) {
 	if lim <= 0 {
-		lim = defaultLim
+		lim = 20
 	}
-
 	if off < 0 {
 		off = 0
+	}
+
+	var total int
+	countSQL := `SELECT COUNT(*) FROM stores s WHERE s.created_by_staff_id = $1`
+	if err := r.DB.Pool.QueryRow(ctx, countSQL, id).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count stores by staff id: %w", err)
 	}
 
 	sqlStores := `
@@ -148,7 +151,7 @@ func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, li
 
 	rows, err := r.DB.Pool.Query(ctx, sqlStores, id, lim, off)
 	if err != nil {
-		return nil, fmt.Errorf("list stores by staff id: %w", err)
+		return nil, 0, fmt.Errorf("list stores by staff id: %w", err)
 	}
 	defer rows.Close()
 
@@ -177,15 +180,15 @@ func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, li
 			&store.CreatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("scan store: %w", err)
+			return nil, 0, fmt.Errorf("scan store: %w", err)
 		}
 
 		stores = append(stores, store)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows stores: %w", err)
+		return nil, 0, fmt.Errorf("rows stores: %w", err)
 	}
 
-	return stores, nil
+	return stores, total, nil
 }

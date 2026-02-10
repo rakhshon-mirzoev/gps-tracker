@@ -61,13 +61,19 @@ func (h *Handler) AttachDevice(c *gin.Context) {
 }
 
 func (h *Handler) ListStaffUsers(c *gin.Context) {
-	staff, err := h.s.StaffUser.List(c.Request.Context())
+	lim, off, err := getLimitOffset(c)
+	if err != nil {
+		h.handleFieldError(c, "ListStaffUsers: get limit/offset", err)
+		return
+	}
+
+	staff, total, err := h.s.StaffUser.List(c.Request.Context(), lim, off)
 	if err != nil {
 		h.handleError(c, "ListStaffUsers", err, http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"staff_users": staff})
+	c.JSON(http.StatusOK, model.NewPaginatedResponse(staff, lim, off, total))
 }
 
 func (h *Handler) CreateStaffUser(c *gin.Context) {
@@ -196,15 +202,15 @@ func (h *Handler) ListStaffUserLocationByDate(c *gin.Context) {
 		return
 	}
 
-	begin, err := time.Parse("02.01.2006", beginStr)
+	begin, err := time.Parse("2006-01-02", beginStr)
 	if err != nil {
-		h.handleFieldError(c, "ListStaffUserLocationByDate: parse begin", err)
+		h.handleFieldError(c, "ListStaffUserLocationByDate: parse begin (expected YYYY-MM-DD)", err)
 		return
 	}
 
-	end, err := time.Parse("02.01.2006", endStr)
+	end, err := time.Parse("2006-01-02", endStr)
 	if err != nil {
-		h.handleFieldError(c, "ListStaffUserLocationByDate: parse end", err)
+		h.handleFieldError(c, "ListStaffUserLocationByDate: parse end (expected YYYY-MM-DD)", err)
 		return
 	}
 

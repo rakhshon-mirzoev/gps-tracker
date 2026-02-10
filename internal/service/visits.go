@@ -29,9 +29,9 @@ type Visits interface {
 	VisitComplete(ctx context.Context, id string, dto model.UpdateVisit, staff_id uuid.UUID) error
 	VisitPhoto(ctx context.Context, id string, dto model.UpdateVisit, file *multipart.Form) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.Visit, int, error)
+	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error)
 	UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, user_id uuid.UUID, role, ip, settings, action string) error
-	GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUID, begin, end time.Time) ([]model.VisitExcel, error)
+	GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UUID, begin, end *time.Time) ([]model.VisitExcel, error)
 }
 type visitsService struct {
 	repo          repository.VisitRepository
@@ -312,7 +312,7 @@ func (s *visitsService) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *visitsService) ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.Visit, int, error) {
+func (s *visitsService) ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error) {
 	return s.repo.ListByReviewStatus(ctx, status, limit, offset, id)
 }
 
@@ -353,6 +353,6 @@ func (s *visitsService) UpdateVisit(ctx context.Context, id uuid.UUID, dto model
 	return nil
 }
 
-func (s *visitsService) GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUID, begin, end time.Time) ([]model.VisitExcel, error) {
+func (s *visitsService) GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UUID, begin, end *time.Time) ([]model.VisitExcel, error) {
 	return s.repo.GetDataForExcel(ctx, staff_id, store_id, begin, end)
 }

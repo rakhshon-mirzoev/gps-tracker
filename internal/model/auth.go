@@ -30,3 +30,18 @@ type CreateUser struct {
 	Inn             string     `json:"inn,omitempty"`
 	Birthday        *time.Time `json:"birthday,omitempty"`
 }
+
+type LoginUserInfo struct {
+	ID          uuid.UUID `json:"id"`
+	FullName    string    `json:"full_name"`
+	Login       string    `json:"login"`
+	Role        string    `json:"role"`
+	PhoneNumber string    `json:"phone_number,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type LoginResponse struct {
+	AccessToken  string        `json:"access_token"`
+	RefreshToken string        `json:"refresh_token"`
+	User         LoginUserInfo `json:"user"`
+}

@@ -13,7 +13,7 @@ import (
 type AuditLogsRepository interface {
 	Create(ctx context.Context, al *model.AuditLogs) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.AuditLogs, error)
-	List(ctx context.Context, actorID uuid.UUID) ([]model.AuditLogs, error)
+	List(ctx context.Context, actorID uuid.UUID, action, targetTable, dateFrom, dateTo string, limit, offset int) ([]model.AuditLogs, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateAuditLogs) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -72,16 +72,68 @@ func (r *auditLogs) GetByID(ctx context.Context, id uuid.UUID) (*model.AuditLogs
 	return &al, nil
 }
 
-func (r *auditLogs) List(ctx context.Context, actorID uuid.UUID) ([]model.AuditLogs, error) {
-	sql := `
+func (r *auditLogs) List(ctx context.Context, actorID uuid.UUID, action, targetTable, dateFrom, dateTo string, limit, offset int) ([]model.AuditLogs, int, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	var conditions []string
+	var args []any
+	argNum := 1
+
+	// actor_id always required
+	conditions = append(conditions, fmt.Sprintf("actor_id = $%d", argNum))
+	args = append(args, actorID)
+	argNum++
+
+	if action != "" {
+		conditions = append(conditions, fmt.Sprintf("action = $%d", argNum))
+		args = append(args, action)
+		argNum++
+	}
+
+	if targetTable != "" {
+		conditions = append(conditions, fmt.Sprintf("target_table = $%d", argNum))
+		args = append(args, targetTable)
+		argNum++
+	}
+
+	if dateFrom != "" {
+		conditions = append(conditions, fmt.Sprintf("created_at >= $%d", argNum))
+		args = append(args, dateFrom)
+		argNum++
+	}
+
+	if dateTo != "" {
+		conditions = append(conditions, fmt.Sprintf("created_at <= $%d", argNum))
+		args = append(args, dateTo)
+		argNum++
+	}
+
+	whereClause := "WHERE " + strings.Join(conditions, " AND ")
+
+	var total int
+	countSQL := fmt.Sprintf(`SELECT COUNT(*) FROM audit_logs %s`, whereClause)
+	if err := r.DB.Pool.QueryRow(ctx, countSQL, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count audit logs: %w", err)
+	}
+
+	sql := fmt.Sprintf(`
         SELECT id, actor_id, actor_type, action, target_table, target_id,
                old_value, new_value, ip_address, created_at
-        FROM audit_logs WHERE actor_id = $1
-    `
+        FROM audit_logs %s
+        ORDER BY created_at DESC
+        LIMIT $%d OFFSET $%d
+    `, whereClause, argNum, argNum+1)
 
-	rows, err := r.DB.Pool.Query(ctx, sql, actorID)
+	args = append(args, limit, offset)
+
+	rows, err := r.DB.Pool.Query(ctx, sql, args...)
 	if err != nil {
-		return nil, fmt.Errorf("list audit logs: %w", err)
+		return nil, 0, fmt.Errorf("list audit logs: %w", err)
 	}
 
 	var logs = make([]model.AuditLogs, 0)
@@ -93,17 +145,17 @@ func (r *auditLogs) List(ctx context.Context, actorID uuid.UUID) ([]model.AuditL
 			&al.ID, &al.ActorID, &al.ActorType, &al.Action, &al.TargetTable, &al.TargetID,
 			&al.OldValue, &al.NewValue, &al.IPAddress, &al.CreatedAt,
 		); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		logs = append(logs, al)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows audit logs: %w", err)
+		return nil, 0, fmt.Errorf("rows audit logs: %w", err)
 	}
 
-	return logs, nil
+	return logs, total, nil
 }
 
 func (r *auditLogs) Update(ctx context.Context, id uuid.UUID, dto model.UpdateAuditLogs) error {

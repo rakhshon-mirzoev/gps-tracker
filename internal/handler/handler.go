@@ -27,15 +27,26 @@ func (h *Handler) Ping(c *gin.Context) {
 }
 
 func getLimitOffset(c *gin.Context) (int, int, error) {
-	lim, err := strconv.Atoi(c.Query("limit"))
+	limStr := c.DefaultQuery("limit", "20")
+	offStr := c.DefaultQuery("offset", "0")
+
+	lim, err := strconv.Atoi(limStr)
 	if err != nil {
 		return 0, 0, err
 	}
 
-	off, err := strconv.Atoi(c.Query("offset"))
+	off, err := strconv.Atoi(offStr)
 	if err != nil {
 		return 0, 0, err
 	}
+
+	if lim <= 0 {
+		lim = 20
+	}
+	if off < 0 {
+		off = 0
+	}
+
 	return lim, off, nil
 }
 

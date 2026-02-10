@@ -13,7 +13,7 @@ type Group interface {
 	Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, ip, gr, role, action string) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Group, error)
 	Update(ctx context.Context, group model.Group, id uuid.UUID, user_id uuid.UUID, ip, gr, role, action string) error
-	List(ctx context.Context, supervisorID *uuid.UUID) ([]model.Group, error)
+	List(ctx context.Context, supervisorID *uuid.UUID, limit, offset int) ([]model.Group, int, error)
 }
 
 type GroupService struct {
@@ -43,8 +43,8 @@ func (g *GroupService) Create(ctx context.Context, group *model.Group, user_id u
 	return nil
 }
 
-func (g *GroupService) List(ctx context.Context, id *uuid.UUID) ([]model.Group, error) {
-	return g.r.List(ctx, id)
+func (g *GroupService) List(ctx context.Context, id *uuid.UUID, limit, offset int) ([]model.Group, int, error) {
+	return g.r.List(ctx, id, limit, offset)
 }
 
 func (g *GroupService) Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, ip, gr, role, action string) error {

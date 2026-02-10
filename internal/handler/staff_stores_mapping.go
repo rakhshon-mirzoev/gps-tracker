@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 )
 
 func (h *Handler) ListStoresByStaffIdAdmin(c *gin.Context) {
@@ -26,18 +27,17 @@ func (h *Handler) ListStoresByStaffIdStaff(c *gin.Context) {
 }
 
 func (h *Handler) listStoresByStaffId(c *gin.Context, id uuid.UUID) {
-
 	lim, off, err := getLimitOffset(c)
 	if err != nil {
 		h.handleFieldError(c, "ListStores: get limit/offset", err)
 		return
 	}
 
-	stores, err := h.s.StaffStoresMapping.ListByStaffID(c.Request.Context(), id, lim, off)
+	stores, total, err := h.s.StaffStoresMapping.ListByStaffID(c.Request.Context(), id, lim, off)
 	if err != nil {
 		h.handleError(c, "ListStores: list by staff id", err, http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"stores": stores})
+	c.JSON(http.StatusOK, model.NewPaginatedResponse(stores, lim, off, total))
 }

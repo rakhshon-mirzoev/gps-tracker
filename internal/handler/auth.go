@@ -40,7 +40,17 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"access_token": access_token, "refresh_token": refresh_token})
+	userInfo, err := h.s.Authorize.GetLoginUserInfo(ctx, u)
+	if err != nil {
+		h.handleError(c, "Login - get user info", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, model.LoginResponse{
+		AccessToken:  access_token,
+		RefreshToken: refresh_token,
+		User:         *userInfo,
+	})
 
 }
 

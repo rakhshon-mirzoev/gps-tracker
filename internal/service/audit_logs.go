@@ -11,7 +11,7 @@ import (
 type AuditLogs interface {
 	Create(ctx context.Context, al *model.AuditLogs) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.AuditLogs, error)
-	List(ctx context.Context, actorID uuid.UUID) ([]model.AuditLogs, error)
+	List(ctx context.Context, actorID uuid.UUID, action, targetTable, dateFrom, dateTo string, limit, offset int) ([]model.AuditLogs, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateAuditLogs) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -32,8 +32,8 @@ func (s *auditLogsService) GetByID(ctx context.Context, id uuid.UUID) (*model.Au
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *auditLogsService) List(ctx context.Context, actorID uuid.UUID) ([]model.AuditLogs, error) {
-	return s.repo.List(ctx, actorID)
+func (s *auditLogsService) List(ctx context.Context, actorID uuid.UUID, action, targetTable, dateFrom, dateTo string, limit, offset int) ([]model.AuditLogs, int, error) {
+	return s.repo.List(ctx, actorID, action, targetTable, dateFrom, dateTo, limit, offset)
 }
 
 func (s *auditLogsService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateAuditLogs) error {

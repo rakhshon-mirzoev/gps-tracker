@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
@@ -27,7 +28,7 @@ func (h *Handler) ListNotifications(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"notifications": notifs, "total": total})
+	c.JSON(http.StatusOK, model.NewPaginatedResponse(notifs, lim, off, total))
 }
 
 func (h *Handler) MarkNotificationRead(c *gin.Context) {

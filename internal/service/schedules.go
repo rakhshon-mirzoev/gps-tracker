@@ -17,6 +17,7 @@ type Schedule interface {
 	ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]model.Schedule, int, error)
 	ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]model.Schedule, int, error)
 	ListByStatus(ctx context.Context, status string, limit, offset int) ([]model.Schedule, int, error)
+	ListAll(ctx context.Context, staffIDStr, storeIDStr, dateFrom, dateTo string, limit, offset int) ([]model.Schedule, int, error)
 }
 
 type scheduleService struct {
@@ -118,4 +119,26 @@ func (s *scheduleService) ListByDate(ctx context.Context, plannedDate string, li
 
 func (s *scheduleService) ListByStatus(ctx context.Context, status string, limit, offset int) ([]model.Schedule, int, error) {
 	return s.r.ListByStatus(ctx, status, limit, offset)
+}
+
+func (s *scheduleService) ListAll(ctx context.Context, staffIDStr, storeIDStr, dateFrom, dateTo string, limit, offset int) ([]model.Schedule, int, error) {
+	var staffID, storeID *uuid.UUID
+
+	if staffIDStr != "" {
+		id, err := uuid.Parse(staffIDStr)
+		if err != nil {
+			return nil, 0, err
+		}
+		staffID = &id
+	}
+
+	if storeIDStr != "" {
+		id, err := uuid.Parse(storeIDStr)
+		if err != nil {
+			return nil, 0, err
+		}
+		storeID = &id
+	}
+
+	return s.r.ListAll(ctx, staffID, storeID, dateFrom, dateTo, limit, offset)
 }

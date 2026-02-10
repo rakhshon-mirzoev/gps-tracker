@@ -9,6 +9,34 @@ import (
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
+// ListSchedulesAdmin handles GET /admin/staff/schedules for admin panel
+func (h *Handler) ListSchedulesAdmin(c *gin.Context) {
+	_, err := checkSystemUser(c)
+	if err != nil {
+		h.handleError(c, "ListSchedulesAdmin: check system user", err, http.StatusForbidden)
+		return
+	}
+
+	lim, off, err := getLimitOffset(c)
+	if err != nil {
+		h.handleFieldError(c, "ListSchedulesAdmin: get limit/offset", err)
+		return
+	}
+
+	staffIDStr := c.Query("staff_id")
+	storeIDStr := c.Query("store_id")
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	schedules, total, err := h.s.Schedule.ListAll(c.Request.Context(), staffIDStr, storeIDStr, dateFrom, dateTo, lim, off)
+	if err != nil {
+		h.handleError(c, "ListSchedulesAdmin: list", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, model.NewPaginatedResponse(schedules, lim, off, total))
+}
+
 func (h *Handler) ListShedules(c *gin.Context) {
 	user_id, err := checkStaffUser(c)
 	if err != nil {
@@ -28,7 +56,7 @@ func (h *Handler) ListShedules(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"schedules": schedules, "total": total})
+	c.JSON(http.StatusOK, model.NewPaginatedResponse(schedules, lim, off, total))
 
 }
 

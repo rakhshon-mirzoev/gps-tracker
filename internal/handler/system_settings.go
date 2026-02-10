@@ -41,15 +41,19 @@ func (h *Handler) CreateSystemSetting(c *gin.Context) {
 }
 
 func (h *Handler) ListSystemSettings(c *gin.Context) {
+	lim, off, err := getLimitOffset(c)
+	if err != nil {
+		h.handleFieldError(c, "ListSystemSettings: get limit/offset", err)
+		return
+	}
 
-	ss, err := h.s.SystemSettings.List(c.Request.Context())
+	ss, total, err := h.s.SystemSettings.List(c.Request.Context(), lim, off)
 	if err != nil {
 		h.handleError(c, "ListSystemSettings", err, http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"system_settings": ss})
-
+	c.JSON(http.StatusOK, model.NewPaginatedResponse(ss, lim, off, total))
 }
 
 func (h *Handler) DeleteSystemSetting(c *gin.Context) {

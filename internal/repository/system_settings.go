@@ -16,7 +16,7 @@ import (
 type SystemSettingsRepository interface {
 	Create(ctx context.Context, ss *model.SystemSettings) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemSettings, error)
-	List(ctx context.Context) ([]model.SystemSettings, error)
+	List(ctx context.Context, limit, offset int) ([]model.SystemSettings, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateSystemSettings) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -70,15 +70,30 @@ func (r *systemSettings) GetByID(ctx context.Context, id uuid.UUID) (*model.Syst
 	return &ss, nil
 }
 
-func (r *systemSettings) List(ctx context.Context) ([]model.SystemSettings, error) {
+func (r *systemSettings) List(ctx context.Context, limit, offset int) ([]model.SystemSettings, int, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	var total int
+	countSQL := `SELECT COUNT(*) FROM system_settings`
+	if err := r.DB.Pool.QueryRow(ctx, countSQL).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count system settings: %w", err)
+	}
+
 	sql := `
         SELECT id, key, value, description
         FROM system_settings
+        ORDER BY key
+        LIMIT $1 OFFSET $2
     `
 
-	rows, err := r.DB.Pool.Query(ctx, sql)
+	rows, err := r.DB.Pool.Query(ctx, sql, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("list system settings: %w", err)
+		return nil, 0, fmt.Errorf("list system settings: %w", err)
 	}
 
 	var settings = make([]model.SystemSettings, 0)
@@ -92,17 +107,17 @@ func (r *systemSettings) List(ctx context.Context) ([]model.SystemSettings, erro
 			&ss.Value,
 			&ss.Description,
 		); err != nil {
-			return nil, fmt.Errorf("scan system settings: %w", err)
+			return nil, 0, fmt.Errorf("scan system settings: %w", err)
 		}
 
 		settings = append(settings, ss)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows system settings: %w", err)
+		return nil, 0, fmt.Errorf("rows system settings: %w", err)
 	}
 
-	return settings, nil
+	return settings, total, nil
 }
 
 func (r *systemSettings) Update(ctx context.Context, id uuid.UUID, dto model.UpdateSystemSettings) error {

@@ -17,7 +17,7 @@ import (
 type StaffUsersRepository interface {
 	Create(ctx context.Context, user *model.StaffUser) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error)
-	List(ctx context.Context) ([]model.StaffUser, error)
+	List(ctx context.Context, limit, offset int) ([]model.StaffUser, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Deactivate(ctx context.Context, id uuid.UUID, dReason model.DeactivateStaffUser) error
@@ -102,18 +102,32 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 	return &u, nil
 }
 
-func (r *staffUsers) List(ctx context.Context) ([]model.StaffUser, error) {
+func (r *staffUsers) List(ctx context.Context, limit, offset int) ([]model.StaffUser, int, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	var total int
+	countSQL := `SELECT COUNT(*) FROM staff_users`
+	if err := r.DB.Pool.QueryRow(ctx, countSQL).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count staff users: %w", err)
+	}
+
 	query := `
 		SELECT id, full_name, role, login, is_active, created_at, inn, birthday, is_temporary_password, group_id, phone_number,
 			   password_updated_at, device_id, fcm_token, app_version, last_battery_level, last_seen_at, deactivated_at,
 			   deactivated_by_id, deactivation_reason
 		FROM staff_users
 		ORDER BY created_at DESC
+		LIMIT $1 OFFSET $2
 	`
 
-	rows, err := r.DB.Pool.Query(ctx, query)
+	rows, err := r.DB.Pool.Query(ctx, query, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("list staff users: %w", err)
+		return nil, 0, fmt.Errorf("list staff users: %w", err)
 	}
 	defer rows.Close()
 
@@ -143,16 +157,16 @@ func (r *staffUsers) List(ctx context.Context) ([]model.StaffUser, error) {
 			&u.DeactivatedByID,
 			&u.DeactivationReason,
 		); err != nil {
-			return nil, fmt.Errorf("scan staff user: %w", err)
+			return nil, 0, fmt.Errorf("scan staff user: %w", err)
 		}
 		users = append(users, u)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows staff users: %w", err)
+		return nil, 0, fmt.Errorf("rows staff users: %w", err)
 	}
 
-	return users, nil
+	return users, total, nil
 }
 
 func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error {

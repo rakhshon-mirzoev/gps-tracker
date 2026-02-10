@@ -21,7 +21,7 @@ type StaffUsers interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error)
 	Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser, user_id uuid.UUID, ip, role, st, action string) error
-	List(ctx context.Context) ([]model.StaffUser, error)
+	List(ctx context.Context, limit, offset int) ([]model.StaffUser, int, error)
 	Deactivate(ctx context.Context, id uuid.UUID, d model.DeactivateStaffUser, user_id uuid.UUID, ip, role, st, action string) error
 	GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error)
 	ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error)
@@ -106,8 +106,8 @@ func (s *staffUserService) GetByID(ctx context.Context, id uuid.UUID) (*model.St
 	return s.r.GetByID(ctx, id)
 }
 
-func (s *staffUserService) List(ctx context.Context) ([]model.StaffUser, error) {
-	return s.r.List(ctx)
+func (s *staffUserService) List(ctx context.Context, limit, offset int) ([]model.StaffUser, int, error) {
+	return s.r.List(ctx, limit, offset)
 }
 
 func (s *staffUserService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser, user_id uuid.UUID, ip, role, st, action string) error {

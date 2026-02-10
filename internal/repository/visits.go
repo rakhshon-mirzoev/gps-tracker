@@ -18,10 +18,10 @@ type VisitRepository interface {
 	Create(ctx context.Context, v model.Visit) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
-	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.Visit, int, error)
+	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUID, begin, end time.Time) ([]model.VisitExcel, error)
+	GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UUID, begin, end *time.Time) ([]model.VisitExcel, error)
 	GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, staffID uuid.UUID) (*model.Visit, error)
 	CreateTx(ctx context.Context, tx pgx.Tx, v *model.Visit) error
 	BeginTx(ctx context.Context) (pgx.Tx, error)
@@ -277,7 +277,7 @@ func (r *visit) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit)
 	return nil
 }
 
-func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.Visit, int, error) {
+func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error) {
 	const defaultLimit = 20
 
 	if limit <= 0 {
@@ -288,18 +288,23 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 	}
 
 	var total int
-	countSQL := `SELECT COUNT(*) FROM visits WHERE review_status = $1`
-	if err := r.DB.Pool.QueryRow(ctx, countSQL, status).Scan(&total); err != nil {
+	countSQL := `SELECT COUNT(*) FROM visits WHERE review_status = $1 AND reviewer_id = $2`
+	if err := r.DB.Pool.QueryRow(ctx, countSQL, status, id).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count visits: %w", err)
 	}
 
 	sql := `
-		SELECT id, schedule_id, staff_id, store_id, check_in_at, check_out_at,
-			   check_in_lat, check_in_lon, distance_deviation, selfie_url, comment,
-			   is_offline, review_status, review_comment, reviewer_id,
-			   reviewed_at, created_at
-		FROM visits WHERE review_status = $1 and reviewer_id = $2
-		ORDER BY created_at DESC
+		SELECT v.id, v.schedule_id, v.staff_id, v.store_id, v.check_in_at, v.check_out_at,
+			   v.check_in_lat, v.check_in_lon, v.distance_deviation, v.selfie_url, v.comment,
+			   v.is_offline, v.review_status, v.review_comment, v.reviewer_id,
+			   v.reviewed_at, v.created_at,
+			   su.id, su.full_name, su.phone_number,
+			   st.id, st.name, st.address, st.latitude, st.longitude
+		FROM visits v
+		LEFT JOIN staff_users su ON v.staff_id = su.id
+		LEFT JOIN stores st ON v.store_id = st.id
+		WHERE v.review_status = $1 AND v.reviewer_id = $2
+		ORDER BY v.created_at DESC
 		LIMIT $3 OFFSET $4
 	`
 
@@ -309,17 +314,24 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 	}
 	defer rows.Close()
 
-	var visits = make([]model.Visit, 0)
+	var visits = make([]model.VisitResponse, 0)
 	for rows.Next() {
-		var v model.Visit
+		var v model.VisitResponse
+		var staff model.VisitStaffBrief
+		var store model.VisitStoreBrief
 		if err := rows.Scan(
 			&v.ID, &v.ScheduleID, &v.StaffID, &v.StoreID, &v.CheckInAt, &v.CheckOutAt,
 			&v.CheckInLat, &v.CheckInLon, &v.DistanceDeviation, &v.SelfieURL, &v.Comment,
 			&v.IsOffline, &v.ReviewStatus, &v.ReviewComment, &v.ReviewerID,
 			&v.ReviewedAt, &v.CreatedAt,
+			&staff.ID, &staff.FullName, &staff.PhoneNumber,
+			&store.ID, &store.Name, &store.Address, &store.Latitude, &store.Longitude,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan visit review status: %w", err)
 		}
+		v.Staff = &staff
+		v.Store = &store
+		v.ShelfPhotos = make([]string, 0)
 		visits = append(visits, v)
 	}
 
@@ -343,8 +355,41 @@ func (r *visit) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUID, begin, end time.Time) ([]model.VisitExcel, error) {
-	sql := `
+func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UUID, begin, end *time.Time) ([]model.VisitExcel, error) {
+	var conditions []string
+	var args []any
+	argNum := 1
+
+	if staff_id != nil {
+		conditions = append(conditions, fmt.Sprintf("v.staff_id = $%d", argNum))
+		args = append(args, *staff_id)
+		argNum++
+	}
+
+	if store_id != nil {
+		conditions = append(conditions, fmt.Sprintf("v.store_id = $%d", argNum))
+		args = append(args, *store_id)
+		argNum++
+	}
+
+	if begin != nil {
+		conditions = append(conditions, fmt.Sprintf("v.check_in_at >= $%d", argNum))
+		args = append(args, *begin)
+		argNum++
+	}
+
+	if end != nil {
+		conditions = append(conditions, fmt.Sprintf("v.check_in_at < $%d", argNum))
+		args = append(args, *end)
+		argNum++
+	}
+
+	whereClause := ""
+	if len(conditions) > 0 {
+		whereClause = "WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	sql := fmt.Sprintf(`
 	SELECT
 		v.id,
 		v.check_in_at,
@@ -370,16 +415,11 @@ func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id uuid.UUI
 	JOIN groups g ON g.id = s.group_id
 	JOIN stores st ON st.id = v.store_id
 	LEFT JOIN system_users su ON su.id = v.reviewer_id
-
-	WHERE v.staff_id = $1
-	  AND v.store_id = $2
-	  AND v.check_in_at >= $3
-	  AND v.check_in_at < $4
-
+	%s
 	ORDER BY v.check_in_at DESC
-`
+`, whereClause)
 
-	rows, err := s.DB.Pool.Query(ctx, sql, staff_id, store_id, begin, end)
+	rows, err := s.DB.Pool.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("get data for excel: %w", err)
 	}

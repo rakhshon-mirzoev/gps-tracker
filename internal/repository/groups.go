@@ -19,7 +19,7 @@ type groupsRepository struct {
 
 type GroupsRepository interface {
 	Create(context.Context, *model.Group) error
-	List(ctx context.Context, supervisorID *uuid.UUID) ([]model.Group, error)
+	List(ctx context.Context, supervisorID *uuid.UUID, limit, offset int) ([]model.Group, int, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Group, error)
 	Update(ctx context.Context, gr model.Group, id uuid.UUID) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -47,16 +47,13 @@ func (g *groupsRepository) Create(ctx context.Context, group *model.Group) error
 	return nil
 }
 
-func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID) ([]model.Group, error) {
-	query := `
-		SELECT 
-			g.id, 
-			g.name, 
-			g.supervisor_id, 
-			u.full_name as supervisor_name, 
-			g.created_at 
-		FROM groups g
-		LEFT JOIN system_users u ON g.supervisor_id = u.id`
+func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID, limit, offset int) ([]model.Group, int, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
 
 	var conditions []string
 	var args []any
@@ -66,15 +63,39 @@ func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID) ([
 		args = append(args, *supervisorID)
 	}
 
+	whereClause := ""
 	if len(conditions) > 0 {
-		query += " WHERE " + strings.Join(conditions, " AND ")
+		whereClause = " WHERE " + strings.Join(conditions, " AND ")
 	}
 
-	query += " ORDER BY g.id"
+	var total int
+	countSQL := `SELECT COUNT(*) FROM groups g` + whereClause
+	if err := g.DB.Pool.QueryRow(ctx, countSQL, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count groups: %w", err)
+	}
+
+	query := fmt.Sprintf(`
+		SELECT 
+			g.id, 
+			g.name, 
+			g.supervisor_id, 
+			u.full_name as supervisor_name,
+			u.id as sup_id,
+			u.full_name as sup_full_name,
+			u.login as sup_login,
+			u.role as sup_role,
+			g.created_at 
+		FROM groups g
+		LEFT JOIN system_users u ON g.supervisor_id = u.id
+		%s
+		ORDER BY g.id
+		LIMIT $%d OFFSET $%d`, whereClause, len(args)+1, len(args)+2)
+
+	args = append(args, limit, offset)
 
 	rows, err := g.DB.Pool.Query(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("list groups: %w", err)
+		return nil, 0, fmt.Errorf("list groups: %w", err)
 	}
 	defer rows.Close()
 
@@ -82,26 +103,41 @@ func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID) ([
 
 	for rows.Next() {
 		var g model.Group
+		var supID *uuid.UUID
+		var supFullName, supLogin, supRole *string
 
 		err := rows.Scan(
 			&g.ID,
 			&g.Name,
 			&g.SupervisorID,
 			&g.SupervisorName,
+			&supID,
+			&supFullName,
+			&supLogin,
+			&supRole,
 			&g.CreatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("scan group: %w", err)
+			return nil, 0, fmt.Errorf("scan group: %w", err)
+		}
+
+		if supID != nil {
+			g.Supervisor = &model.GroupSupervisor{
+				ID:       *supID,
+				FullName: *supFullName,
+				Login:    *supLogin,
+				Role:     *supRole,
+			}
 		}
 
 		groups = append(groups, g)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows groups: %w", err)
+		return nil, 0, fmt.Errorf("rows groups: %w", err)
 	}
 
-	return groups, nil
+	return groups, total, nil
 }
 
 func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Group, error) {
@@ -111,6 +147,10 @@ func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Gr
 			g.name,
 			g.supervisor_id,
 			s.full_name as supervisor_name,
+			s.id as sup_id,
+			s.full_name as sup_full_name,
+			s.login as sup_login,
+			s.role as sup_role,
 			g.created_at
 		FROM groups g
 		LEFT JOIN system_users s ON g.supervisor_id = s.id
@@ -118,12 +158,18 @@ func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Gr
 	`
 
 	var gr model.Group
+	var supID *uuid.UUID
+	var supFullName, supLogin, supRole *string
 
 	err := g.DB.Pool.QueryRow(ctx, sql, id).Scan(
 		&gr.ID,
 		&gr.Name,
 		&gr.SupervisorID,
 		&gr.SupervisorName,
+		&supID,
+		&supFullName,
+		&supLogin,
+		&supRole,
 		&gr.CreatedAt,
 	)
 	if err != nil {
@@ -131,6 +177,15 @@ func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Gr
 			return nil, errs.ErrorNotFound
 		}
 		return nil, err
+	}
+
+	if supID != nil {
+		gr.Supervisor = &model.GroupSupervisor{
+			ID:       *supID,
+			FullName: *supFullName,
+			Login:    *supLogin,
+			Role:     *supRole,
+		}
 	}
 
 	return &gr, nil

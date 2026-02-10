@@ -12,7 +12,7 @@ import (
 type SystemSettings interface {
 	Create(ctx context.Context, ss *model.SystemSettings, user_id uuid.UUID, role, ip, settings, action string) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemSettings, error)
-	List(ctx context.Context) ([]model.SystemSettings, error)
+	List(ctx context.Context, limit, offset int) ([]model.SystemSettings, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateSystemSettings, user_id uuid.UUID, role, ip, settings, action string) error
 	Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, role, ip, settings, action string) error
 }
@@ -53,8 +53,8 @@ func (s *systemSettingsService) GetByID(ctx context.Context, id uuid.UUID) (*mod
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *systemSettingsService) List(ctx context.Context) ([]model.SystemSettings, error) {
-	return s.repo.List(ctx)
+func (s *systemSettingsService) List(ctx context.Context, limit, offset int) ([]model.SystemSettings, int, error) {
+	return s.repo.List(ctx, limit, offset)
 }
 
 func (s *systemSettingsService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateSystemSettings, user_id uuid.UUID, role, ip, settings, action string) error {

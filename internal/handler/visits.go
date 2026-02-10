@@ -106,7 +106,7 @@ func (h *Handler) ReviewQueue(c *gin.Context) {
 		h.handleError(c, "ReviewQueue: list visits", err, http.StatusInternalServerError)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"visits": visits, "total": total})
+	c.JSON(http.StatusOK, model.NewPaginatedResponse(visits, lim, off, total))
 }
 
 func (h *Handler) ReviewVisit(c *gin.Context) {
@@ -163,30 +163,46 @@ func (h *Handler) ReviewVisit(c *gin.Context) {
 }
 
 func (h *Handler) ExportReports(c *gin.Context) {
-	staffID, err := uuid.Parse(c.Query("staff_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid staff_id"})
-		return
+	var staffID, storeID *uuid.UUID
+
+	if staffIDStr := c.Query("staff_id"); staffIDStr != "" {
+		id, err := uuid.Parse(staffIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid staff_id"})
+			return
+		}
+		staffID = &id
 	}
 
-	storeID, err := uuid.Parse(c.Query("store_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store_id"})
-		return
+	if storeIDStr := c.Query("store_id"); storeIDStr != "" {
+		id, err := uuid.Parse(storeIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid store_id"})
+			return
+		}
+		storeID = &id
 	}
 
-	begin, err := time.Parse("2006-01-02", c.Query("begin"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid begin"})
-		return
+	var begin, end *time.Time
+
+	if beginStr := c.Query("begin"); beginStr != "" {
+		t, err := time.Parse("2006-01-02", beginStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid begin (expected YYYY-MM-DD)"})
+			return
+		}
+		begin = &t
 	}
 
-	end, err := time.Parse("2006-01-02", c.Query("end"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end"})
-		return
+	if endStr := c.Query("end"); endStr != "" {
+		t, err := time.Parse("2006-01-02", endStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end (expected YYYY-MM-DD)"})
+			return
+		}
+		t = t.AddDate(0, 0, 1)
+		end = &t
 	}
-	end = end.AddDate(0, 0, 1)
 
 	visits, err := h.s.Visit.GetDataForExcel(c.Request.Context(), staffID, storeID, begin, end)
 	if err != nil {

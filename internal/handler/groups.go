@@ -96,13 +96,20 @@ func (h *Handler) ListGroups(c *gin.Context) {
 		h.handleError(c, "ListGroups: check system user", err, http.StatusBadRequest)
 		return
 	}
-	groups, err := h.s.Group.List(c.Request.Context(), &user_id)
+
+	lim, off, err := getLimitOffset(c)
+	if err != nil {
+		h.handleFieldError(c, "ListGroups: get limit/offset", err)
+		return
+	}
+
+	groups, total, err := h.s.Group.List(c.Request.Context(), &user_id, lim, off)
 	if err != nil {
 		h.handleError(c, "ListGroups: list", err, http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"groups": groups})
+	c.JSON(http.StatusOK, model.NewPaginatedResponse(groups, lim, off, total))
 }
 
 func (h *Handler) UpdateGroup(c *gin.Context) {
