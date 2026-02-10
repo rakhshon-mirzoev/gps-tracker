@@ -109,6 +109,7 @@ func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Gr
 		SELECT 
 			g.id,
 			g.name,
+			g.supervisor_id,
 			s.full_name as supervisor_name,
 			g.created_at
 		FROM groups g
@@ -121,6 +122,7 @@ func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Gr
 	err := g.DB.Pool.QueryRow(ctx, sql, id).Scan(
 		&gr.ID,
 		&gr.Name,
+		&gr.SupervisorID,
 		&gr.SupervisorName,
 		&gr.CreatedAt,
 	)

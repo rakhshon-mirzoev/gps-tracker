@@ -82,7 +82,7 @@ func (r *notificationsRepo) Create(ctx context.Context, n *model.Notification) e
 			is_read, 
 			push_sent
 		) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7) 
 		RETURNING id, created_at
 	`
 
