@@ -58,24 +58,24 @@ type VisitStoreBrief struct {
 }
 
 type VisitResponse struct {
-	ID                uuid.UUID       `json:"id"`
-	ScheduleID        *uuid.UUID      `json:"schedule_id"`
-	StaffID           uuid.UUID       `json:"staff_id"`
-	StoreID           uuid.UUID       `json:"store_id"`
-	CheckInAt         *time.Time      `json:"check_in_at"`
-	CheckOutAt        *time.Time      `json:"check_out_at"`
-	CheckInLat        *float64        `json:"check_in_lat"`
-	CheckInLon        *float64        `json:"check_in_lon"`
-	DistanceDeviation int             `json:"distance_deviation"`
-	SelfieURL         *string         `json:"selfie_url"`
-	ShelfPhotos       []string        `json:"shelf_photos"`
-	Comment           *string         `json:"comment"`
-	IsOffline         bool            `json:"is_offline"`
-	ReviewStatus      string          `json:"review_status"`
-	ReviewComment     *string         `json:"review_comment"`
-	ReviewerID        *uuid.UUID      `json:"reviewer_id"`
-	ReviewedAt        *time.Time      `json:"reviewed_at"`
-	CreatedAt         time.Time       `json:"created_at"`
+	ID                uuid.UUID        `json:"id"`
+	ScheduleID        *uuid.UUID       `json:"schedule_id"`
+	StaffID           uuid.UUID        `json:"staff_id"`
+	StoreID           uuid.UUID        `json:"store_id"`
+	CheckInAt         *time.Time       `json:"check_in_at"`
+	CheckOutAt        *time.Time       `json:"check_out_at"`
+	CheckInLat        *float64         `json:"check_in_lat"`
+	CheckInLon        *float64         `json:"check_in_lon"`
+	DistanceDeviation int              `json:"distance_deviation"`
+	SelfieURL         *string          `json:"selfie_url"`
+	ShelfPhotos       []string         `json:"shelf_photos"`
+	Comment           *string          `json:"comment"`
+	IsOffline         bool             `json:"is_offline"`
+	ReviewStatus      string           `json:"review_status"`
+	ReviewComment     *string          `json:"review_comment"`
+	ReviewerID        *uuid.UUID       `json:"reviewer_id"`
+	ReviewedAt        *time.Time       `json:"reviewed_at"`
+	CreatedAt         time.Time        `json:"created_at"`
 	Staff             *VisitStaffBrief `json:"staff,omitempty"`
 	Store             *VisitStoreBrief `json:"store,omitempty"`
 }
@@ -88,20 +88,20 @@ type CreateVisit struct {
 }
 
 type VisitExcel struct {
-	ID                uuid.UUID  `json:"id"`
-	Staff             StaffUser  `json:"staff_id"`
-	Store             Store      `json:"store_id"`
-	Group             Group      `json:"group"`
-	CheckInAt         time.Time  `json:"check_in_at"`
-	CheckOutAt        time.Time  `json:"check_out_at"`
-	CheckInLat        float64    `json:"check_in_lat"`
-	CheckInLon        float64    `json:"check_in_lon"`
-	DistanceDeviation int        `json:"distance_deviation"`
-	SelfieURL         string     `json:"selfie_url"`
-	Comment           string     `json:"comment"`
-	ReviewStatus      string     `json:"review_status"`
-	ReviewComment     string     `json:"review_comment"`
-	Reviewer          SystemUser `json:"reviewer"`
-	ReviewedAt        time.Time  `json:"reviewed_at"`
-	CreatedAt         time.Time  `json:"created_at"`
+	ID                uuid.UUID   `json:"id"`
+	Staff             StaffUser   `json:"staff_id"`
+	Store             Store       `json:"store_id"`
+	Group             Group       `json:"group"`
+	CheckInAt         time.Time   `json:"check_in_at"`
+	CheckOutAt        time.Time   `json:"check_out_at"`
+	CheckInLat        float64     `json:"check_in_lat"`
+	CheckInLon        float64     `json:"check_in_lon"`
+	DistanceDeviation int         `json:"distance_deviation"`
+	SelfieURL         *string     `json:"selfie_url"`
+	Comment           *string     `json:"comment"`
+	ReviewStatus      *string     `json:"review_status"`
+	ReviewComment     *string     `json:"review_comment"`
+	Reviewer          *SystemUser `json:"reviewer"`
+	ReviewedAt        *time.Time  `json:"reviewed_at"`
+	CreatedAt         time.Time   `json:"created_at"`
 }

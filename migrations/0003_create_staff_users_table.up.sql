@@ -1,7 +1,7 @@
 CREATE TABLE staff_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    group_id UUID NOT NULL
+    group_id UUID
         REFERENCES groups(id)
         ON DELETE RESTRICT,
 

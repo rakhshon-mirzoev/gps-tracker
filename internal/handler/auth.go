@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
@@ -55,24 +54,16 @@ func (h *Handler) Login(c *gin.Context) {
 }
 
 func (h *Handler) RegisterSystem(c *gin.Context) {
-	h.register(c, constants.UserTypeSystem)
-}
-
-func (h *Handler) RegisterStaff(c *gin.Context) {
-	h.register(c, constants.UserTypeStaff)
-}
-
-func (h *Handler) register(c *gin.Context, utype string) {
-	var user model.CreateUser
+	var user model.CreateSystemUser
 
 	if err := c.ShouldBindJSON(&user); err != nil {
-		h.handleFieldError(c, "Register", err)
+		h.handleFieldError(c, "RegisterSystem", err)
 		return
 	}
 
-	existingUser, err := h.s.Authorize.GetByLogin(c.Request.Context(), user.Login)
+	existingUser, err := h.s.Authorize.GetByLogin(c, user.Login)
 	if err != nil && err != errs.ErrorNotFound {
-		h.handleError(c, "Register", err, http.StatusInternalServerError)
+		h.handleError(c, "RegisterSystem", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -81,14 +72,38 @@ func (h *Handler) register(c *gin.Context, utype string) {
 		return
 	}
 
-	err = h.s.Authorize.Create(c.Request.Context(), &user, utype)
-	if err != nil {
-		h.handleError(c, "Register", err, http.StatusInternalServerError)
+	if err := h.s.Authorize.CreateSystem(c, &user); err != nil {
+		h.handleError(c, "RegisterStaff", err, http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"ok": "created user"})
+	c.JSON(http.StatusCreated, gin.H{"ok": "created system user"})
+}
+func (h *Handler) RegisterStaff(c *gin.Context) {
+	var user model.CreateStaffUser
 
+	if err := c.ShouldBindJSON(&user); err != nil {
+		h.handleFieldError(c, "RegisterStaff", err)
+		return
+	}
+
+	existingUser, err := h.s.Authorize.GetByLogin(c, user.Login)
+	if err != nil && err != errs.ErrorNotFound {
+		h.handleError(c, "RegisterStaff", err, http.StatusInternalServerError)
+		return
+	}
+
+	if existingUser != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "already exists with that login"})
+		return
+	}
+
+	if err := h.s.Authorize.CreateStaff(c, &user); err != nil {
+		h.handleError(c, "RegisterStaff", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"ok": "created staff user"})
 }
 
 func (h *Handler) Refresh(c *gin.Context) {

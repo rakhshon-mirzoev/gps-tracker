@@ -35,4 +35,5 @@ var (
 	ErrorAlreadyReviewed     = errors.New("already reviewed")
 	ErrroActiveVisitExists   = errors.New("active visit already exists")
 	ErrorInvalidStatus       = errors.New("invalid status")
+	ErrorGroupIDRequired     = errors.New("group id required for staff user")
 )

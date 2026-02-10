@@ -18,19 +18,6 @@ type User struct {
 	GroupID      *uuid.UUID `db:"group_id"`
 	Type         string     `db:"user_type"`
 }
-
-type CreateUser struct {
-	FullName        string     `json:"full_name" binding:"required"`
-	Login           string     `json:"login" binding:"required,alphanum"`
-	Password        string     `json:"password" binding:"required,min=8,max=20"`
-	ConfirmPassword string     `json:"confirm_password" binding:"required,min=8,max=20"`
-	Role            string     `json:"role,omitempty"`
-	GroupID         *string    `json:"group_id,omitempty"`
-	PhoneNumber     string     `json:"phone_number,omitempty"`
-	Inn             string     `json:"inn,omitempty"`
-	Birthday        *time.Time `json:"birthday,omitempty"`
-}
-
 type LoginUserInfo struct {
 	ID          uuid.UUID `json:"id"`
 	FullName    string    `json:"full_name"`

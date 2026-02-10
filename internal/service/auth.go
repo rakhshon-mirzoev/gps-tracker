@@ -17,7 +17,8 @@ type Authorize interface {
 	Authenticate(password string, user *model.User) (string, string, error)
 	GetByLogin(ctx context.Context, login string) (*model.User, error)
 	GetLoginUserInfo(ctx context.Context, user *model.User) (*model.LoginUserInfo, error)
-	Create(ctx context.Context, u *model.CreateUser, utype string) error
+	CreateSystem(ctx context.Context, u *model.CreateSystemUser) error
+	CreateStaff(ctx context.Context, u *model.CreateStaffUser) error
 	UpsertRefreshToken(ctx context.Context, id uuid.UUID, user_type, token string) error
 	Refresh(ctx context.Context, oldRefreshToken string) (accessToken string, refreshToken string, err error)
 	Logout(ctx context.Context, token string) error
@@ -89,42 +90,41 @@ func (s *authorizeService) GetLoginUserInfo(ctx context.Context, user *model.Use
 	}
 }
 
-func (s *authorizeService) Create(ctx context.Context, u *model.CreateUser, utype string) error {
+func (s *authorizeService) CreateSystem(ctx context.Context, u *model.CreateSystemUser) error {
 
-	switch utype {
-	case constants.UserTypeSystem:
-		user := &model.CreateSystemUser{
-			FullName:        u.FullName,
-			Login:           u.Login,
-			Role:            u.Role,
-			Password:        u.Password,
-			ConfirmPassword: u.ConfirmPassword,
-		}
-		if err := s.sys.Create(ctx, user, uuid.Nil, "", ""); err != nil {
-			return err
-		}
-
-		return nil
-	case constants.UserTypeStaff:
-		user := &model.CreateStaffUser{
-			GroupID:         *u.GroupID,
-			FullName:        u.FullName,
-			Login:           u.Login,
-			PhoneNumber:     u.PhoneNumber,
-			Inn:             u.Inn,
-			Birthday:        u.Birthday,
-			Password:        u.Password,
-			ConfirmPassword: u.ConfirmPassword,
-		}
-
-		if err := s.staff.Create(ctx, *user, uuid.Nil, "", "", "", ""); err != nil {
-			return err
-		}
-
-		return nil
-	default:
-		return errs.ErrorInvalidLoginType
+	user := &model.CreateSystemUser{
+		FullName:        u.FullName,
+		Login:           u.Login,
+		Role:            u.Role,
+		Password:        u.Password,
+		ConfirmPassword: u.ConfirmPassword,
 	}
+	if err := s.sys.Create(ctx, user, uuid.Nil, "", ""); err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *authorizeService) CreateStaff(ctx context.Context, u *model.CreateStaffUser) error {
+
+	user := &model.CreateStaffUser{
+		GroupID:         u.GroupID,
+		FullName:        u.FullName,
+		Login:           u.Login,
+		PhoneNumber:     u.PhoneNumber,
+		Inn:             u.Inn,
+		Birthday:        u.Birthday,
+		Password:        u.Password,
+		ConfirmPassword: u.ConfirmPassword,
+	}
+
+	if err := s.staff.Create(ctx, *user, uuid.Nil, "", "", "", ""); err != nil {
+		return err
+	}
+
+	return nil
 
 }
 

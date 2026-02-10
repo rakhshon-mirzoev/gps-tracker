@@ -49,12 +49,12 @@ type DeactivateStaffUser struct {
 }
 
 type CreateStaffUser struct {
-	GroupID         string     `json:"group_id" binding:"required"`
+	GroupID         string     `json:"group_id"`
 	FullName        string     `json:"full_name" binding:"required"`
 	Login           string     `json:"login" binding:"required"`
 	PhoneNumber     string     `json:"phone_number"`
 	Inn             string     `json:"inn"`
-	Birthday        *time.Time `json:"birthday"`
+	Birthday        *time.Time `json:"birthday,omitempty"`
 	Password        string     `json:"password" binding:"required"`
 	ConfirmPassword string     `json:"confirm_password" binding:"required"`
 }

@@ -18,6 +18,7 @@ type VisitRepository interface {
 	Create(ctx context.Context, v model.Visit) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
+	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, error)
 	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -497,4 +498,63 @@ func (s *visit) GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, s
 	}
 
 	return &v, nil
+}
+
+func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, error) {
+	var (
+		v     []model.Visit
+		total int
+	)
+
+	totalSql := `SELECT COUNT(*) FROM visits WHERE staff_id = $1`
+
+	if err := s.DB.Pool.QueryRow(ctx, totalSql, staff_id).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count visits: %w", err)
+	}
+
+	sql := `
+		SELECT id, check_in_at, check_out_at,
+			   check_in_lat, check_in_lon, distance_deviation, selfie_url, comment,
+			   is_offline, review_status, review_comment, reviewer_id,
+			   reviewed_at, created_at
+		FROM visits 
+		WHERE staff_id = $1
+	`
+
+	rows, err := s.DB.Pool.Query(ctx, sql, staff_id)
+	if err != nil {
+		return nil, 0, fmt.Errorf("query exec list by staff id: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var visit model.Visit
+
+		if err := rows.Scan(
+			&visit.ID,
+			&visit.CheckInAt,
+			&visit.CheckOutAt,
+			&visit.CheckInLat,
+			&visit.CheckInLon,
+			&visit.DistanceDeviation,
+			&visit.SelfieURL,
+			&visit.Comment,
+			&visit.IsOffline,
+			&visit.ReviewStatus,
+			&visit.ReviewComment,
+			&visit.ReviewerID,
+			&visit.ReviewedAt,
+			&visit.CreatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("rows scan list by staff id: %w", err)
+		}
+
+		v = append(v, visit)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("rows err: %w", err)
+	}
+
+	return v, total, nil
 }

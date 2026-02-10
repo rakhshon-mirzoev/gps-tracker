@@ -26,8 +26,9 @@ type Visits interface {
 	Create(ctx context.Context, v model.CreateVisit, user_id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
+	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, error)
 	VisitComplete(ctx context.Context, id string, dto model.UpdateVisit, staff_id uuid.UUID) error
-	VisitPhoto(ctx context.Context, id string, dto model.UpdateVisit, file *multipart.Form) error
+	VisitPhoto(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, file *multipart.Form) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error)
 	UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, user_id uuid.UUID, role, ip, settings, action string) error
@@ -195,11 +196,7 @@ func (s *visitsService) VisitComplete(ctx context.Context, id string, dto model.
 	return nil
 }
 
-func (s *visitsService) VisitPhoto(ctx context.Context, id string, dto model.UpdateVisit, file *multipart.Form) error {
-	uid, err := uuid.FromBytes([]byte(id))
-	if err != nil {
-		return err
-	}
+func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, file *multipart.Form) error {
 
 	selfie := file.File["selfie"]
 
@@ -221,14 +218,14 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id string, dto model.Upd
 	}
 	timestamp := time.Now().Unix()
 	filename := fmt.Sprintf("%s_%d%s", strings.TrimSuffix(selfie[0].Filename, ext), timestamp, ext)
-	objectName := fmt.Sprintf(constants.VisitDir+constants.SelfieDir+"/%s/%s", uid, filename)
+	objectName := fmt.Sprintf(constants.VisitDir+constants.SelfieDir+"/%s/%s", id, filename)
 
 	selfiePath, err := s.minio.UploadFile(ctx, selfie[0], objectName)
 	if err != nil {
 		return fmt.Errorf("failed to upload selfie to minio: %w", err)
 	}
 
-	localPath, err := utils.PathCreator(filename, constants.VisitDir, constants.SelfieDir, uid)
+	localPath, err := utils.PathCreator(filename, constants.VisitDir, constants.SelfieDir, id)
 	if err == nil {
 		if src, err := selfie[0].Open(); err == nil {
 			defer src.Close()
@@ -242,7 +239,7 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id string, dto model.Upd
 	dto.SelfieURL = &selfiePath
 
 	vp := &model.VisitPhotos{
-		VisitID:      uid,
+		VisitID:      id,
 		PhotoURL:     selfiePath,
 		OriginalName: selfie[0].Filename,
 	}
@@ -272,14 +269,14 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id string, dto model.Upd
 		}
 		timestamp := time.Now().Unix()
 		filename := fmt.Sprintf("%s_%d%s", strings.TrimSuffix(f.Filename, ext), timestamp, ext)
-		objectName := fmt.Sprintf(constants.VisitDir+constants.ShelfDir+"/%s/%s", uid, filename)
+		objectName := fmt.Sprintf(constants.VisitDir+constants.ShelfDir+"/%s/%s", id, filename)
 
 		photoPath, err := s.minio.UploadFile(ctx, f, objectName)
 		if err != nil {
 			return fmt.Errorf("failed to upload shelf photo %d to minio: %w", idx+1, err)
 		}
 
-		localPath, err := utils.PathCreator(filename, constants.VisitDir, constants.ShelfDir, uid)
+		localPath, err := utils.PathCreator(filename, constants.VisitDir, constants.ShelfDir, id)
 		if err == nil {
 			if src, err := f.Open(); err == nil {
 				defer src.Close()
@@ -301,7 +298,7 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id string, dto model.Upd
 			return err
 		}
 	}
-	return s.repo.Update(ctx, uid, dto)
+	return s.repo.Update(ctx, id, dto)
 }
 
 func (s *visitsService) Delete(ctx context.Context, id uuid.UUID) error {
@@ -355,4 +352,8 @@ func (s *visitsService) UpdateVisit(ctx context.Context, id uuid.UUID, dto model
 
 func (s *visitsService) GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UUID, begin, end *time.Time) ([]model.VisitExcel, error) {
 	return s.repo.GetDataForExcel(ctx, staff_id, store_id, begin, end)
+}
+
+func (s *visitsService) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, error) {
+	return s.repo.ListByStaffID(ctx, staff_id, lim, off)
 }

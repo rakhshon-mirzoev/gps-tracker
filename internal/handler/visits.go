@@ -43,7 +43,11 @@ func (h *Handler) VisitCheckIn(c *gin.Context) {
 func (h *Handler) VisitPhoto(c *gin.Context) {
 	var dto model.UpdateVisit
 
-	vID := c.Param("id")
+	vID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		h.handleFieldError(c, "VisitPhoto: parse id", err)
+		return
+	}
 
 	file, err := c.MultipartForm()
 	if err != nil {
@@ -223,4 +227,26 @@ func (h *Handler) ExportReports(c *gin.Context) {
 	c.Header("Content-Length", strconv.Itoa(len(data)))
 
 	c.Data(http.StatusOK, "application/octet-stream", data)
+}
+
+func (h *Handler) ListVisitsByStaffID(c *gin.Context) {
+	uid, err := checkStaffUser(c)
+	if err != nil {
+		h.handleFieldError(c, "ListVisitsByStaffID: check staff user", err)
+		return
+	}
+
+	lim, off, err := getLimitOffset(c)
+	if err != nil {
+		h.handleFieldError(c, "ReviewQueue: get limit/offset", err)
+		return
+	}
+
+	visits, total, err := h.s.Visit.ListByStaffID(c.Request.Context(), uid, lim, off)
+	if err != nil {
+		h.handleError(c, "ListVisitsByStaffID: list visits", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, model.NewPaginatedResponse(visits, lim, off, total))
 }

@@ -96,49 +96,53 @@ func (s *systemUsers) GetByLogin(ctx context.Context, login string) (*model.Syst
 }
 
 func (s *systemUsers) Update(ctx context.Context, dto *model.UpdateSystemUser, id uuid.UUID) error {
-	sql := `UPDATE system_users SET `
-	var args []any
+	sets := make([]string, 0)
+	args := make([]any, 0)
 	n := 1
 
 	if dto.FullName != nil {
-		sql += fmt.Sprintf("full_name = $%d,", n)
+		sets = append(sets, fmt.Sprintf("full_name = $%d", n))
 		args = append(args, *dto.FullName)
 		n++
 	}
 
 	if dto.IsActive != nil {
-		sql += fmt.Sprintf("is_active = $%d,", n)
+		sets = append(sets, fmt.Sprintf("is_active = $%d", n))
 		args = append(args, *dto.IsActive)
 		n++
 	}
 
 	if dto.DeactivatedAt != nil {
-		sql += fmt.Sprintf("deactivated_at = $%d,", n)
+		sets = append(sets, fmt.Sprintf("deactivated_at = $%d", n))
 		args = append(args, *dto.DeactivatedAt)
 		n++
 	}
 
 	if dto.DeactivatedByID != nil {
-		sql += fmt.Sprintf("deactivated_by_id = $%d,", n)
+		sets = append(sets, fmt.Sprintf("deactivated_by_id = $%d", n))
 		args = append(args, *dto.DeactivatedByID)
 		n++
 	}
 
 	if dto.DeactivationReason != nil {
-		sql += fmt.Sprintf("deactivation_reason = $%d,", n)
+		sets = append(sets, fmt.Sprintf("deactivation_reason = $%d", n))
 		args = append(args, *dto.DeactivationReason)
 		n++
 	}
 
-	if len(args) == 0 {
+	if len(sets) == 0 {
 		return nil
 	}
 
-	sql = strings.TrimSuffix(sql, ", ")
-	sql += fmt.Sprintf(" WHERE id = $%d", n)
+	query := fmt.Sprintf(
+		"UPDATE system_users SET %s WHERE id = $%d",
+		strings.Join(sets, ", "),
+		n,
+	)
+
 	args = append(args, id)
 
-	_, err := s.DB.Pool.Exec(ctx, sql, args...)
+	_, err := s.DB.Pool.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("update system user: %w", err)
 	}
