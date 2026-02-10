@@ -5,23 +5,38 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/websocket"
 )
 
 type App struct {
-	router *gin.Engine
-	server *http.Server
+	router   *gin.Engine
+	server   *http.Server
+	wsHub    *websocket.Hub
+	wsCancel context.CancelFunc
 }
 
 func New(router *gin.Engine) *App {
-	return &App{router: router}
+	hub := websocket.NewHub()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go hub.Run(ctx)
+	return &App{
+		router:   router,
+		wsHub:    hub,
+		wsCancel: cancel,
+	}
 }
 
 func (a *App) Run(addr string) error {
 	a.server = &http.Server{
-		Addr:    addr,
-		Handler: a.router,
+		Addr:         addr,
+		Handler:      a.router,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	log.Printf("server started on %s", addr)
@@ -29,8 +44,16 @@ func (a *App) Run(addr string) error {
 }
 
 func (a *App) Shutdown(ctx context.Context) error {
+	if a.wsCancel != nil {
+		a.wsCancel()
+	}
+
 	if a.server == nil {
 		return errors.New("server is nil")
 	}
 	return a.server.Shutdown(ctx)
+}
+
+func (a *App) WsHub() *websocket.Hub {
+	return a.wsHub
 }

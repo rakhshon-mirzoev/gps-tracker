@@ -6,12 +6,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/events"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
+	"go.uber.org/zap"
 )
 
 type LocationHistory interface {
-	Create(ctx context.Context, lh *model.LocationHistory, user_id uuid.UUID) error
+	Create(ctx context.Context, lh *model.LocationHistory) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.LocationHistory, error)
 	List(ctx context.Context, staffID uuid.UUID) ([]model.LocationHistory, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateLocationHistory) error
@@ -21,19 +24,54 @@ type LocationHistory interface {
 }
 
 type locationHistoryService struct {
-	r repository.LocationHistoryRepository
+	r         repository.LocationHistoryRepository
+	staff     StaffUsers
+	publisher events.LocationPublisher
 }
 
-func NewLocationHistoryService(r repository.LocationHistoryRepository) LocationHistory {
-	return &locationHistoryService{r: r}
+func NewLocationHistoryService(r repository.LocationHistoryRepository, staff StaffUsers, publisher events.LocationPublisher) LocationHistory {
+	return &locationHistoryService{r: r, staff: staff, publisher: publisher}
 }
 
-func (s *locationHistoryService) Create(ctx context.Context, lh *model.LocationHistory, user_id uuid.UUID) error {
+func (s *locationHistoryService) Create(ctx context.Context, lh *model.LocationHistory) error {
 	return s.r.Create(ctx, lh)
 }
 
 func (s *locationHistoryService) CreateBatch(ctx context.Context, locations []model.LocationHistory) error {
-	return s.r.CreateBatch(ctx, locations)
+	err := s.r.CreateBatch(ctx, locations)
+	if err != nil {
+		return err
+	}
+
+	var latest *model.LocationHistory
+	for i := len(locations) - 1; i >= 0; i-- {
+		if locations[i].Status == "online" {
+			latest = &locations[i]
+			break
+		}
+	}
+
+	if latest != nil {
+		staff, err := s.staff.GetByID(ctx, latest.StaffID)
+		if err != nil {
+			logger.Log.Error("err while staff get by id", zap.Error(err))
+		}
+
+		update := events.LocationUpdate{
+			StaffID:      latest.StaffID,
+			GroupID:      staff.GroupID,
+			FullName:     staff.FullName,
+			Latitude:     latest.Latitude,
+			Longitude:    latest.Longitude,
+			BatteryLevel: latest.BatteryLevel,
+			CapturedAt:   latest.CapturedAt,
+			Status:       "online",
+		}
+
+		_ = s.publisher.PublishOnlineLocation(ctx, update)
+	}
+
+	return nil
 }
 
 func (s *locationHistoryService) GetByID(ctx context.Context, id uuid.UUID) (*model.LocationHistory, error) {

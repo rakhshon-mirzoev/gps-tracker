@@ -72,18 +72,18 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	router := gin.Default()
+
+	app := app.New(router)
 
 	repo := repository.New(dbConn)
-	services := service.New(repo, tokenService, client, firebaseService)
+	services := service.New(repo, tokenService, client, firebaseService, app.WsHub())
 	handlers := handler.New(services)
 	minioHandler := miniohandler.New(client)
 
 	mw := middleware.New(tokenService)
 
-	router := gin.Default()
 	registerMobileRoutes(router, mw, handlers, minioHandler)
-
-	app := app.New(router)
 
 	ctx, stop := signal.NotifyContext(
 		context.Background(),

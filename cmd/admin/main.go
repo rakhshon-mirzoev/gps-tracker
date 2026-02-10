@@ -69,18 +69,18 @@ func run() error {
 
 	token := token.NewTokenService(os.Getenv("SECRET_KEY"), time.Duration(cfg.Admin.TTLMinutes)*time.Minute)
 
+	router := gin.Default()
+
+	app := app.New(router)
+
 	repository := repository.New(db)
-	service := service.New(repository, token, client, firebaseService)
+	service := service.New(repository, token, client, firebaseService, app.WsHub())
 	minio := miniohandler.New(client)
 	handler := handler.New(service)
 
 	mw := middleware.New(token)
 
-	router := gin.Default()
-
-	registerAdminRoutes(router, mw, handler, minio)
-
-	app := app.New(router)
+	registerAdminRoutes(router, mw, handler, minio, app.WsHub(), db.Pool)
 
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
