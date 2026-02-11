@@ -27,11 +27,66 @@ func (h *Handler) Profile(c *gin.Context) {
 
 	bio, err := h.s.StaffUser.GetProfile(c.Request.Context(), user_id, lim, off)
 	if err != nil {
+		if errors.Is(err, errs.ErrorUserDeactivated) {
+			c.JSON(410, gin.H{"error": "user is deactivated"})
+			return
+		}
 		h.handleError(c, "Profile: get profile", err, http.StatusInternalServerError)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"profile": bio})
+}
+
+func (h *Handler) UpdateProfile(c *gin.Context) {
+	var dto model.UpdateStaffUser
+
+	user_id, err := checkStaffUser(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		h.handleFieldError(c, "UpdateProfile: bind update staff", err)
+		return
+	}
+
+	err = h.s.StaffUser.Update(c.Request.Context(), user_id, dto, uuid.Nil, "", "", "", "")
+	if err != nil {
+		if errors.Is(err, errs.ErrorUserDeactivated) {
+			c.JSON(410, gin.H{"error": "user is deactivated"})
+			return
+		}
+		h.handleError(c, "UpdateProfile: update profile", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "updated"})
+}
+
+func (h *Handler) UpdateAvatar(c *gin.Context) {
+	userID, err := checkStaffUser(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err})
+		return
+	}
+
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 5<<20)
+
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		h.handleFieldError(c, "UpdateAvatar: get file", err)
+		return
+	}
+
+	err = h.s.StaffUser.UpdateAvatar(c.Request.Context(), userID, file)
+	if err != nil {
+		h.handleError(c, "UpdateAvatar", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "avatar updated"})
 }
 
 func (h *Handler) AttachDevice(c *gin.Context) {

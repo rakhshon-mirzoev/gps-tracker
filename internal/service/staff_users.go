@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"mime/multipart"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +13,7 @@ import (
 	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
+	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 	"go.uber.org/zap"
 )
@@ -26,16 +28,18 @@ type StaffUsers interface {
 	GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error)
 	ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error)
 	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
+	UpdateAvatar(ctx context.Context, userID uuid.UUID, file *multipart.FileHeader) error
 }
 type staffUserService struct {
 	r             repository.StaffUsersRepository
 	schedules     Schedule
 	audit         AuditLogs
 	notifications Notification
+	minio         minioservice.Minio
 }
 
-func NewStaffUserService(r repository.StaffUsersRepository, sch Schedule, sender fcm.PushSender, notifications Notification, audit AuditLogs) StaffUsers {
-	return &staffUserService{r: r, schedules: sch, notifications: notifications, audit: audit}
+func NewStaffUserService(r repository.StaffUsersRepository, sch Schedule, sender fcm.PushSender, notifications Notification, audit AuditLogs, minio minioservice.Minio) StaffUsers {
+	return &staffUserService{r: r, schedules: sch, notifications: notifications, audit: audit, minio: minio}
 }
 
 func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error) {
@@ -43,6 +47,15 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 	user, err := s.r.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+
+	if user.AvatarKey != nil {
+		url, err := s.minio.PresignedDownload(ctx, *user.AvatarKey, 15*time.Minute)
+		if err != nil {
+			return nil, err
+		}
+
+		user.AvatarUrl = &url
 	}
 
 	schedules, total, err := s.schedules.ListByStaffID(ctx, id, lim, off)
@@ -55,6 +68,29 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 		Schedules:  schedules,
 		TotalCount: total,
 	}, nil
+}
+
+func (s *staffUserService) UpdateAvatar(ctx context.Context, userID uuid.UUID, file *multipart.FileHeader) error {
+
+	user, err := s.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if user.DeactivatedByID != nil {
+		return errs.ErrorUserDeactivated
+	}
+
+	objectName := fmt.Sprintf("staff/avatars/%s.jpg", userID)
+
+	key, err := s.minio.UploadFile(ctx, file, objectName)
+	if err != nil {
+		return err
+	}
+
+	return s.r.Update(ctx, userID, model.UpdateStaffUser{
+		AvatarKey: &key,
+	})
 }
 
 func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser, admin_id uuid.UUID, ip, role, st, action string) error {
@@ -111,6 +147,15 @@ func (s *staffUserService) List(ctx context.Context, limit, offset int) ([]model
 }
 
 func (s *staffUserService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser, user_id uuid.UUID, ip, role, st, action string) error {
+	user, err := s.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if user.DeactivatedByID != nil {
+		return errs.ErrorUserDeactivated
+	}
+
 	if err := s.r.Update(ctx, id, dto); err != nil {
 		return err
 	}

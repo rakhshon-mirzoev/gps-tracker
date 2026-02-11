@@ -155,10 +155,6 @@ func (h *Handler) ReviewVisit(c *gin.Context) {
 	}
 
 	if err := h.s.Visit.UpdateVisit(c.Request.Context(), visitID, dto, reviewerID, role.(string), c.ClientIP(), constants.VisitGroup, "ReviewVisit"); err != nil {
-		if err == errs.ErrorNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "visit not found"})
-			return
-		}
 		h.handleError(c, "ReviewVisit: update visit", err, http.StatusInternalServerError)
 		return
 	}

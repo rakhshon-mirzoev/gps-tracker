@@ -43,10 +43,11 @@ type visitsService struct {
 	staff         StaffUsers
 	audit         AuditLogs
 	group         Group
+	schedule      Schedule
 }
 
 func NewVisitsService(repo repository.VisitRepository, minio minioservice.Minio, store Stores, photo VisitPhotos, staff StaffUsers, notifications Notification, audit AuditLogs, schedule Schedule, group Group) Visits {
-	return &visitsService{repo: repo, minio: minio, store: store, photo: photo, staff: staff, notifications: notifications, audit: audit, group: group}
+	return &visitsService{repo: repo, minio: minio, store: store, photo: photo, staff: staff, notifications: notifications, audit: audit, group: group, schedule: schedule}
 }
 
 func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, user_id uuid.UUID) error {
@@ -170,6 +171,15 @@ func (s *visitsService) VisitComplete(ctx context.Context, id string, dto model.
 	if err := s.repo.Update(ctx, uid, dto); err != nil {
 		return err
 	}
+
+	schedule_id, err := uuid.Parse(*dto.ScheduleID)
+	if err != nil {
+		return err
+	}
+
+	err = s.schedule.Update(ctx, schedule_id, model.UpdateSchedule{
+		Status: &pending,
+	})
 
 	user, err := s.staff.GetByID(ctx, staff_id)
 	if err != nil {
@@ -320,6 +330,12 @@ func (s *visitsService) UpdateVisit(ctx context.Context, id uuid.UUID, dto model
 
 	v, err := s.GetByID(ctx, id)
 	if err != nil {
+		return err
+	}
+
+	if err := s.schedule.Update(ctx, *v.ScheduleID, model.UpdateSchedule{
+		Status: dto.ReviewStatus,
+	}); err != nil {
 		return err
 	}
 

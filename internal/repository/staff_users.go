@@ -62,7 +62,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 	query := `
 		SELECT id, full_name, role, login, is_active, created_at, inn, birthday, is_temporary_password, group_id, phone_number,
 			   password_updated_at, device_id, fcm_token, app_version, last_battery_level, last_seen_at, deactivated_at,
-			   deactivated_by_id, deactivation_reason
+			   deactivated_by_id, deactivation_reason, avatar_key
 		FROM staff_users
 		WHERE id = $1
 	`
@@ -90,6 +90,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 		&u.DeactivatedAt,
 		&u.DeactivatedByID,
 		&u.DeactivationReason,
+		&u.AvatarKey,
 	)
 
 	if err != nil {
@@ -97,6 +98,10 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 			return nil, errs.ErrorNotFound
 		}
 		return nil, err
+	}
+
+	if u.DeactivatedByID != nil {
+		return nil, errs.ErrorUserDeactivated
 	}
 
 	return &u, nil
@@ -225,6 +230,12 @@ func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateS
 	if dto.DeactivatedAt != nil {
 		query += fmt.Sprintf("deactivated_at = $%d, ", n)
 		args = append(args, *dto.DeactivatedAt)
+		n++
+	}
+
+	if dto.AvatarKey != nil {
+		query += fmt.Sprintf("avatar_key = $%d, ", n)
+		args = append(args, *dto.AvatarKey)
 		n++
 	}
 

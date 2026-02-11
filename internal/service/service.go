@@ -32,7 +32,7 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio, send
 	sys := NewSystemUsersService(r.SystemUsers, audit)
 	group := NewGroupService(r.Groups, audit)
 	notifSvc := NewNotificationService(r.Notifications, r.StaffUsers, sender)
-	staff := NewStaffUserService(r.StaffUsers, sch, sender, notifSvc, audit)
+	staff := NewStaffUserService(r.StaffUsers, sch, sender, notifSvc, audit, minio)
 	authorize := NewAuthorizeService(t, r.Auth, sys, staff)
 	visitPhotos := NewVisitPhotosService(r.VisitPhotos)
 	store := NewStoresService(r.Store, audit)

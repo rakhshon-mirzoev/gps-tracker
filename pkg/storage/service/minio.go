@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"mime/multipart"
+	"net/http"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -21,6 +22,7 @@ type Minio interface {
 	PresignedUpload(ctx context.Context, objectName string, exp time.Duration) (string, error)
 	PresignedDownload(ctx context.Context, objectName string, exp time.Duration) (string, error)
 	UploadFile(ctx context.Context, file *multipart.FileHeader, objectName string) (string, error)
+	RemoveObject(ctx context.Context, objectName string) error
 }
 type RetryConfig struct {
 	MaxRetries     int
@@ -88,6 +90,22 @@ func (s *minioService) UploadFile(ctx context.Context, file *multipart.FileHeade
 	}
 	defer src.Close()
 
+	buffer := make([]byte, 512)
+	n, err := src.Read(buffer)
+	if err != nil {
+		return "", fmt.Errorf("failed to read file header: %w", err)
+	}
+
+	contentType := http.DetectContentType(buffer[:n])
+
+	if contentType != "image/jpeg" && contentType != "image/png" {
+		return "", fmt.Errorf("only JPEG and PNG images are allowed")
+	}
+
+	if _, err := src.Seek(0, 0); err != nil {
+		return "", fmt.Errorf("failed to seek file: %w", err)
+	}
+
 	retryConfig := RetryConfig{
 		MaxRetries:     3,
 		InitialBackoff: 100 * time.Millisecond,
@@ -105,7 +123,6 @@ func (s *minioService) UploadFile(ctx context.Context, file *multipart.FileHeade
 
 			select {
 			case <-time.After(waitTime):
-
 			case <-ctx.Done():
 				return "", fmt.Errorf("upload cancelled: %w", ctx.Err())
 			}
@@ -114,16 +131,14 @@ func (s *minioService) UploadFile(ctx context.Context, file *multipart.FileHeade
 			if backoff > retryConfig.MaxBackoff {
 				backoff = retryConfig.MaxBackoff
 			}
-		}
 
-		if attempt > 0 {
 			if _, err := src.Seek(0, 0); err != nil {
 				return "", fmt.Errorf("failed to seek file: %w", err)
 			}
 		}
 
 		info, err := s.minio.PutObject(ctx, s.bucket, objectName, src, file.Size, minio.PutObjectOptions{
-			ContentType: file.Header.Get("Content-Type"),
+			ContentType: contentType,
 		})
 		if err == nil {
 			return info.Key, nil
@@ -134,11 +149,11 @@ func (s *minioService) UploadFile(ctx context.Context, file *multipart.FileHeade
 		if ctx.Err() != nil {
 			return "", fmt.Errorf("upload failed: %w", ctx.Err())
 		}
-
-		if attempt < retryConfig.MaxRetries {
-			fmt.Printf("Upload attempt %d failed: %v. Retrying...\n", attempt+1, err)
-		}
 	}
 
 	return "", fmt.Errorf("failed to upload file after %d attempts: %w", retryConfig.MaxRetries+1, lastErr)
+}
+
+func (s *minioService) RemoveObject(ctx context.Context, objectName string) error {
+	return s.minio.RemoveObject(ctx, s.bucket, objectName, minio.RemoveObjectOptions{})
 }

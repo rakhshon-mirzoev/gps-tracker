@@ -36,4 +36,5 @@ var (
 	ErrroActiveVisitExists   = errors.New("active visit already exists")
 	ErrorInvalidStatus       = errors.New("invalid status")
 	ErrorGroupIDRequired     = errors.New("group id required for staff user")
+	ErrorUserDeactivated     = errors.New("user is deactivated")
 )
