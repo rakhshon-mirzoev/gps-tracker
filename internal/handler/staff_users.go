@@ -28,7 +28,7 @@ func (h *Handler) Profile(c *gin.Context) {
 	bio, err := h.s.StaffUser.GetProfile(c.Request.Context(), user_id, lim, off)
 	if err != nil {
 		if errors.Is(err, errs.ErrorUserDeactivated) {
-			c.JSON(410, gin.H{"error": "user is deactivated"})
+			c.JSON(http.StatusGone, gin.H{"error": "user is deactivated", "status": "deactivated"})
 			return
 		}
 		h.handleError(c, "Profile: get profile", err, http.StatusInternalServerError)
@@ -55,7 +55,7 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 	err = h.s.StaffUser.Update(c.Request.Context(), user_id, dto, uuid.Nil, "", "", "", "")
 	if err != nil {
 		if errors.Is(err, errs.ErrorUserDeactivated) {
-			c.JSON(410, gin.H{"error": "user is deactivated"})
+			c.JSON(http.StatusGone, gin.H{"error": "user is deactivated", "status": "deactivated"})
 			return
 		}
 		h.handleError(c, "UpdateProfile: update profile", err, http.StatusInternalServerError)
