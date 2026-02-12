@@ -5,6 +5,7 @@ go 1.25.5
 require (
 	firebase.google.com/go/v4 v4.19.0
 	github.com/gin-contrib/cors v1.7.6
+	github.com/gorilla/websocket v1.5.3
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/minio/minio-go/v7 v7.0.98
 	github.com/swaggo/files v1.0.1
@@ -51,7 +52,6 @@ require (
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.11 // indirect
 	github.com/googleapis/gax-go/v2 v2.16.0 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.18.2 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect

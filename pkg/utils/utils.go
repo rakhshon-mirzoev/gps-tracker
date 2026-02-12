@@ -102,6 +102,9 @@ func Distance(lat1, lon1, lat2, lon2 float64) float64 {
 }
 
 func ValidateStoreStatus(status string) error {
+	if status == "" {
+		return nil
+	}
 	m := map[string]struct{}{
 		"pending":     {},
 		"approved":    {},
