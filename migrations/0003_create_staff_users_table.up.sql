@@ -36,6 +36,8 @@ CREATE TABLE staff_users (
     deactivation_reason TEXT,
 
     avatar_key TEXT,
+    start_at TIMESTAMP,
+    end_at TIMESTAMP,
 
     created_at TIMESTAMP NOT NULL DEFAULT now()
 );

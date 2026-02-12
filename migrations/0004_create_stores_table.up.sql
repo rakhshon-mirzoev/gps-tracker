@@ -11,6 +11,11 @@ CREATE TABLE stores
     owner_full_name VARCHAR(160)        NOT NULL,
     owner_inn     CHAR(12)            NOT NULL,
     owner_passport VARCHAR(25),
+    owner_phone VARCHAR(15),
+    additional_phone VARCHAR(15),
+    interior_photo TEXT,
+    exterior_photo TEXT,
+    comment TEXT,
 
     status   VARCHAR(40)         NOT NULL DEFAULT 'pending',
     rejection_comment  TEXT,

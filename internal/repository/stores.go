@@ -44,9 +44,11 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 			owner_phone,
 			additional_phone,
 			comment,
+			interior_photo,
+			exterior_photo,
 			created_by_staff_id
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
 	`
 	_, err := r.DB.Pool.Exec(
 		ctx,
@@ -61,6 +63,8 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 		store.OwnerPhone,
 		store.AdditionalPhone,
 		store.Comment,
+		store.InteriorPhoto,
+		store.ExteriorPhoto,
 		store.CreatedByStaffID,
 	)
 

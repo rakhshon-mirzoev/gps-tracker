@@ -42,6 +42,8 @@ type CreateStore struct {
 	OwnerPassport    *string `json:"owner_passport"`
 	AdditionalPhone  *string `json:"additional_phone"`
 	Comment          *string `json:"comment"`
+	InteriorPhoto    string  `json:"interior_photo,omitempty"`
+	ExteriorPhoto    string  `json:"exterior_photo,omitempty"`
 	CreatedByStaffID string  `json:"created_by_staff_id"`
 }
 

@@ -42,6 +42,8 @@ func (s *storesService) Create(ctx context.Context, store *model.CreateStore, us
 		OwnerPhone:       store.OwnerPhone,
 		AdditionalPhone:  store.AdditionalPhone,
 		Comment:          store.Comment,
+		InteriorPhoto:    &store.InteriorPhoto,
+		ExteriorPhoto:    &store.ExteriorPhoto,
 		CreatedByStaffID: user_id,
 	}
 
