@@ -254,9 +254,6 @@ func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateS
 		query += fmt.Sprintf("end_at = $%d, ", n)
 		args = append(args, *dto.EndAt)
 		n++
-		if dto.StartAt == nil {
-			query += "start_at = null, "
-		}
 	}
 
 	if len(args) == 0 {
