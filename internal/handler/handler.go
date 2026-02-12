@@ -18,8 +18,8 @@ type Handler struct {
 	minio minioservice.Minio
 }
 
-func New(s *service.Service) *Handler {
-	return &Handler{s: s}
+func New(s *service.Service, minio minioservice.Minio) *Handler {
+	return &Handler{s: s, minio: minio}
 }
 
 func (h *Handler) Ping(c *gin.Context) {

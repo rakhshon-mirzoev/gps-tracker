@@ -15,6 +15,11 @@ type Store struct {
 	OwnerFullName      string     `json:"owner_full_name" db:"owner_full_name"`
 	OwnerINN           string     `json:"owner_inn" db:"owner_inn"`
 	OwnerPassport      *string    `json:"owner_passport,omitempty" db:"owner_passport"`
+	OwnerPhone         string     `json:"owner_phone" db:"owner_phone"`
+	AdditionalPhone    *string    `json:"additional_phone,omitempty" db:"additional_phone"`
+	InteriorPhoto      *string    `json:"interior_photo,omitempty" db:"interior_photo"`
+	ExteriorPhoto      *string    `json:"exterior_photo,omitempty" db:"exterior_photo"`
+	Comment            *string    `json:"comment,omitempty" db:"comment"`
 	Status             string     `json:"status" db:"status"`
 	RejectionComment   *string    `json:"rejection_comment,omitempty" db:"rejection_comment"`
 	CreatedByStaffID   uuid.UUID  `json:"created_by_staff_id" db:"created_by_staff_id"`
@@ -33,7 +38,12 @@ type CreateStore struct {
 	Longitude        float64 `json:"longitude" binding:"required"`
 	OwnerFullName    string  `json:"owner_full_name" binding:"required"`
 	OwnerINN         string  `json:"owner_inn" binding:"required"`
+	OwnerPhone       string  `json:"owner_phone" binding:"required"`
 	OwnerPassport    *string `json:"owner_passport"`
+	AdditionalPhone  *string `json:"additional_phone"`
+	InteriorPhoto    *string `json:"interior_photo"`
+	ExteriorPhoto    *string `json:"exterior_photo"`
+	Comment          *string `json:"comment"`
 	CreatedByStaffID string  `json:"created_by_staff_id"`
 }
 
@@ -45,6 +55,11 @@ type UpdateStore struct {
 	OwnerFullName      *string    `json:"owner_full_name"`
 	OwnerINN           *string    `json:"owner_inn"`
 	OwnerPassport      *string    `json:"owner_passport"`
+	OwnerPhone         *string    `json:"owner_phone"`
+	AdditionalPhone    *string    `json:"additional_phone"`
+	InteriorPhoto      *string    `json:"interior_photo"`
+	ExteriorPhoto      *string    `json:"exterior_photo"`
+	Comment            *string    `json:"comment"`
 	CreatedByStaffID   *string    `json:"created_by_staff_id"`
 	Status             *string    `json:"status"`
 	RejectionComment   *string    `json:"rejection_comment"`

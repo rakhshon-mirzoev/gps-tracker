@@ -16,8 +16,7 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
-		return origin == "https://your-admin-domain.com"
+		return true
 	},
 }
 
@@ -41,15 +40,26 @@ func getGroupIDForSystemUser(ctx context.Context, userID uuid.UUID, db *pgxpool.
 
 func Handler(deps Deps) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID, ok := c.Get("user_id")
-		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		tokenStr := c.Query("token")
+		if tokenStr == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing token query parameter"})
 			return
 		}
 
-		groupID, err := getGroupIDForSystemUser(c.Request.Context(), userID.(uuid.UUID), deps.DBPool)
+		claims, err := deps.TokenService.ParseToken(tokenStr)
 		if err != nil {
-			c.AbortWithStatusJSON(403, gin.H{"error": "no group assigned or access denied"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			return
+		}
+
+		if claims.Role != "admin" && claims.Role != "supervisor" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied: admin or supervisor role required"})
+			return
+		}
+
+		groupID, err := getGroupIDForSystemUser(c.Request.Context(), claims.UserID, deps.DBPool)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "no group assigned or access denied"})
 			return
 		}
 
@@ -62,7 +72,7 @@ func Handler(deps Deps) gin.HandlerFunc {
 			Hub:     deps.Hub,
 			Conn:    conn,
 			Send:    make(chan []byte, 256),
-			UserID:  userID.(uuid.UUID),
+			UserID:  claims.UserID,
 			GroupID: groupID,
 		}
 

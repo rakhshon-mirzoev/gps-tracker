@@ -2,13 +2,16 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
 func (h *Handler) GetStoreByID(c *gin.Context) {
@@ -55,6 +58,52 @@ func (h *Handler) CreateStore(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "create complete"})
+}
+
+func (h *Handler) UploadStorePhoto(c *gin.Context) {
+	_, err := checkStaffUser(c)
+	if err != nil {
+		h.handleFieldError(c, "UploadStorePhoto: check staff", err)
+		return
+	}
+
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 10<<20)
+
+	file, err := c.FormFile("photo")
+	if err != nil {
+		h.handleFieldError(c, "UploadStorePhoto: get file", err)
+		return
+	}
+
+	if err := utils.ValidateFileType(file); err != nil {
+		h.handleFieldError(c, "UploadStorePhoto: validate type", err)
+		return
+	}
+
+	if err := utils.ValidateFileSize(file); err != nil {
+		h.handleFieldError(c, "UploadStorePhoto: validate size", err)
+		return
+	}
+
+	ext := utils.GetFileExtension(file.Filename)
+	objectName := fmt.Sprintf("stores/proposals/%s%s", uuid.New().String(), ext)
+
+	key, err := h.minio.UploadFile(c.Request.Context(), file, objectName)
+	if err != nil {
+		h.handleError(c, "UploadStorePhoto: upload", err, http.StatusInternalServerError)
+		return
+	}
+
+	downloadURL, err := h.minio.PresignedDownload(c.Request.Context(), key, 24*time.Hour)
+	if err != nil {
+		h.handleError(c, "UploadStorePhoto: presigned url", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"photo_key":    key,
+		"download_url": downloadURL,
+	})
 }
 
 func (h *Handler) ListStores(c *gin.Context) {

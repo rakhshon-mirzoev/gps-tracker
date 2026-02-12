@@ -78,7 +78,7 @@ func run() error {
 
 	repo := repository.New(dbConn)
 	services := service.New(repo, tokenService, client, firebaseService, app.WsHub())
-	handlers := handler.New(services)
+	handlers := handler.New(services, client)
 	minioHandler := miniohandler.New(client)
 
 	mw := middleware.New(tokenService)

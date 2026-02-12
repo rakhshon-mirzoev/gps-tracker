@@ -41,9 +41,14 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 			owner_full_name,
 			owner_inn,
 			owner_passport,
+			owner_phone,
+			additional_phone,
+			interior_photo,
+			exterior_photo,
+			comment,
 			created_by_staff_id
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
 	`
 	_, err := r.DB.Pool.Exec(
 		ctx,
@@ -55,6 +60,11 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 		store.OwnerFullName,
 		store.OwnerINN,
 		store.OwnerPassport,
+		store.OwnerPhone,
+		store.AdditionalPhone,
+		store.InteriorPhoto,
+		store.ExteriorPhoto,
+		store.Comment,
 		store.CreatedByStaffID,
 	)
 
@@ -72,6 +82,8 @@ func (r *stores) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error
 		SELECT 
 			id, name, address, latitude, longitude,
 			owner_full_name, owner_inn, owner_passport,
+			owner_phone, additional_phone,
+			interior_photo, exterior_photo, comment,
 			status, rejection_comment,
 			created_by_staff_id,
 			is_active, is_frozen,
@@ -89,6 +101,11 @@ func (r *stores) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error
 		&store.OwnerFullName,
 		&store.OwnerINN,
 		&store.OwnerPassport,
+		&store.OwnerPhone,
+		&store.AdditionalPhone,
+		&store.InteriorPhoto,
+		&store.ExteriorPhoto,
+		&store.Comment,
 		&store.Status,
 		&store.RejectionComment,
 		&store.CreatedByStaffID,
@@ -154,6 +171,36 @@ func (r *stores) Update(ctx context.Context, store model.UpdateStore, id uuid.UU
 	if store.OwnerPassport != nil {
 		updates = append(updates, fmt.Sprintf("owner_passport = $%d", argNum))
 		args = append(args, *store.OwnerPassport)
+		argNum++
+	}
+
+	if store.OwnerPhone != nil {
+		updates = append(updates, fmt.Sprintf("owner_phone = $%d", argNum))
+		args = append(args, *store.OwnerPhone)
+		argNum++
+	}
+
+	if store.AdditionalPhone != nil {
+		updates = append(updates, fmt.Sprintf("additional_phone = $%d", argNum))
+		args = append(args, *store.AdditionalPhone)
+		argNum++
+	}
+
+	if store.InteriorPhoto != nil {
+		updates = append(updates, fmt.Sprintf("interior_photo = $%d", argNum))
+		args = append(args, *store.InteriorPhoto)
+		argNum++
+	}
+
+	if store.ExteriorPhoto != nil {
+		updates = append(updates, fmt.Sprintf("exterior_photo = $%d", argNum))
+		args = append(args, *store.ExteriorPhoto)
+		argNum++
+	}
+
+	if store.Comment != nil {
+		updates = append(updates, fmt.Sprintf("comment = $%d", argNum))
+		args = append(args, *store.Comment)
 		argNum++
 	}
 
@@ -320,6 +367,8 @@ func (r *stores) List(ctx context.Context, isActive, status, sortBy, sortOrder s
 		SELECT 
 			id, name, address, latitude, longitude,
 			owner_full_name, owner_inn, owner_passport,
+			owner_phone, additional_phone,
+			interior_photo, exterior_photo, comment,
 			status, rejection_comment,
 			created_by_staff_id,
 			is_active, is_frozen,
@@ -353,6 +402,8 @@ func (r *stores) List(ctx context.Context, isActive, status, sortBy, sortOrder s
 		if err := rows.Scan(
 			&s.ID, &s.Name, &s.Address, &s.Latitude, &s.Longitude,
 			&s.OwnerFullName, &s.OwnerINN, &s.OwnerPassport,
+			&s.OwnerPhone, &s.AdditionalPhone,
+			&s.InteriorPhoto, &s.ExteriorPhoto, &s.Comment,
 			&s.Status, &s.RejectionComment,
 			&s.CreatedByStaffID,
 			&s.IsActive, &s.IsFrozen,

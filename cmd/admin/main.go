@@ -76,11 +76,11 @@ func run() error {
 	repository := repository.New(db)
 	service := service.New(repository, token, client, firebaseService, app.WsHub())
 	minio := miniohandler.New(client)
-	handler := handler.New(service)
+	handler := handler.New(service, client)
 
 	mw := middleware.New(token)
 
-	registerAdminRoutes(router, mw, handler, minio, app.WsHub(), db.Pool)
+	registerAdminRoutes(router, mw, handler, minio, app.WsHub(), db.Pool, token)
 
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
