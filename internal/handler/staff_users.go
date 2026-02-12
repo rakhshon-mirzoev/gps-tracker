@@ -304,3 +304,50 @@ func (h *Handler) GetStaffUserByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"staff_user": staff_user})
 }
+
+func (h *Handler) StartWork(c *gin.Context) {
+
+	user_id, err := checkStaffUser(c)
+	if err != nil {
+		h.handleFieldError(c, "StartWork: check user", err)
+		return
+	}
+
+	now := time.Now().UTC()
+
+	if err := h.s.StaffUser.Update(c.Request.Context(), user_id, model.UpdateStaffUser{
+		StartAt: &now,
+	}, uuid.Nil, "", "", "", ""); err != nil {
+		if errors.Is(err, errs.ErrorNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
+			return
+		}
+		h.handleError(c, "StartWork: update user", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (h *Handler) EndWork(c *gin.Context) {
+	user_id, err := checkStaffUser(c)
+	if err != nil {
+		h.handleFieldError(c, "StartWork: check user", err)
+		return
+	}
+
+	now := time.Now().UTC()
+
+	if err := h.s.StaffUser.Update(c.Request.Context(), user_id, model.UpdateStaffUser{
+		EndAt: &now,
+	}, uuid.Nil, "", "", "", ""); err != nil {
+		if errors.Is(err, errs.ErrorNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
+			return
+		}
+		h.handleError(c, "StartWork: update user", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}

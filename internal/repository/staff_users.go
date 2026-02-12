@@ -62,7 +62,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 	query := `
 		SELECT id, full_name, role, login, is_active, created_at, inn, birthday, is_temporary_password, group_id, phone_number,
 			   password_updated_at, device_id, fcm_token, app_version, last_battery_level, last_seen_at, deactivated_at,
-			   deactivated_by_id, deactivation_reason, avatar_key
+			   deactivated_by_id, deactivation_reason, avatar_key, start_at, end_at
 		FROM staff_users
 		WHERE id = $1
 	`
@@ -91,6 +91,8 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 		&u.DeactivatedByID,
 		&u.DeactivationReason,
 		&u.AvatarKey,
+		&u.StartAt,
+		&u.EndAt,
 	)
 
 	if err != nil {
@@ -237,6 +239,24 @@ func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateS
 		query += fmt.Sprintf("avatar_key = $%d, ", n)
 		args = append(args, *dto.AvatarKey)
 		n++
+	}
+
+	if dto.StartAt != nil {
+		query += fmt.Sprintf("start_at = $%d, ", n)
+		args = append(args, *dto.StartAt)
+		n++
+		if dto.EndAt == nil {
+			query += "end_at = null, "
+		}
+	}
+
+	if dto.EndAt != nil {
+		query += fmt.Sprintf("end_at = $%d, ", n)
+		args = append(args, *dto.EndAt)
+		n++
+		if dto.StartAt == nil {
+			query += "start_at = null, "
+		}
 	}
 
 	if len(args) == 0 {

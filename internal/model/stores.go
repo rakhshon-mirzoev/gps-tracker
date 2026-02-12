@@ -41,8 +41,6 @@ type CreateStore struct {
 	OwnerPhone       string  `json:"owner_phone" binding:"required"`
 	OwnerPassport    *string `json:"owner_passport"`
 	AdditionalPhone  *string `json:"additional_phone"`
-	InteriorPhoto    *string `json:"interior_photo"`
-	ExteriorPhoto    *string `json:"exterior_photo"`
 	Comment          *string `json:"comment"`
 	CreatedByStaffID string  `json:"created_by_staff_id"`
 }

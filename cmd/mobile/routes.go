@@ -57,6 +57,8 @@ func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Ha
 		mobi.POST("/location", h.Location)
 		mobi.POST("/stores/upload-photo", h.UploadStorePhoto)
 		mobi.POST("/stores/propose", h.CreateStore)
+		mobi.PUT("/start-work", h.StartWork)
+		mobi.PUT("/end-work", h.EndWork)
 
 	}
 	visit := mobi.Group(constants.VisitGroup)

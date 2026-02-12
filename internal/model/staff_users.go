@@ -29,6 +29,8 @@ type StaffUser struct {
 	DeactivationReason  *string    `db:"deactivation_reason" json:"deactivation_reason"`
 	AvatarKey           *string    `json:"-" db:"avatar_key"`
 	AvatarUrl           *string    `json:"avatar_url,omitempty"`
+	StartAt             *time.Time `json:"start_at" db:"start_at"`
+	EndAt               *time.Time `json:"end_at" db:"end_at"`
 	CreatedAt           time.Time  `db:"created_at" json:"created_at"`
 }
 
@@ -43,6 +45,8 @@ type UpdateStaffUser struct {
 	DeactivatedByID    *uuid.UUID `json:"deactivated_by_id"`
 	DeactivationReason *string    `json:"deactivation_reason"`
 	AvatarKey          *string
+	StartAt            *time.Time `json:"start_at"`
+	EndAt              *time.Time `json:"end_at"`
 }
 
 type DeactivateStaffUser struct {
