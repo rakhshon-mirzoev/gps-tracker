@@ -18,6 +18,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/worker/notifications"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/cron"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/kafka"
@@ -71,6 +72,8 @@ func run() error {
 		return err
 	}
 
+	cleanupCron := cron.StartCleanupCron(client)
+
 	// Kafka publisher — отправляет локации в топик, admin consumer прочитает и пробросит в WebSocket
 	publisher := kafka.NewLocationPublisher(cfg.Kafka.Brokers, cfg.Kafka.Topic)
 	defer publisher.Close()
@@ -113,6 +116,10 @@ func run() error {
 
 	<-ctx.Done()
 	log.Println("shutdown signal received")
+
+	cleanupCtx := cleanupCron.Stop()
+	<-cleanupCtx.Done()
+	logger.Log.Info("cron stopped")
 
 	worker.Stop()
 

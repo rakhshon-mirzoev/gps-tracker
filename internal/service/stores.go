@@ -3,11 +3,15 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
+	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
@@ -23,10 +27,15 @@ type Stores interface {
 type storesService struct {
 	r     repository.StoreRepository
 	audit AuditLogs
+	minio minioservice.Minio
 }
 
-func NewStoresService(repo repository.StoreRepository, audit AuditLogs) Stores {
-	return &storesService{r: repo, audit: audit}
+func NewStoresService(repo repository.StoreRepository, audit AuditLogs, minio minioservice.Minio) Stores {
+	return &storesService{r: repo, audit: audit, minio: minio}
+}
+
+func IsTmpStoreKey(key string) bool {
+	return strings.HasPrefix(key, "stores/tmp/")
 }
 
 func (s *storesService) Create(ctx context.Context, store *model.CreateStore, user_id uuid.UUID) error {
@@ -42,8 +51,6 @@ func (s *storesService) Create(ctx context.Context, store *model.CreateStore, us
 		OwnerPhone:       store.OwnerPhone,
 		AdditionalPhone:  store.AdditionalPhone,
 		Comment:          store.Comment,
-		InteriorPhoto:    &store.InteriorPhoto,
-		ExteriorPhoto:    &store.ExteriorPhoto,
 		CreatedByStaffID: user_id,
 	}
 
@@ -51,12 +58,55 @@ func (s *storesService) Create(ctx context.Context, store *model.CreateStore, us
 	if err != nil {
 		return err
 	}
-
 	if exists {
 		return errs.ErrorAlreadyExists
 	}
 
-	return s.r.Create(ctx, st)
+	if err := s.r.Create(ctx, st); err != nil {
+		return err
+	}
+
+	var newInterior, newExterior *string
+
+	if store.InteriorPhoto != nil {
+		if !strings.HasPrefix(*store.InteriorPhoto, "stores/tmp/") {
+			return fmt.Errorf("invalid interior photo key")
+		}
+
+		newKey := strings.Replace(*store.InteriorPhoto, "stores/tmp/", "stores/proposals/", 1)
+
+		if err := s.minio.MoveObject(ctx, *store.InteriorPhoto, newKey); err != nil {
+			return err
+		}
+
+		newInterior = &newKey
+	}
+
+	if store.ExteriorPhoto != nil {
+		if !strings.HasPrefix(*store.ExteriorPhoto, "stores/tmp/") {
+			return fmt.Errorf("invalid exterior photo key")
+		}
+
+		newKey := strings.Replace(*store.ExteriorPhoto, "stores/tmp/", "stores/proposals/", 1)
+
+		if err := s.minio.MoveObject(ctx, *store.ExteriorPhoto, newKey); err != nil {
+			return err
+		}
+
+		newExterior = &newKey
+	}
+
+	if newInterior != nil || newExterior != nil {
+		err := s.r.Update(ctx, model.UpdateStore{
+			ExteriorPhoto: newExterior,
+			InteriorPhoto: newInterior,
+		}, st.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *storesService) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error) {
@@ -64,7 +114,30 @@ func (s *storesService) GetByID(ctx context.Context, id uuid.UUID) (*model.Store
 		return nil, errors.New("id is required")
 	}
 
-	return s.r.GetByID(ctx, id)
+	store, err := s.r.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if store.InteriorPhoto != nil {
+		url, err := s.minio.PresignedDownload(ctx, *store.InteriorPhoto, time.Minute*15)
+		if err != nil {
+			return nil, err
+		}
+
+		store.InteriorPhotoURL = &url
+	}
+
+	if store.ExteriorPhoto != nil {
+		url, err := s.minio.PresignedDownload(ctx, *store.ExteriorPhoto, time.Minute*15)
+		if err != nil {
+			return nil, err
+		}
+
+		store.ExteriorPhotoURL = &url
+	}
+
+	return store, nil
 }
 
 func (s *storesService) List(ctx context.Context, isActive, status, sortBy, sortOrder string, lim, off int) ([]model.Store, int, error) {
@@ -73,7 +146,34 @@ func (s *storesService) List(ctx context.Context, isActive, status, sortBy, sort
 		return nil, 0, err
 	}
 
-	return s.r.List(ctx, isActive, status, sortBy, sortOrder, lim, off)
+	stores, total, err := s.r.List(ctx, isActive, status, sortBy, sortOrder, lim, off)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	for i, v := range stores {
+		if v.InteriorPhoto != nil {
+			url, err := s.minio.PresignedDownload(ctx, *v.InteriorPhoto, time.Minute*15)
+			if err != nil {
+				return nil, 0, err
+			}
+
+			v.InteriorPhotoURL = &url
+		}
+
+		if v.ExteriorPhoto != nil {
+			url, err := s.minio.PresignedDownload(ctx, *v.ExteriorPhoto, time.Minute*15)
+			if err != nil {
+				return nil, 0, err
+			}
+
+			v.ExteriorPhotoURL = &url
+		}
+
+		stores[i] = v
+	}
+
+	return stores, total, nil
 }
 
 func (s *storesService) Update(ctx context.Context, store model.UpdateStore, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error {

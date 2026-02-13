@@ -82,7 +82,8 @@ func (s *staffUserService) UpdateAvatar(ctx context.Context, userID uuid.UUID, f
 		return errs.ErrorUserDeactivated
 	}
 
-	objectName := fmt.Sprintf("staff/avatars/%s.jpg", userID)
+	ext := utils.GetFileExtension(file.Filename)
+	objectName := fmt.Sprintf("staff/avatars/%s%s", userID, ext)
 
 	key, err := s.minio.UploadFile(ctx, file, objectName)
 	if err != nil {

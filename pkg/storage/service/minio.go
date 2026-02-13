@@ -11,6 +11,8 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/rakhshon-mirzoev/gps-tracker/config"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
+	"go.uber.org/zap"
 )
 
 type minioService struct {
@@ -23,6 +25,8 @@ type Minio interface {
 	PresignedDownload(ctx context.Context, objectName string, exp time.Duration) (string, error)
 	UploadFile(ctx context.Context, file *multipart.FileHeader, objectName string) (string, error)
 	RemoveObject(ctx context.Context, objectName string) error
+	MoveObject(ctx context.Context, srcKey, dstKey string) error
+	RemoveOldTmpObjects(ctx context.Context, prefix string, olderThan time.Duration) error
 }
 type RetryConfig struct {
 	MaxRetries     int
@@ -81,6 +85,54 @@ func (s *minioService) PresignedDownload(ctx context.Context, objectName string,
 		return "", err
 	}
 	return url.String(), nil
+}
+
+func (s *minioService) MoveObject(ctx context.Context, srcKey, dstKey string) error {
+	src := minio.CopySrcOptions{
+		Bucket: s.bucket,
+		Object: srcKey,
+	}
+
+	dst := minio.CopyDestOptions{
+		Bucket: s.bucket,
+		Object: dstKey,
+	}
+
+	_, err := s.minio.CopyObject(ctx, dst, src)
+	if err != nil {
+		return fmt.Errorf("copy object: %w", err)
+	}
+
+	err = s.minio.RemoveObject(ctx, s.bucket, srcKey, minio.RemoveObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("remove temp object: %w", err)
+	}
+
+	return nil
+}
+
+func (s *minioService) RemoveOldTmpObjects(ctx context.Context, prefix string, olderThan time.Duration) error {
+	objects := s.minio.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+	})
+
+	for object := range objects {
+		if object.Err != nil {
+			if object.Err != nil {
+				logger.Log.Error("list object error", zap.Error(object.Err))
+				continue
+			}
+		}
+
+		if time.Since(object.LastModified) > olderThan {
+			if err := s.minio.RemoveObject(ctx, s.bucket, object.Key, minio.RemoveObjectOptions{}); err != nil {
+				logger.Log.Error("failed to remove old object", zap.Error(err))
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s *minioService) UploadFile(ctx context.Context, file *multipart.FileHeader, objectName string) (string, error) {

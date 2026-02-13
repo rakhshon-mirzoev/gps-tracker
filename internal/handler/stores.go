@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -75,18 +74,13 @@ func (h *Handler) UploadStorePhoto(c *gin.Context) {
 		return
 	}
 
-	if err := utils.ValidateFileType(file); err != nil {
-		h.handleFieldError(c, "UploadStorePhoto: validate type", err)
-		return
-	}
-
 	if err := utils.ValidateFileSize(file); err != nil {
 		h.handleFieldError(c, "UploadStorePhoto: validate size", err)
 		return
 	}
 
 	ext := utils.GetFileExtension(file.Filename)
-	objectName := fmt.Sprintf("stores/proposals/%s%s", uuid.New().String(), ext)
+	objectName := fmt.Sprintf("stores/tmp/%s%s", uuid.New().String(), ext)
 
 	key, err := h.minio.UploadFile(c.Request.Context(), file, objectName)
 	if err != nil {
@@ -94,15 +88,8 @@ func (h *Handler) UploadStorePhoto(c *gin.Context) {
 		return
 	}
 
-	downloadURL, err := h.minio.PresignedDownload(c.Request.Context(), key, 24*time.Hour)
-	if err != nil {
-		h.handleError(c, "UploadStorePhoto: presigned url", err, http.StatusInternalServerError)
-		return
-	}
-
 	c.JSON(http.StatusOK, gin.H{
-		"photo_key":    key,
-		"download_url": downloadURL,
+		"photo_key": key,
 	})
 }
 

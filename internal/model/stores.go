@@ -17,8 +17,10 @@ type Store struct {
 	OwnerPassport      *string    `json:"owner_passport,omitempty" db:"owner_passport"`
 	OwnerPhone         string     `json:"owner_phone" db:"owner_phone"`
 	AdditionalPhone    *string    `json:"additional_phone,omitempty" db:"additional_phone"`
-	InteriorPhoto      *string    `json:"interior_photo,omitempty" db:"interior_photo"`
-	ExteriorPhoto      *string    `json:"exterior_photo,omitempty" db:"exterior_photo"`
+	InteriorPhoto      *string    `json:"-" db:"interior_photo"`
+	ExteriorPhoto      *string    `json:"-" db:"exterior_photo"`
+	InteriorPhotoURL   *string    `json:"interior_photo"`
+	ExteriorPhotoURL   *string    `json:"exterior_photo"`
 	Comment            *string    `json:"comment,omitempty" db:"comment"`
 	Status             string     `json:"status" db:"status"`
 	RejectionComment   *string    `json:"rejection_comment,omitempty" db:"rejection_comment"`
@@ -42,8 +44,8 @@ type CreateStore struct {
 	OwnerPassport    *string `json:"owner_passport"`
 	AdditionalPhone  *string `json:"additional_phone"`
 	Comment          *string `json:"comment"`
-	InteriorPhoto    string  `json:"interior_photo,omitempty"`
-	ExteriorPhoto    string  `json:"exterior_photo,omitempty"`
+	InteriorPhoto    *string `json:"interior_photo"`
+	ExteriorPhoto    *string `json:"exterior_photo"`
 	CreatedByStaffID string  `json:"created_by_staff_id"`
 }
 

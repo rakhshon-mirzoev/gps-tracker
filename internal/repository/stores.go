@@ -44,13 +44,11 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 			owner_phone,
 			additional_phone,
 			comment,
-			interior_photo,
-			exterior_photo,
 			created_by_staff_id
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id;
 	`
-	_, err := r.DB.Pool.Exec(
+	err := r.DB.Pool.QueryRow(
 		ctx,
 		sql,
 		store.Name,
@@ -63,10 +61,8 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 		store.OwnerPhone,
 		store.AdditionalPhone,
 		store.Comment,
-		store.InteriorPhoto,
-		store.ExteriorPhoto,
 		store.CreatedByStaffID,
-	)
+	).Scan(&store.ID)
 
 	if err != nil {
 		return fmt.Errorf("create store: %w", err)
@@ -228,9 +224,6 @@ func (r *stores) Update(ctx context.Context, store model.UpdateStore, id uuid.UU
 		argNum++
 	}
 
-	if len(updates) == 0 {
-		return nil
-	}
 	if store.CreatedByStaffID != nil {
 		staffID, err := uuid.Parse(*store.CreatedByStaffID)
 		if err != nil {
@@ -261,6 +254,10 @@ func (r *stores) Update(ctx context.Context, store model.UpdateStore, id uuid.UU
 		updates = append(updates, fmt.Sprintf("deactivation_reason = $%d", argNum))
 		args = append(args, *store.DeactivationReason)
 		argNum++
+	}
+
+	if len(updates) == 0 {
+		return nil
 	}
 
 	sql := fmt.Sprintf(`

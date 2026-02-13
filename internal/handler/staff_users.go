@@ -10,6 +10,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
 func (h *Handler) Profile(c *gin.Context) {
@@ -77,6 +78,11 @@ func (h *Handler) UpdateAvatar(c *gin.Context) {
 	file, err := c.FormFile("avatar")
 	if err != nil {
 		h.handleFieldError(c, "UpdateAvatar: get file", err)
+		return
+	}
+
+	if err := utils.ValidateFileSize(file); err != nil {
+		h.handleFieldError(c, "UploadStorePhoto: validate size", err)
 		return
 	}
 
