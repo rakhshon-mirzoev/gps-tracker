@@ -32,11 +32,10 @@ func New(router *gin.Engine) *App {
 
 func (a *App) Run(addr string) error {
 	a.server = &http.Server{
-		Addr:         addr,
-		Handler:      a.router,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		Addr:        addr,
+		Handler:     a.router,
+		ReadTimeout: 10 * time.Second,
+		IdleTimeout: 120 * time.Second,
 	}
 
 	log.Printf("server started on %s", addr)

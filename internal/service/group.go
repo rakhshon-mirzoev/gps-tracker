@@ -14,6 +14,7 @@ type Group interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Group, error)
 	Update(ctx context.Context, group model.Group, id uuid.UUID, user_id uuid.UUID, ip, gr, role, action string) error
 	List(ctx context.Context, supervisorID *uuid.UUID, limit, offset int) ([]model.Group, int, error)
+	GetGroupIDForSupervisor(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
 
 type GroupService struct {
@@ -69,6 +70,10 @@ func (g *GroupService) Delete(ctx context.Context, id uuid.UUID, user_id uuid.UU
 
 func (g *GroupService) GetByID(ctx context.Context, id uuid.UUID) (*model.Group, error) {
 	return g.r.GetByID(ctx, id)
+}
+
+func (g *GroupService) GetGroupIDForSupervisor(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
+	return g.r.GetGroupIDForSupervisor(ctx, userID)
 }
 
 func (g *GroupService) Update(ctx context.Context, group model.Group, id uuid.UUID, user_id uuid.UUID, ip, gr, role, action string) error {

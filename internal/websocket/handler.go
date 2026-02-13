@@ -1,15 +1,15 @@
 package websocket
 
 import (
-	"context"
-	"fmt"
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/events"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
+	"go.uber.org/zap"
 )
 
 var upgrader = websocket.Upgrader{
@@ -18,24 +18,6 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
-}
-
-func getGroupIDForSystemUser(ctx context.Context, userID uuid.UUID, db *pgxpool.Pool) (uuid.UUID, error) {
-	var groupID uuid.UUID
-	err := db.QueryRow(ctx, `
-		SELECT id 
-		FROM groups 
-		WHERE supervisor_id = $1
-	`, userID).Scan(&groupID)
-
-	if err == pgx.ErrNoRows {
-		return uuid.Nil, fmt.Errorf("no group found for this supervisor")
-	}
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("query group id: %w", err)
-	}
-
-	return groupID, nil
 }
 
 func Handler(deps Deps) gin.HandlerFunc {
@@ -57,10 +39,29 @@ func Handler(deps Deps) gin.HandlerFunc {
 			return
 		}
 
-		groupID, err := getGroupIDForSystemUser(c.Request.Context(), claims.UserID, deps.DBPool)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "no group assigned or access denied"})
-			return
+		ctx := c.Request.Context()
+
+		var groupID uuid.UUID
+		var initialLocations []events.LocationUpdate
+
+		if claims.Role == "supervisor" {
+			groupID, err = deps.GroupResolver.GetGroupIDForSupervisor(ctx, claims.UserID)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "no group assigned or access denied"})
+				return
+			}
+
+			initialLocations, err = deps.LocationProvider.LatestByGroupID(ctx, groupID)
+			if err != nil {
+				logger.Log.Error("failed to get initial locations for supervisor", zap.Error(err))
+			}
+		} else {
+			groupID = uuid.Nil
+
+			initialLocations, err = deps.LocationProvider.LatestAll(ctx)
+			if err != nil {
+				logger.Log.Error("failed to get initial locations for admin", zap.Error(err))
+			}
 		}
 
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -74,11 +75,25 @@ func Handler(deps Deps) gin.HandlerFunc {
 			Send:    make(chan []byte, 256),
 			UserID:  claims.UserID,
 			GroupID: groupID,
+			Role:    claims.Role,
+		}
+
+		for _, loc := range initialLocations {
+			payload, err := json.Marshal(loc)
+			if err != nil {
+				logger.Log.Error("failed to marshal initial location", zap.Error(err))
+				continue
+			}
+			select {
+			case client.Send <- payload:
+			default:
+				logger.Log.Warn("client send buffer full, skipping initial location")
+			}
 		}
 
 		deps.Hub.Register <- client
 
 		go client.WritePump()
-		go client.ReadPump(c.Request.Context())
+		go client.ReadPump()
 	}
 }

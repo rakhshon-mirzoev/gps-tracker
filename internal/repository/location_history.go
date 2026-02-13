@@ -19,6 +19,8 @@ type LocationHistoryRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetAllStaffOnlineOffline(ctx context.Context, supervisorID uuid.UUID, begin, end time.Time) (map[uuid.UUID]map[string]time.Duration, error)
 	CreateBatch(ctx context.Context, locations []model.LocationHistory) error
+	LatestByGroupID(ctx context.Context, groupID uuid.UUID) ([]model.LocationHistoryWithStaff, error)
+	LatestAll(ctx context.Context) ([]model.LocationHistoryWithStaff, error)
 }
 
 type locationHistory struct {
@@ -218,6 +220,74 @@ func (r *locationHistory) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (r *locationHistory) LatestByGroupID(ctx context.Context, groupID uuid.UUID) ([]model.LocationHistoryWithStaff, error) {
+	sql := `
+		SELECT DISTINCT ON (s.id)
+			s.id, s.group_id, s.full_name,
+			s.phone_number,
+			l.latitude, l.longitude, l.battery_level, l.captured_at, l.status
+		FROM staff_users s
+		JOIN location_history l ON l.staff_id = s.id
+		WHERE s.group_id = $1 AND s.is_active = true
+		ORDER BY s.id, l.captured_at DESC
+	`
+
+	rows, err := r.DB.Pool.Query(ctx, sql, groupID)
+	if err != nil {
+		return nil, fmt.Errorf("latest by group id: %w", err)
+	}
+	defer rows.Close()
+
+	var result []model.LocationHistoryWithStaff
+	for rows.Next() {
+		var loc model.LocationHistoryWithStaff
+		if err := rows.Scan(
+			&loc.StaffID, &loc.GroupID, &loc.FullName,
+			&loc.PhoneNumber,
+			&loc.Latitude, &loc.Longitude, &loc.BatteryLevel, &loc.CapturedAt, &loc.Status,
+		); err != nil {
+			return nil, fmt.Errorf("scan latest by group: %w", err)
+		}
+		result = append(result, loc)
+	}
+
+	return result, rows.Err()
+}
+
+func (r *locationHistory) LatestAll(ctx context.Context) ([]model.LocationHistoryWithStaff, error) {
+	sql := `
+		SELECT DISTINCT ON (s.id)
+			s.id, s.group_id, s.full_name,
+			s.phone_number,
+			l.latitude, l.longitude, l.battery_level, l.captured_at, l.status
+		FROM staff_users s
+		JOIN location_history l ON l.staff_id = s.id
+		WHERE s.is_active = true
+		ORDER BY s.id, l.captured_at DESC
+	`
+
+	rows, err := r.DB.Pool.Query(ctx, sql)
+	if err != nil {
+		return nil, fmt.Errorf("latest all: %w", err)
+	}
+	defer rows.Close()
+
+	var result []model.LocationHistoryWithStaff
+	for rows.Next() {
+		var loc model.LocationHistoryWithStaff
+		if err := rows.Scan(
+			&loc.StaffID, &loc.GroupID, &loc.FullName,
+			&loc.PhoneNumber,
+			&loc.Latitude, &loc.Longitude, &loc.BatteryLevel, &loc.CapturedAt, &loc.Status,
+		); err != nil {
+			return nil, fmt.Errorf("scan latest all: %w", err)
+		}
+		result = append(result, loc)
+	}
+
+	return result, rows.Err()
 }
 
 func (r *locationHistory) GetAllStaffOnlineOffline(ctx context.Context, supervisorID uuid.UUID, begin, end time.Time) (map[uuid.UUID]map[string]time.Duration, error) {

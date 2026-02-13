@@ -80,7 +80,7 @@ func run() error {
 
 	mw := middleware.New(token)
 
-	registerAdminRoutes(router, mw, handler, minio, app.WsHub(), db.Pool, token)
+	registerAdminRoutes(router, mw, handler, minio, app.WsHub(), service, token)
 
 	ctx, stop := signal.NotifyContext(
 		context.Background(),

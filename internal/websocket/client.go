@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,9 +19,10 @@ type Client struct {
 	Send    chan []byte
 	UserID  uuid.UUID
 	GroupID uuid.UUID
+	Role    string
 }
 
-func (c *Client) ReadPump(ctx context.Context) {
+func (c *Client) ReadPump() {
 	defer func() {
 		c.Hub.Unregister <- c
 		c.Conn.Close()
@@ -36,14 +36,9 @@ func (c *Client) ReadPump(ctx context.Context) {
 	})
 
 	for {
-		select {
-		case <-ctx.Done():
+		_, _, err := c.Conn.ReadMessage()
+		if err != nil {
 			return
-		default:
-			_, _, err := c.Conn.ReadMessage()
-			if err != nil {
-				return
-			}
 		}
 	}
 }

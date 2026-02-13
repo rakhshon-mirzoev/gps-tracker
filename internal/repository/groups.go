@@ -23,6 +23,7 @@ type GroupsRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Group, error)
 	Update(ctx context.Context, gr model.Group, id uuid.UUID) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	GetGroupIDForSupervisor(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
 
 func NewGroupsRepository(db *db.DB) GroupsRepository {
@@ -222,6 +223,22 @@ func (g *groupsRepository) Update(ctx context.Context, gr model.Group, id uuid.U
 	}
 
 	return nil
+}
+
+func (g *groupsRepository) GetGroupIDForSupervisor(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
+	var groupID uuid.UUID
+	err := g.DB.Pool.QueryRow(ctx, `
+		SELECT id FROM groups WHERE supervisor_id = $1
+	`, userID).Scan(&groupID)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return uuid.Nil, fmt.Errorf("no group found for this supervisor")
+		}
+		return uuid.Nil, fmt.Errorf("get group id for supervisor: %w", err)
+	}
+
+	return groupID, nil
 }
 
 func (g *groupsRepository) Delete(ctx context.Context, id uuid.UUID) error {

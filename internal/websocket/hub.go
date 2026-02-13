@@ -20,8 +20,8 @@ func NewHub() *Hub {
 	return &Hub{
 		Clients:    make(map[*Client]bool),
 		Broadcast:  make(chan []byte, 256),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
+		Register:   make(chan *Client, 16),
+		Unregister: make(chan *Client, 16),
 	}
 }
 
@@ -47,7 +47,7 @@ func (h *Hub) Run(ctx context.Context) {
 			}
 
 			for client := range h.Clients {
-				if client.GroupID == update.GroupID {
+				if client.Role == "admin" || client.GroupID == update.GroupID {
 					select {
 					case client.Send <- message:
 					default:

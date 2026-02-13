@@ -21,6 +21,8 @@ type LocationHistory interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetAllStaffOnlineOffline(ctx context.Context, supervisorID uuid.UUID, begin, end time.Time) (map[uuid.UUID]map[string]time.Duration, error)
 	CreateBatch(ctx context.Context, locations []model.LocationHistory) error
+	LatestByGroupID(ctx context.Context, groupID uuid.UUID) ([]events.LocationUpdate, error)
+	LatestAll(ctx context.Context) ([]events.LocationUpdate, error)
 }
 
 type locationHistoryService struct {
@@ -100,6 +102,41 @@ func (s *locationHistoryService) Delete(ctx context.Context, id uuid.UUID) error
 	}
 
 	return s.r.Delete(ctx, id)
+}
+
+func (s *locationHistoryService) LatestByGroupID(ctx context.Context, groupID uuid.UUID) ([]events.LocationUpdate, error) {
+	rows, err := s.r.LatestByGroupID(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	return toLocationUpdates(rows), nil
+}
+
+func (s *locationHistoryService) LatestAll(ctx context.Context) ([]events.LocationUpdate, error) {
+	rows, err := s.r.LatestAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return toLocationUpdates(rows), nil
+}
+
+func toLocationUpdates(rows []model.LocationHistoryWithStaff) []events.LocationUpdate {
+	updates := make([]events.LocationUpdate, 0, len(rows))
+	for _, r := range rows {
+		updates = append(updates, events.LocationUpdate{
+			StaffID:      r.StaffID,
+			GroupID:      r.GroupID,
+			FullName:     r.FullName,
+			Latitude:     r.Latitude,
+			Longitude:    r.Longitude,
+			BatteryLevel: r.BatteryLevel,
+			CapturedAt:   r.CapturedAt,
+			Status:       r.Status,
+		})
+	}
+	return updates
 }
 
 func (s *locationHistoryService) GetAllStaffOnlineOffline(ctx context.Context, supervisorID uuid.UUID, begin, end time.Time) (map[uuid.UUID]map[string]time.Duration, error) {

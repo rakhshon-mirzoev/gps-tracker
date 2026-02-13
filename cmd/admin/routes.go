@@ -3,9 +3,9 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/handler"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/middleware"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/websocket"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 	miniohandler "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/handler"
@@ -16,7 +16,7 @@ import (
 	_ "github.com/rakhshon-mirzoev/gps-tracker/docs/admin"
 )
 
-func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Handler, m *miniohandler.MinioHandler, wsHub *websocket.Hub, db *pgxpool.Pool, tokenSvc token.Token) {
+func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Handler, m *miniohandler.MinioHandler, wsHub *websocket.Hub, svc *service.Service, tokenSvc token.Token) {
 	r.Use(cors.Default())
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("admin")))
@@ -119,9 +119,10 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 	}
 
 	r.GET("/api/v1/admin/ws-location", websocket.Handler(websocket.Deps{
-		Hub:          wsHub,
-		DBPool:       db,
-		TokenService: tokenSvc,
+		Hub:              wsHub,
+		TokenService:     tokenSvc,
+		LocationProvider: svc.Location,
+		GroupResolver:    svc.Group,
 	}))
 
 }
