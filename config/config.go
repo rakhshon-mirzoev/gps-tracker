@@ -14,6 +14,12 @@ type GeneralConfig struct {
 	Mobile   Mobile      `json:"mobile"`
 	DB       DB          `json:"db"`
 	Firebase Firebase    `json:"firebase"`
+	Kafka    Kafka       `json:"kafka"`
+}
+
+type Kafka struct {
+	Brokers []string `json:"brokers"`
+	Topic   string   `json:"topic"`
 }
 
 type Admin struct {

@@ -12,7 +12,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rakhshon-mirzoev/gps-tracker/config"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/app"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/handler"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/middleware"
@@ -21,6 +20,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/worker/notifications"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/kafka"
 	miniohandler "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/handler"
 	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
@@ -61,23 +61,24 @@ func run() error {
 
 	tokenService := token.NewTokenService(os.Getenv("SECRET_KEY"), time.Duration(cfg.Mobile.TTLMinutes)*time.Minute)
 
-	ctx := context.Background()
-
-	firebaseApp, err := fcm.NewFirebaseApp(ctx, creds)
+	firebaseApp, err := fcm.NewFirebaseApp(context.Background(), creds)
 	if err != nil {
 		return err
 	}
 
-	firebaseService, err := fcm.NewFirebaseService(ctx, firebaseApp)
+	firebaseService, err := fcm.NewFirebaseService(context.Background(), firebaseApp)
 	if err != nil {
 		return err
 	}
+
+	// Kafka publisher — отправляет локации в топик, admin consumer прочитает и пробросит в WebSocket
+	publisher := kafka.NewLocationPublisher(cfg.Kafka.Brokers, cfg.Kafka.Topic)
+	defer publisher.Close()
+
 	router := gin.Default()
 
-	app := app.New(router)
-
 	repo := repository.New(dbConn)
-	services := service.New(repo, tokenService, client, firebaseService, app.WsHub())
+	services := service.New(repo, tokenService, client, firebaseService, publisher)
 	handlers := handler.New(services, client)
 	minioHandler := miniohandler.New(client)
 
@@ -96,10 +97,17 @@ func run() error {
 
 	go worker.Run()
 
+	srv := &http.Server{
+		Addr:        fmt.Sprintf(":%s", cfg.Mobile.Port),
+		Handler:     router,
+		ReadTimeout: 10 * time.Second,
+		IdleTimeout: 120 * time.Second,
+	}
+
 	go func() {
-		addr := fmt.Sprintf(":%s", cfg.Mobile.Port)
-		if err := app.Run(addr); err != nil && err != http.ErrServerClosed {
-			logger.Log.Fatal("failed to run mobi", zap.Error(err))
+		log.Printf("mobile server started on :%s", cfg.Mobile.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Log.Fatal("failed to run mobile", zap.Error(err))
 		}
 	}()
 
@@ -111,7 +119,7 @@ func run() error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := app.Shutdown(shutdownCtx); err != nil {
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
 

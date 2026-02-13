@@ -18,8 +18,10 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/middleware"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/websocket"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/kafka"
 	miniohandler "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/handler"
 	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
@@ -73,8 +75,11 @@ func run() error {
 
 	app := app.New(router)
 
+	// WebSocket publisher — для локальной публикации в Hub (если admin тоже генерирует локации)
+	wsPublisher := websocket.NewLocationPublisher(app.WsHub())
+
 	repository := repository.New(db)
-	service := service.New(repository, token, client, firebaseService, app.WsHub())
+	service := service.New(repository, token, client, firebaseService, wsPublisher)
 	minio := miniohandler.New(client)
 	handler := handler.New(service, client)
 
@@ -82,12 +87,18 @@ func run() error {
 
 	registerAdminRoutes(router, mw, handler, minio, app.WsHub(), service, token)
 
+	// Kafka consumer — читает локации из топика и бросает в Hub
+	kafkaConsumer := kafka.NewLocationConsumer(cfg.Kafka.Brokers, cfg.Kafka.Topic, app.WsHub())
+	defer kafkaConsumer.Close()
+
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
 		syscall.SIGTERM,
 	)
 	defer stop()
+
+	go kafkaConsumer.Run(ctx)
 
 	go func() {
 		addr := fmt.Sprintf(":%s", cfg.Admin.Port)

@@ -1,8 +1,8 @@
 package service
 
 import (
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/events"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/websocket"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
 	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
@@ -26,7 +26,7 @@ type Service struct {
 	StorePhotos        StorePhotos
 }
 
-func New(r *repository.Repository, t token.Token, minio minioservice.Minio, sender fcm.PushSender, wsHub *websocket.Hub) *Service {
+func New(r *repository.Repository, t token.Token, minio minioservice.Minio, sender fcm.PushSender, publisher events.LocationPublisher) *Service {
 	audit := NewAuditLogsService(r.Audit)
 	sch := NewScheduleService(r.Schedules, audit)
 	sys := NewSystemUsersService(r.SystemUsers, audit)
@@ -37,7 +37,7 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio, send
 	visitPhotos := NewVisitPhotosService(r.VisitPhotos)
 	store := NewStoresService(r.Store, audit)
 	visit := NewVisitsService(r.Visit, minio, store, visitPhotos, staff, notifSvc, audit, sch, group)
-	location := NewLocationHistoryService(r.Location, staff, websocket.NewLocationPublisher(wsHub))
+	location := NewLocationHistoryService(r.Location, staff, publisher)
 	ss := NewSystemSettingsService(r.SystemSettings, audit)
 	ssm := NewStaffStoresMappingService(r.StaffStoresMapping)
 	excel := NewExcelService()
