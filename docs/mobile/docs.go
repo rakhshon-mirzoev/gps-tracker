@@ -30,7 +30,8 @@ const docTemplate = `{
         {"name": "Stores", "description": "Торговые точки"},
         {"name": "Location", "description": "Отправка геолокации"},
         {"name": "Visits", "description": "Визиты в торговые точки"},
-        {"name": "Settings", "description": "Системные настройки"}
+        {"name": "Settings", "description": "Системные настройки"},
+        {"name": "Work Tracking", "description": "Начало и окончание рабочего дня"}
     ],
     "paths": {
         "/ping": {
@@ -221,8 +222,8 @@ const docTemplate = `{
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/json"],
                 "parameters": [
-                    {"name": "limit", "in": "query", "required": true, "type": "integer"},
-                    {"name": "offset", "in": "query", "required": true, "type": "integer"}
+                    {"name": "limit", "in": "query", "type": "integer", "default": 20},
+                    {"name": "offset", "in": "query", "type": "integer", "default": 0}
                 ],
                 "responses": {
                     "200": {
@@ -235,6 +236,60 @@ const docTemplate = `{
                         }
                     },
                     "403": {"description": "Нет доступа"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            },
+            "put": {
+                "tags": ["Profile"],
+                "summary": "Обновить профиль сотрудника",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {"$ref": "#/definitions/UpdateProfile"}
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Обновлено",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {"type": "string", "example": "updated"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Ошибка валидации"},
+                    "403": {"description": "Нет доступа"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/mobile/profile/avatar": {
+            "put": {
+                "tags": ["Profile"],
+                "summary": "Обновить аватар сотрудника",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["multipart/form-data"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "avatar", "in": "formData", "required": true, "type": "file", "description": "Файл изображения (до 5 МБ)"}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Аватар обновлён",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {"type": "string", "example": "avatar updated"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Ошибка загрузки файла"},
                     "500": {"description": "Internal Server Error"}
                 }
             }
@@ -365,6 +420,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/mobile/start-work": {
+            "put": {
+                "tags": ["Work Tracking"],
+                "summary": "Начать рабочий день",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "responses": {
+                    "204": {"description": "Рабочий день начат"},
+                    "400": {"description": "Ошибка"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/mobile/end-work": {
+            "put": {
+                "tags": ["Work Tracking"],
+                "summary": "Завершить рабочий день",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "responses": {
+                    "204": {"description": "Рабочий день завершён"},
+                    "400": {"description": "Ошибка"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/mobile/stores/upload-photo": {
+            "post": {
+                "tags": ["Stores"],
+                "summary": "Загрузить фото магазина",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["multipart/form-data"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "photo", "in": "formData", "required": true, "type": "file", "description": "Фото магазина (png/jpg/jpeg, до 10 МБ)"}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Фото загружено",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "photo_key": {"type": "string"},
+                                "download_url": {"type": "string"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Ошибка загрузки файла"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
         "/mobile/stores/propose": {
             "post": {
                 "tags": ["Stores"],
@@ -425,6 +532,35 @@ const docTemplate = `{
                         }
                     },
                     "400": {"description": "Пустой массив или ошибка валидации"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/mobile/visit": {
+            "get": {
+                "tags": ["Visits"],
+                "summary": "Список визитов текущего сотрудника",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "limit", "in": "query", "type": "integer", "default": 20},
+                    {"name": "offset", "in": "query", "type": "integer", "default": 0}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "type": "array",
+                                    "items": {"$ref": "#/definitions/Visit"}
+                                },
+                                "pagination": {"$ref": "#/definitions/Pagination"}
+                            }
+                        }
+                    },
+                    "403": {"description": "Нет доступа"},
                     "500": {"description": "Internal Server Error"}
                 }
             }
@@ -625,18 +761,25 @@ const docTemplate = `{
                 "owner_full_name": {"type": "string"},
                 "owner_inn": {"type": "string"},
                 "owner_passport": {"type": "string"},
+                "owner_phone": {"type": "string"},
+                "additional_phone": {"type": "string"},
+                "interior_photo": {"type": "string"},
+                "exterior_photo": {"type": "string"},
+                "comment": {"type": "string"},
                 "status": {"type": "string", "enum": ["pending", "approved", "rejected"]},
                 "rejection_comment": {"type": "string"},
                 "created_by_staff_id": {"type": "string", "format": "uuid"},
-                "created_by_admin_id": {"type": "string", "format": "uuid"},
                 "is_active": {"type": "boolean"},
                 "is_frozen": {"type": "boolean"},
+                "deactivated_at": {"type": "string", "format": "date-time"},
+                "deactivated_by_id": {"type": "string", "format": "uuid"},
+                "deactivation_reason": {"type": "string"},
                 "created_at": {"type": "string", "format": "date-time"}
             }
         },
         "CreateStore": {
             "type": "object",
-            "required": ["name", "address", "latitude", "longitude", "owner_full_name", "owner_inn", "created_by_staff_id"],
+            "required": ["name", "address", "latitude", "longitude", "owner_full_name", "owner_inn", "owner_phone"],
             "properties": {
                 "name": {"type": "string"},
                 "address": {"type": "string"},
@@ -644,8 +787,12 @@ const docTemplate = `{
                 "longitude": {"type": "number", "format": "double"},
                 "owner_full_name": {"type": "string"},
                 "owner_inn": {"type": "string"},
+                "owner_phone": {"type": "string"},
                 "owner_passport": {"type": "string"},
-                "created_by_staff_id": {"type": "string", "format": "uuid"}
+                "additional_phone": {"type": "string"},
+                "interior_photo": {"type": "string"},
+                "exterior_photo": {"type": "string"},
+                "comment": {"type": "string"}
             }
         },
         "LocationHistory": {
@@ -701,6 +848,43 @@ const docTemplate = `{
                 "key": {"type": "string"},
                 "value": {"type": "string"},
                 "description": {"type": "string"}
+            }
+        },
+        "UpdateProfile": {
+            "type": "object",
+            "properties": {
+                "full_name": {"type": "string"},
+                "phone_number": {"type": "string"}
+            }
+        },
+        "Visit": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string", "format": "uuid"},
+                "schedule_id": {"type": "string", "format": "uuid"},
+                "staff_id": {"type": "string", "format": "uuid"},
+                "store_id": {"type": "string", "format": "uuid"},
+                "check_in_at": {"type": "string", "format": "date-time"},
+                "check_out_at": {"type": "string", "format": "date-time"},
+                "check_in_lat": {"type": "number", "format": "double"},
+                "check_in_lon": {"type": "number", "format": "double"},
+                "distance_deviation": {"type": "integer"},
+                "selfie_url": {"type": "string"},
+                "comment": {"type": "string"},
+                "is_offline": {"type": "boolean"},
+                "review_status": {"type": "string", "enum": ["pending", "approved", "rejected"]},
+                "review_comment": {"type": "string"},
+                "reviewer_id": {"type": "string", "format": "uuid"},
+                "reviewed_at": {"type": "string", "format": "date-time"},
+                "created_at": {"type": "string", "format": "date-time"}
+            }
+        },
+        "Pagination": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer"},
+                "offset": {"type": "integer"},
+                "total": {"type": "integer"}
             }
         },
         "ErrorResponse": {

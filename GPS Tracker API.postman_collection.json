@@ -1,0 +1,2286 @@
+{
+	"info": {
+		"_postman_id": "0ac65a4d-d3f2-40d0-9c82-e7880676ae07",
+		"name": "GPS Tracker API",
+		"description": "Полная коллекция API для GPS Tracker. Содержит Admin и Mobile API.\n\n## Как начать\n1. Выберите окружение «GPS Tracker Environment»\n2. Выполните логин (Admin или Mobile) — токены проставятся автоматически\n3. Используйте остальные запросы\n\nТокены обновляются автоматически через скрипты в запросах логина и рефреша.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "25325251",
+		"_collection_link": "https://orange-space-665334.postman.co/workspace/zinda-online~1ca7b52c-2334-4fb7-bcb2-8b2c916ac03e/collection/25325251-0ac65a4d-d3f2-40d0-9c82-e7880676ae07?action=share&source=collection_link&creator=25325251"
+	},
+	"item": [
+		{
+			"name": "Admin API",
+			"item": [
+				{
+					"name": "Health",
+					"item": [
+						{
+							"name": "Ping",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/ping",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"ping"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Auth (System)",
+					"item": [
+						{
+							"name": "Register System User",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"full_name\": \"Admin User\",\n  \"login\": \"admin\",\n  \"password\": \"password123\",\n  \"confirm_password\": \"password123\",\n  \"role\": \"admin\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/auth/system/register",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"auth",
+										"system",
+										"register"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login System User",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = pm.response.json();",
+											"if (jsonData.access_token) {",
+											"    pm.collectionVariables.set('admin_access_token', jsonData.access_token);",
+											"}",
+											"if (jsonData.refresh_token) {",
+											"    pm.collectionVariables.set('admin_refresh_token', jsonData.refresh_token);",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"login\": \"admin\",\n  \"password\": \"password123\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/auth/system/login",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"auth",
+										"system",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Refresh System Token",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = pm.response.json();",
+											"if (jsonData.access_token) {",
+											"    pm.collectionVariables.set('admin_access_token', jsonData.access_token);",
+											"}",
+											"if (jsonData.refresh_token) {",
+											"    pm.collectionVariables.set('admin_refresh_token', jsonData.refresh_token);",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"refresh_token\": \"{{admin_refresh_token}}\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/auth/system/refresh",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"auth",
+										"system",
+										"refresh"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Logout System User",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"refresh_token\": \"{{admin_refresh_token}}\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/auth/system/logout",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"auth",
+										"system",
+										"logout"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Staff Management",
+					"item": [
+						{
+							"name": "List Staff Users",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff?limit=20&offset=0",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Staff User by ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff/{{staff_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff",
+										"{{staff_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Staff User",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"group_id\": \"{{group_id}}\",\n  \"full_name\": \"Иванов Иван Иванович\",\n  \"login\": \"ivanov\",\n  \"phone_number\": \"+998901234567\",\n  \"inn\": \"123456789\",\n  \"birthday\": \"1990-01-15T00:00:00Z\",\n  \"password\": \"password123\",\n  \"confirm_password\": \"password123\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Staff User",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"full_name\": \"Иванов Иван Петрович\",\n  \"phone_number\": \"+998907654321\",\n  \"is_active\": true,\n  \"group_id\": \"{{group_id}}\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff/{{staff_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff",
+										"{{staff_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Deactivate Staff User",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"deactivated_at\": \"2025-01-15T10:00:00Z\",\n  \"deactivated_by_id\": \"{{system_user_id}}\",\n  \"deactivation_reason\": \"Увольнение сотрудника\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff/{{staff_id}}/deactivate",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff",
+										"{{staff_id}}",
+										"deactivate"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Staff Online/Offline Status",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff/online-offline?begin=2025-01-01&end=2025-12-31",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff",
+										"online-offline"
+									],
+									"query": [
+										{
+											"key": "begin",
+											"value": "2025-01-01"
+										},
+										{
+											"key": "end",
+											"value": "2025-12-31"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Staff Store Mapping",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff-mapping/{{staff_id}}?limit=20&offset=0",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff-mapping",
+										"{{staff_id}}"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Monitoring",
+					"item": [
+						{
+							"name": "Real-Time Monitoring",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff/monitoring/real-time",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff",
+										"monitoring",
+										"real-time"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Track Staff User",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff/monitoring/track/{{staff_id}}?begin=2025-01-01&end=2025-12-31",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff",
+										"monitoring",
+										"track",
+										"{{staff_id}}"
+									],
+									"query": [
+										{
+											"key": "begin",
+											"value": "2025-01-01"
+										},
+										{
+											"key": "end",
+											"value": "2025-12-31"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Schedules",
+					"item": [
+						{
+							"name": "List Schedules",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff/schedules?limit=20&offset=0",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff",
+										"schedules"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										},
+										{
+											"key": "staff_id",
+											"value": "{{staff_id}}",
+											"disabled": true
+										},
+										{
+											"key": "store_id",
+											"value": "{{store_id}}",
+											"disabled": true
+										},
+										{
+											"key": "date_from",
+											"value": "2025-01-01",
+											"disabled": true
+										},
+										{
+											"key": "date_to",
+											"value": "2025-12-31",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Assign Schedule",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"staff_id\": \"{{staff_id}}\",\n  \"store_id\": \"{{store_id}}\",\n  \"planned_date\": \"2025-02-15T09:00:00Z\",\n  \"description\": \"Плановый визит в магазин\",\n  \"window_open\": \"2025-02-15T08:00:00Z\",\n  \"window_close\": \"2025-02-15T18:00:00Z\",\n  \"is_photo_required\": true,\n  \"is_selfie_required\": true,\n  \"is_comment_required\": false\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff/schedules/assign",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff",
+										"schedules",
+										"assign"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Stores",
+					"item": [
+						{
+							"name": "List Stores",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/stores?limit=20&offset=0",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"stores"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										},
+										{
+											"key": "is_active",
+											"value": "true",
+											"disabled": true
+										},
+										{
+											"key": "status",
+											"value": "approved",
+											"disabled": true
+										},
+										{
+											"key": "sort_by",
+											"value": "name",
+											"disabled": true
+										},
+										{
+											"key": "sort_order",
+											"value": "asc",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Store by ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/stores/{{store_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"stores",
+										"{{store_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Approve/Reject Store",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"status\": \"approved\",\n  \"rejection_comment\": \"\",\n  \"is_active\": true,\n  \"is_frozen\": false,\n  \"owner_phone\": \"+998901234567\",\n  \"additional_phone\": \"+998907654321\",\n  \"interior_photo\": \"\",\n  \"exterior_photo\": \"\",\n  \"comment\": \"\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/stores/{{store_id}}/approve",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"stores",
+										"{{store_id}}",
+										"approve"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Groups",
+					"item": [
+						{
+							"name": "List Groups",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/groups?limit=20&offset=0",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"groups"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Group by ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/groups/{{group_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"groups",
+										"{{group_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Group",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Группа Ташкент-1\",\n  \"supervisor_id\": \"{{system_user_id}}\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/groups",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"groups"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Group",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Группа Ташкент-2\",\n  \"supervisor_id\": \"{{system_user_id}}\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/groups/{{group_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"groups",
+										"{{group_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Group",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/groups/{{group_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"groups",
+										"{{group_id}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Visits (Review)",
+					"item": [
+						{
+							"name": "Visit Review Queue",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/visit/review-queue?limit=20&offset=0",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"visit",
+										"review-queue"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										},
+										{
+											"key": "status",
+											"value": "pending",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Review Visit",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"status\": \"approved\",\n  \"review_comment\": \"Всё в порядке\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/visit/{{visit_id}}/review",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"visit",
+										"{{visit_id}}",
+										"review"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Reports",
+					"item": [
+						{
+							"name": "Export Report (Excel)",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/reports/export?begin=2025-01-01&end=2025-12-31",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"reports",
+										"export"
+									],
+									"query": [
+										{
+											"key": "staff_id",
+											"value": "{{staff_id}}",
+											"disabled": true
+										},
+										{
+											"key": "store_id",
+											"value": "{{store_id}}",
+											"disabled": true
+										},
+										{
+											"key": "begin",
+											"value": "2025-01-01"
+										},
+										{
+											"key": "end",
+											"value": "2025-12-31"
+										}
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "Export Report (Excel)",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{admin_access_token}}"
+											}
+										],
+										"url": {
+											"raw": "{{admin_base_url}}{{api_prefix}}/admin/reports/export?begin=2025-01-01&end=2025-12-31",
+											"host": [
+												"{{admin_base_url}}{{api_prefix}}"
+											],
+											"path": [
+												"admin",
+												"reports",
+												"export"
+											],
+											"query": [
+												{
+													"key": "staff_id",
+													"value": "{{staff_id}}",
+													"disabled": true
+												},
+												{
+													"key": "store_id",
+													"value": "{{store_id}}",
+													"disabled": true
+												},
+												{
+													"key": "begin",
+													"value": "2025-01-01"
+												},
+												{
+													"key": "end",
+													"value": "2025-12-31"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": null,
+									"header": [
+										{
+											"key": "Server",
+											"value": "nginx/1.24.0 (Ubuntu)"
+										},
+										{
+											"key": "Date",
+											"value": "Thu, 12 Feb 2026 09:08:25 GMT"
+										},
+										{
+											"key": "Content-Type",
+											"value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+										},
+										{
+											"key": "Content-Length",
+											"value": "6422"
+										},
+										{
+											"key": "Connection",
+											"value": "keep-alive"
+										},
+										{
+											"key": "Content-Disposition",
+											"value": "attachment; filename=\"visits_report.xlsx\""
+										},
+										{
+											"key": "X-Request-Id",
+											"value": "e9afd598-55a8-4855-8526-e15dd307dfba"
+										}
+									],
+									"cookie": [],
+									"body": "PK\u0003\u0004\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0018\u0000\u0000\u0000xl/worksheets/sheet1.xml���r�0\u0010\u0000�;O��;�\u001dh)\u001dI�B\b-\\\u0018~Ϫ��5�OFR�<>#��hā�f��v�^���d\r9b��;\u000e��\u0001�N�N�\u001d�\u001f߷/o�N�`�\u000f�q@L�d��\u001c�����F5��q���N��>X��ʇ\u001d��������릹�Vj\u0007s���?5|�k�\u001b�\u000e\u0016]��\u000442i���\u0011\u0004�E��'\u0001{\u000e�-\bF���M\u001d��8Ƌ�$��\r\r��\u001d�\u0014\u000e\b$����y�����BK�e|���Z�\u0012H��<��Տ\u000f�wC��^-�g%��&N+Q������4����ġm�X�o\u0002�8ﮧ>�7�z>{#�\u0014,����\u0005S9�o��);q��9���cN�#�բ-��Z�K��ūR|���RlkqU����.�C-ޔ�\u00167��T��������\u001d*\r~�6�;���\"~\u0007\u0000\u0000��PK\u0007\b�\u001a�Wo\u0001\u0000\u0000_\u0003\u0000\u0000PK\u0003\u0004\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u000f\u0000\u0000\u0000xl/workbook.xml��O��0\u0010���\u0014�ܗ�\b\u0010BqV�ڪ\\*\u000e[�l�\t\u0019�?��,��WI�n����9��o�\u001b�Ͻ��\rc��%�\u0015\u0007�^\u0007C�*��ˏ�=\n<W_�{��K\b7�;듄&��P\u0014I7�TZ�\u0016}�l\u001d�S9�B�\u0016���Lj\u0010��Ś�]�\u0014y�\b��\u0019F�k��-�Ρ�\u0013$�U��O\r�i�9�\u0019�S�ֵO:�Ve����\u0018���>\u001c�>Du�(�\u0017ۙ܋�\u0007�#\u001dC\nu^������W�B�)rU�d�<-������0�\u0002�*��2\u001a\t;`6��B�گ\u001dY#Al6k\u000eUY,Xտw9EV��\u0018O�ޔ~HȱC`\u0006k���Ҡ��$�݆\u000b1��۫r�3�=�S�Oֿ�7�.�\u0003{,����J&7��=�ε�H�&K�s��S\u0006\\U\u0016�A�fe~\\˙\u0012�\u0004l�\u001d���⁌�x4���f�T�ZY}�l����z=ś.\u0016\u000e�?\u0001\u0000\u0000��PK\u0007\bs����\u0001\u0000\u0000�\u0002\u0000\u0000PK\u0003\u0004\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0013\u0000\u0000\u0000xl/theme/theme1.xml��o�6\u0014���+\b�W�?d�A�\"��vk�\u0016Mڡ�g���P�@�I|\u001b��.\u0003\u0006t�.\u0003v�a\u0018V`\u0005V�?&@���#\u0006�HL�\u0012\u0013�.V\fM\u000e���y��\u001e)�X�~�4a�HE\u0005�q뚋\u0011�\b)�|��p��\u0006����u��1I\b:M\u0018W���X�t�qT\u0010�\u0004�5�\u0012~����\thuM��\t%�P\u001e%�i�n�I�r\\��*��Ni@F\"�%��$\f4\u0015\\�4U\u0018qH�����0\u0013��Υ�2�q*\u001b\b�<\br�&�ۆG�쏚�!��\u0018��O(\u000f��!9�\u00181PzȤ���\u0007o]w΍��\u0012g����a���x(��{����E��u{�%QL�A�E�Ud������\"�-\u0004\u0001�V\u0013�v\u0006;#o\u00153�˚�����jB���\u0015t��~���\u0002�����p�\u001c+hw�z5U����&�[��\u0015��n���&4��\u0019�G+���:Ú\"]XO\u0005�UK\u000e���^%\u0017�c���\u0015�M�=��B�\u0005���\u0001M9��L! >\u001e\u0002�\u0013I�\u001e�b�Q\n\\(�c��ݎ����UY��A所ᦘ#�?xje\"P�\"�\n$M��?O�c���˗gO^�=����ӳ'���ʴ\u000b�\u0015�\u0016�������??|�����7Ͼ�s��^����?��J8]�����/�����~~f��%LL�&D�;�\u0004�\u0017\tp[@2�oG\u001e�@+$�\"\u0001\u000b���\npg\u000e�f�C��()\u000fm����J.\u0007��ij\u0001n�I\u0005�\u0017��\biM�v��L{�#�(93��\u0003\u001c�4\r�6��,�IBm!�1��q�\u0001�\u0010\u0011N4���\u0011!\u0016�\u0011��u٧�\u0014JL5zD�\u000ePk\t\u000f�D�÷h\u0002\f�6�1Tj��\u0010�\bf\u000b7\"�U\u0002x\u0004�\u0016��J�o�LCb�\b\u0012f\u0012{�c[\u0012\u0007s\u0019T\u0016Li\t<\"L�ݐ(ec��y%����};��yR%��G6b\u000f�0��8\u001aƐ�֜(�M�3u$\u0004\u0003tOh�8Q}b�{�(�K��CJ��\u001dC\u000fh\u0014�o�lf&m�&\u0011��bΦ@*�����P~i�[jo����f���\u000e���mKj}З\u001b�e����5�\u0019�GxlC>v����c��\u0017���u����{֢M���g���#ܔ2v���<�\u0012��c�X~�C\u0017\u001f\u001e�x�$v�\u0000\u0015�HB~���_P\u001d\u001fĐ\u0012\u001f��\b�*]G\n�B��ō��\t6K�EX��Z�k\u0012'\u0007@/�]�b\\S���^�\u001ct\f��]�L\u0001^���\"�`U\u0011�\u001a\u0011���D��u�\u0018Ԩ�h�T8ƪ0�\u0011���^�P�T\u0000���:\u0015���}���YM�]�ޠ{�\"_a�+\"��V\u0015al�\u0018B�<��\u001e\fꗺ]+���>��Y=\u001b\u0018�ޡ\u0013\u001f�:��Q\u0000���\f4FA��>Vٹ\n,�>\u000etY�9YR��\bT\\��SE�\t�D\"F\u0013\u001fo����B[��w?\\q\u0003�ë����d:%�n\u0018Y��)]8��}G��F�4�\u0007qx�&l&�C�c���\n\u0018R�/�\u0019Ril�E\u0015����Q��R]<���\u0018ʎb\u001e����\u000b9F\u001e��嬜�\u0012N��:����V��lh ��S��5yCU�^�W{�\r6.�\u0012��\u0010\fi\u001b��:�Қz�\u001a�!0��\u001a�ֶ��w�\u0006˻�1����V�'\u0013��$�#2�\u0019�E��!�$�Z���\u001b����v4���o\u0000\u0000\u0000��PK\u0007\b���{}\u0005\u0000\u0000e\u001c\u0000\u0000PK\u0003\u0004\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\r\u0000\u0000\u0000xl/styles.xmlę�o��\u0013�߿��{\u000bNӴ���~w7�J{�J�'��\u0003�X�\u000fd�\u001c����'\u001b0NIZB\u001e�R��0\u001fό�38�?4��=��\b�\u0004�6\n\u0000��\t/��ϟ����C��X�\u0003�?v\u0018k\u0000\u001aF�J����:\fU��\f�[Qa�0Z\bɐV�B���$F�2Z���(Z�\f\u0011\u001e��5��@DQ�\f\u0016Y�0�-\u00057\u001a�\u001c�7�\u0014\u0015��`�C�lhV+-�\t$�B�%�����\f�l��v�\\�E|ne�$ؤ��F\tV!M��\u0012}�Yy�f�r�J�X\u000f�s�CE���O��[���!U$ӵ�=��\u0015h/�_�{\u0012�T.JL�&��\u001d�����Mw>�1ڣ&��)\u0012Cz�5\u0005�N\rPt\u0012�~�l%��1�MZz��K]�\u001c�e98\u001eq\u0018ɤP�з�`]DB�d��/L�i�V3�ݲ��\u0015�qD��L�=��vvU����v&�X>�\u0012?K1dX��qyx\u0003b��\u0013�+o�M\u0004F\u001c�\\��\u0005H�5ʑFa&��\\�\n    <Tnwr}��LA�ٯ�B�K�t\u0018*x�\n        <j\u000el�\u001d&��&ce\u001f��d[k\u000f�\by�L�K��`t�l�r�A]\u00113�=���b�r.\u0007��d�A�H�S\u0015��\u0016�F�}*dT��§#�����\u0005��h\u0014\r\\�q\u0011�n\u001bʆ&11���|ݕ�\u0012Sݳ\u0006D\u000f�Z��l*�h�^Y���i��a�Q\b�����\u0018C\u0018B/�\r��M�fy��E{�Y�\u0012�yk\u001fP���{�Z\f�������\r����\u0006l9��f�\u0000�\u001f`��a���|�\u001a�0�\u001e��=\u000e���aO\u0003\fFW�`����8���n\u0003\u000f��\u0003x�F��N�Z\u0014��y{avy�p�n�sw�r\\lWW��h��X��Zr!і�$��\u0012�\u0017\u0013��\u0012ؗ\u0002И_+�=\u0014�\u0002�}\u0001ہ@\u0003��Vm�H��\u0005h�\u001dh�\u00124�\u001e4r\u0005\u001a�\u0000\u001a�\b\u001a�\u0004L��\u000b4\u0017�(4�\u001a��0�\u0002�C�\u0004`\r`{ ��uω�\u0000�2��>\u001e�%&\u001e\u0005\f�\u001dG^!�IPK���o��9\u0002�\u0019����@(�z�����\u001ao�[�\\�$O�����&�\"xӏ�K��O�ƅ�Z�L�\\'��\u0013�1G\f�=�I�\tQ��$H��\bӸ@��C��Q\b[A\u001ag�\n\t�\u000e3�\u0004�|b%i�~�OC+T�������\u0003n;5#�v���1�M�qA(u��\u0005� �+�5�|C(\u0005�؜o��\u000b�\r�{����\u001d�R�\u0003\\���V����W~�\u0001��6\t6�/\u000f_V_V����3t{Si�\u00152��h�ZQ\u001aS\\���7Iʝ���kQ�qh�[��`&����\u0007\n��$ް��t`��L\u0002�#<�W�s��-o�}C.S\u001cl�L�s�2E/$���@�q�)�aX�\n\u0017t��M\u0001x�6L͓ \n�I�~H(�-��#�æ0�zĖ�Р)��8G�\u0003a�\u0013�@\u0000���a#�1Zָ\u0017\u0010J�\u0004���G�����a��ƨ�������l�\fs�e\u0000��X�y�4\u000e��)OL7� \u0018�U�k��rc�/9gn��:��=K\u0016��В��\u0019/9�R�I���I���H=k�5��p�2N�\u001f�4Λ!1�F��ڼ\"\u001cO\u001b\u0005 �\u0005��~&{���o\u00183;\u001a��S?\u001d\"\t��\u001f8'5������\u000e�/���\u0000\u0000\u0000��PK\u0007\b/�@�o\u0005\u0000\u0000F\u0019\u0000\u0000PK\u0003\u0004\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0014\u0000\u0000\u0000xl/sharedStrings.xmll�ON�0\u0014��s\n˫�E�v\u0016�\u0011J�E%N\u0000\u0007�R�D�v�\u001d�eH�\u0001�\u0010\u0002�\t�BD��\n�o�R!@r�~����>o4\u0017)��N���?���HM\u00129����q�?\u001d\u0005�<�\r��Tj���̎\u0018�Q�E��j��\\�g*\u0013��}�M��e<��s#R�w0��D�HJ\"�K��ᐒ\\&\u00179\u001f\r\u0002O'�g\u0002ܢ�%*�%\u001a���\u001e\u001e3��:�\u0013zBkK[�\u0005^�E��C<��\u001a��F�����gw�\u001dpߣ�\u000b��o79�yt�K��ʍ�{�%VXwg��\u001f[����q;uMmi\u0017��`g\u000b�X��\u0005Vh\u001c�\u000e-6�t�}�@�w�z�ai���3�M�\u0011\u0000\u0000��PK\u0007\b8\u0002�\u0018-\u0001\u0000\u0000�\u0001\u0000\u0000PK\u0003\u0004\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u001a\u0000\u0000\u0000xl/_rels/workbook.xml.rels�пj�@\u0010����\u0014��?G/!��^\u0013\u0002�&�\u0001\u0016\u001d�����L\u0012��\u0003\u0006�G����e��|��8y�>)����\"�AQhcg�P�{���\u0011����\u0016\u001b\u0003\u001b;���\u000b\\�\u0011\u0019�\u0010�5�5gq�0y���p\u0016Ӏ�n�z <��\u0003�u\u0003ꫦ:u\u0015�SW�jt\u001aH*���̆H\u0018��&�@5�����}o[z�퇧 7\u0004��\u0000�\u0012ט۴�Bc�8�=?�m��\u0005#�<���~���Mt��pr�F'��$�0��u�/�j��;\u0000\u0000��PK\u0007\bq��j�\u0000\u0000\u0000�\u0002\u0000\u0000PK\u0003\u0004\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0011\u0000\u0000\u0000docProps/core.xml��MK\u00031\u0010����%��ɶP4��A�IA��x\u000bɴ\rn>HR7�{��V�M�i�g\u001e�$|QlW}aLƻ9i\u001bJ*t�k�6s�Zַd!n�\nL����\u0007��`���\\b*��6��\u0000�ڢ���\u0001]���G+sj|�@��Sn\u0010&���b�Zf\t{a\u001dF#9*�\u001a�a\u0017�A�\u0015`�\u0016]N�6-�ٌѦ�\u000bCrAZ��\u0003^EO�H�dF�����\u000e��\u0016ޟ\u001e_���ƥ,�B\"�VLE��GQv�p�\u0018�c��\u0000uU�a�.��mz��Z\u0012������lE)\u001b����k�,�^�����$\u0010\u001c����\t\u0000\u0000��PK\u0007\bE�@�\u0010\u0001\u0000\u0000\u001c\u0002\u0000\u0000PK\u0003\u0004\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0010\u0000\u0000\u0000docProps/app.xml��?K\u00041\u0010\u0005��O�����B���\u0010��Z��K2{7�̄�xD?���Y[>\u001e�x�\u001fz��\u0019������\r�Q\u0012�qv�����\u001diR�\u0019�\u000e�d�ٝ��\u001e@�\t˪�T�^�&�����#ȶQ�\u0007��\u0005��f�n\u0001�!'L��\u000b�\u001fq���I��>}[>*�\u000b~\u0011[�B\u0005���\u0012�}���j$\u001c�ex�\u00113}��������\u0015\u0000\u0000��PK\u0007\b�8 \t�\u0000\u0000\u0000 \u0001\u0000\u0000PK\u0003\u0004\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u000b\u0000\u0000\u0000_rels/.rels���J�0\u0010\u0006���)B��t�\u000f\"��^D؛H}��L��$\u0013&�Ʒ\u0017��Ŋ�80|ߏ�x�1�\u0017��1i�oZ) Yt>�Z>�w�ky��\u001d\u001f \u0018����s\u00115�T����R�N\u0010Mi0C�1\fH�pi�F����\b�жW�.3d��\u0014g�%��)zC#��\u000e�=a.����\u0018���2��\u0015��[�E�\u001c!�J��ʐ\u001c�]&�@��\u0003�.E�Ê�\"�6�ϳ�\bl�a󙺙���ՠ^��'�y\u001b����\u001f�e��t�\u0001\u0000\u0000��PK\u0007\b��{��\u0000\u0000\u0000d\u0002\u0000\u0000PK\u0003\u0004\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0013\u0000\u0000\u0000[Content_Types].xml��ώ�0\u0010��\n            <E�+���\u0010J�\u0007�\u001ca%�\u00070�$�j{��ْ}{�d���E-�%s�|��>M��N)V; \u000e�[u�7���Ї<���������^5��\u0005��R�ܪQ��7��\bɲ�\u0002yJ�GJVX#\r�X��\u0003�7��[�0\u000bd�e�P]�\u0011z�\u0010��4\t�K\u0010YU\u001f�ř�*[J\f�J�lvٿ��O\u0004M\u0010�\u001d\u001eC��S��k�\u0013� j^9Nz\u0019�u\u0007D�CugI��\u0004�2S42B��y���x�\u001d�>8��\u001e\u0012d�K�^}\u000f<�fy��\u0017C�\u0010X�#����Г\u001d~\"m n�m1O�lȧ�xtw���-�b\u0015�Oă�\u000ba\u0001�pf\u001f�<�e\\~\u0013\u0016���s/\u000e\t�W�Z����\u0006���\u0013\ny��������Y�Sݯ\u0000\u0000\u0000��PK\u0007\b���|U\u0001\u0000\u0000�\u0004\u0000\u0000PK\u0001\u0002\u0014\u0000\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000�\u001a�Wo\u0001\u0000\u0000_\u0003\u0000\u0000\u0018\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000xl/worksheets/sheet1.xmlPK\u0001\u0002\u0014\u0000\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000s����\u0001\u0000\u0000�\u0002\u0000\u0000\u000f\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0001\u0000\u0000xl/workbook.xmlPK\u0001\u0002\u0014\u0000\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000���{}\u0005\u0000\u0000e\u001c\u0000\u0000\u0013\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0003\u0000\u0000xl/theme/theme1.xmlPK\u0001\u0002\u0014\u0000\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000/�@�o\u0005\u0000\u0000F\u0019\u0000\u0000\r\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000=\t\u0000\u0000xl/styles.xmlPK\u0001\u0002\u0014\u0000\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u00008\u0002�\u0018-\u0001\u0000\u0000�\u0001\u0000\u0000\u0014\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u000e\u0000\u0000xl/sharedStrings.xmlPK\u0001\u0002\u0014\u0000\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000q��j�\u0000\u0000\u0000�\u0002\u0000\u0000\u001a\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000V\u0010\u0000\u0000xl/_rels/workbook.xml.relsPK\u0001\u0002\u0014\u0000\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000E�@�\u0010\u0001\u0000\u0000\u001c\u0002\u0000\u0000\u0011\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0011\u0000\u0000docProps/core.xmlPK\u0001\u0002\u0014\u0000\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000�8 \t�\u0000\u0000\u0000 \u0001\u0000\u0000\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0012\u0000\u0000docProps/app.xmlPK\u0001\u0002\u0014\u0000\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000��{��\u0000\u0000\u0000d\u0002\u0000\u0000\u000b\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0013\u0000\u0000_rels/.relsPK\u0001\u0002\u0014\u0000\u0014\u0000\b\u0000\b\u0000\u0000\u0000\u0000\u0000���|U\u0001\u0000\u0000�\u0004\u0000\u0000\u0013\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0014\u0000\u0000[Content_Types].xmlPK\u0005\u0006\u0000\u0000\u0000\u0000\n\u0000\n\u0000�\u0002\u0000\u0000�\u0016\u0000\u0000\u0000\u0000"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Audit Logs",
+					"item": [
+						{
+							"name": "Get Audit Logs",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/audit/logs?limit=20&offset=0",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"audit",
+										"logs"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										},
+										{
+											"key": "action",
+											"value": "create",
+											"disabled": true
+										},
+										{
+											"key": "target_table",
+											"value": "staff_users",
+											"disabled": true
+										},
+										{
+											"key": "date_from",
+											"value": "2025-01-01",
+											"disabled": true
+										},
+										{
+											"key": "date_to",
+											"value": "2025-12-31",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "System Settings",
+					"item": [
+						{
+							"name": "List Settings",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/settings?limit=20&offset=0",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"settings"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Setting by ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/settings/{{setting_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"settings",
+										"{{setting_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Setting",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"key\": \"check_in_radius\",\n  \"value\": \"100\",\n  \"description\": \"Радиус чекина в метрах\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/settings",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"settings"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Setting",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"key\": \"check_in_radius\",\n  \"value\": \"150\",\n  \"description\": \"Радиус чекина в метрах (обновлён)\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/settings/{{setting_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"settings",
+										"{{setting_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Setting",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/settings/{{setting_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"settings",
+										"{{setting_id}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "System Users",
+					"item": [
+						{
+							"name": "List System Users",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/system",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"system"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create System User",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"full_name\": \"Новый Супервайзер\",\n  \"login\": \"supervisor1\",\n  \"password\": \"password123\",\n  \"confirm_password\": \"password123\",\n  \"role\": \"supervisor\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/system",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"system"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update System User",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"full_name\": \"Обновлённое Имя\",\n  \"role\": \"supervisor\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/system/{{system_user_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"system",
+										"{{system_user_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete System User",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/system/{{system_user_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"system",
+										"{{system_user_id}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Storage",
+					"item": [
+						{
+							"name": "Get Download URL",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/storage/download-url?file_name=example.jpg",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"storage",
+										"download-url"
+									],
+									"query": [
+										{
+											"key": "file_name",
+											"value": "example.jpg"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Upload URL",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/storage/upload-url",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"storage",
+										"upload-url"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Mobile API",
+			"item": [
+				{
+					"name": "Health",
+					"item": [
+						{
+							"name": "Ping",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/ping",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"ping"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Auth (Staff)",
+					"item": [
+						{
+							"name": "Register Staff User",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"group_id\": \"{{group_id}}\",\n  \"full_name\": \"Петров Пётр Петрович\",\n  \"login\": \"petrov\",\n  \"phone_number\": \"+998901112233\",\n  \"inn\": \"987654321\",\n  \"birthday\": \"1995-05-20T00:00:00Z\",\n  \"password\": \"password123\",\n  \"confirm_password\": \"password123\"\n}"
+								},
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/auth/staff/register",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"auth",
+										"staff",
+										"register"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login Staff User",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = pm.response.json();",
+											"if (jsonData.access_token) {",
+											"    pm.collectionVariables.set('mobile_access_token', jsonData.access_token);",
+											"}",
+											"if (jsonData.refresh_token) {",
+											"    pm.collectionVariables.set('mobile_refresh_token', jsonData.refresh_token);",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"login\": \"petrov\",\n  \"password\": \"password123\"\n}"
+								},
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/auth/staff/login",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"auth",
+										"staff",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Refresh Staff Token",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = pm.response.json();",
+											"if (jsonData.access_token) {",
+											"    pm.collectionVariables.set('mobile_access_token', jsonData.access_token);",
+											"}",
+											"if (jsonData.refresh_token) {",
+											"    pm.collectionVariables.set('mobile_refresh_token', jsonData.refresh_token);",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"refresh_token\": \"{{mobile_refresh_token}}\"\n}"
+								},
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/auth/staff/refresh",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"auth",
+										"staff",
+										"refresh"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Logout Staff User",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"refresh_token\": \"{{mobile_refresh_token}}\"\n}"
+								},
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/auth/staff/logout",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"auth",
+										"staff",
+										"logout"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Profile",
+					"item": [
+						{
+							"name": "Get My Profile",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/profile",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"profile"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Profile",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"full_name\": \"Петров Пётр Сергеевич\",\n  \"phone_number\": \"+998903334455\"\n}"
+								},
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/profile",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"profile"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Avatar",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "avatar",
+											"value": "",
+											"type": "file"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/profile/avatar",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"profile",
+										"avatar"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Device Token",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"fcm_token\": \"your-firebase-token-here\",\n  \"device_id\": \"device-unique-id\"\n}"
+								},
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/device-token",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"device-token"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Notifications",
+					"item": [
+						{
+							"name": "List Notifications",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/notifications?limit=20&offset=0",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"notifications"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Mark Notification as Read",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/notifications/{{notification_id}}/read",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"notifications",
+										"{{notification_id}}",
+										"read"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Schedule & Stores",
+					"item": [
+						{
+							"name": "My Schedule",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/schedule?limit=20&offset=0",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"schedule"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "My Stores",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/my-stores?limit=20&offset=0",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"my-stores"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Upload Store Photo",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "photo",
+											"value": "",
+											"type": "file"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/stores/upload-photo",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"stores",
+										"upload-photo"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Propose New Store",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Магазин Ассортимент\",\n  \"address\": \"ул. Навои, 25\",\n  \"latitude\": 41.311081,\n  \"longitude\": 69.240562,\n  \"owner_full_name\": \"Сидоров Алексей\",\n  \"owner_inn\": \"111222333\",\n  \"owner_phone\": \"+998901234567\",\n  \"owner_passport\": \"AA1234567\",\n  \"additional_phone\": \"+998907654321\",\n  \"interior_photo\": \"\",\n  \"exterior_photo\": \"\",\n  \"comment\": \"Новый магазин на углу\"\n}"
+								},
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/stores/propose",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"stores",
+										"propose"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+			{
+				"name": "Work Tracking",
+				"item": [
+					{
+						"name": "Start Work",
+						"request": {
+							"method": "PUT",
+							"header": [
+								{
+									"key": "Authorization",
+									"value": "Bearer {{mobile_access_token}}"
+								}
+							],
+							"url": {
+								"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/start-work",
+								"host": [
+									"{{mobile_base_url}}{{api_prefix}}"
+								],
+								"path": [
+									"mobile",
+									"start-work"
+								]
+							}
+						},
+						"response": []
+					},
+					{
+						"name": "End Work",
+						"request": {
+							"method": "PUT",
+							"header": [
+								{
+									"key": "Authorization",
+									"value": "Bearer {{mobile_access_token}}"
+								}
+							],
+							"url": {
+								"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/end-work",
+								"host": [
+									"{{mobile_base_url}}{{api_prefix}}"
+								],
+								"path": [
+									"mobile",
+									"end-work"
+								]
+							}
+						},
+						"response": []
+					}
+				]
+			},
+			{
+				"name": "Location",
+				"item": [
+					{
+						"name": "Send Locations",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "[\n  {\n    \"latitude\": 41.311081,\n    \"longitude\": 69.240562,\n    \"battery_level\": 85,\n    \"captured_at\": \"2025-02-12T10:30:00Z\",\n    \"status\": \"moving\"\n  },\n  {\n    \"latitude\": 41.312200,\n    \"longitude\": 69.241100,\n    \"battery_level\": 84,\n    \"captured_at\": \"2025-02-12T10:31:00Z\",\n    \"status\": \"moving\"\n  }\n]"
+								},
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/location",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"location"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Visits",
+					"item": [
+						{
+							"name": "List My Visits",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/visit?limit=20&offset=0",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"visit"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Check In",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"schedule_id\": \"{{schedule_id}}\",\n  \"store_id\": \"{{store_id}}\",\n  \"lat\": 41.311081,\n  \"lon\": 69.240562\n}"
+								},
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/visit/check-in",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"visit",
+										"check-in"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Upload Visit Photo",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "photo",
+											"value": "",
+											"type": "file"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/visit/{{visit_id}}/photo",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"visit",
+										"{{visit_id}}",
+										"photo"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Complete Visit",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{mobile_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"comment\": \"Визит завершён, товар выложен\"\n}"
+								},
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/visit/{{visit_id}}/complete",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"mobile",
+										"visit",
+										"{{visit_id}}",
+										"complete"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Settings",
+					"item": [
+						{
+							"name": "Get All Settings",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/settings",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"settings"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Storage",
+					"item": [
+						{
+							"name": "Get Download URL",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/storage/download-url?file_name=example.jpg",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"storage",
+										"download-url"
+									],
+									"query": [
+										{
+											"key": "file_name",
+											"value": "example.jpg"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Upload URL",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{mobile_base_url}}{{api_prefix}}/storage/upload-url",
+									"host": [
+										"{{mobile_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"storage",
+										"upload-url"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "admin_base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "mobile_base_url",
+			"value": "http://localhost:8081",
+			"type": "string"
+		},
+		{
+			"key": "api_prefix",
+			"value": "/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "admin_access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "admin_refresh_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "mobile_access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "mobile_refresh_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "staff_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "store_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "group_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "schedule_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "visit_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "setting_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "system_user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "notification_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

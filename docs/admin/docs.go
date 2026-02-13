@@ -31,7 +31,8 @@ const docTemplate = `{
         {"name": "Staff Mapping", "description": "Привязка сотрудников к магазинам"},
         {"name": "Visits", "description": "Визиты и отчёты"},
         {"name": "Settings", "description": "Системные настройки"},
-        {"name": "Audit", "description": "Журнал аудита"}
+        {"name": "Audit", "description": "Журнал аудита"},
+        {"name": "System Users", "description": "Управление системными пользователями (admin/supervisor)"}
     ],
     "paths": {
         "/ping": {
@@ -357,6 +358,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/staff/schedules": {
+            "get": {
+                "tags": ["Staff Users"],
+                "summary": "Список расписаний (с фильтрацией)",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "limit", "in": "query", "type": "integer", "default": 20},
+                    {"name": "offset", "in": "query", "type": "integer", "default": 0},
+                    {"name": "staff_id", "in": "query", "type": "string", "format": "uuid", "description": "Фильтр по сотруднику"},
+                    {"name": "store_id", "in": "query", "type": "string", "format": "uuid", "description": "Фильтр по магазину"},
+                    {"name": "date_from", "in": "query", "type": "string", "format": "date", "description": "Дата начала (YYYY-MM-DD)"},
+                    {"name": "date_to", "in": "query", "type": "string", "format": "date", "description": "Дата окончания (YYYY-MM-DD)"}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "type": "array",
+                                    "items": {"$ref": "#/definitions/Schedule"}
+                                },
+                                "pagination": {"$ref": "#/definitions/Pagination"}
+                            }
+                        }
+                    },
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
         "/admin/staff/schedules/assign": {
             "post": {
                 "tags": ["Staff Users"],
@@ -499,6 +532,31 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/admin/stores/{id}": {
+            "get": {
+                "tags": ["Stores"],
+                "summary": "Получить магазин по ID",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid"}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "store": {"$ref": "#/definitions/Store"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Невалидный ID"},
+                    "404": {"description": "Магазин не найден"},
                     "500": {"description": "Internal Server Error"}
                 }
             }
@@ -831,6 +889,99 @@ const docTemplate = `{
                     "500": {"description": "Internal Server Error"}
                 }
             }
+        },
+        "/admin/system": {
+            "get": {
+                "tags": ["System Users"],
+                "summary": "Список системных пользователей",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "system_users": {
+                                    "type": "array",
+                                    "items": {"$ref": "#/definitions/SystemUser"}
+                                }
+                            }
+                        }
+                    },
+                    "403": {"description": "Нет доступа (только admin)"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            },
+            "post": {
+                "tags": ["System Users"],
+                "summary": "Создать системного пользователя",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {"$ref": "#/definitions/CreateSystemUser"}
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Создано",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {"type": "string", "example": "created"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Ошибка валидации"},
+                    "403": {"description": "Нет доступа (только admin)"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/admin/system/{id}": {
+            "put": {
+                "tags": ["System Users"],
+                "summary": "Обновить системного пользователя",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid"},
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {"$ref": "#/definitions/UpdateSystemUser"}
+                    }
+                ],
+                "responses": {
+                    "200": {"description": "Обновлено"},
+                    "400": {"description": "Ошибка валидации"},
+                    "403": {"description": "Нет доступа (только admin)"},
+                    "404": {"description": "Пользователь не найден"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            },
+            "delete": {
+                "tags": ["System Users"],
+                "summary": "Удалить системного пользователя",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid"}
+                ],
+                "responses": {
+                    "200": {"description": "Удалено"},
+                    "400": {"description": "Пользователь не найден"},
+                    "403": {"description": "Нет доступа (только admin)"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
         }
     },
     "definitions": {
@@ -994,10 +1145,14 @@ const docTemplate = `{
                 "owner_full_name": {"type": "string"},
                 "owner_inn": {"type": "string"},
                 "owner_passport": {"type": "string"},
+                "owner_phone": {"type": "string"},
+                "additional_phone": {"type": "string"},
+                "interior_photo": {"type": "string"},
+                "exterior_photo": {"type": "string"},
+                "comment": {"type": "string"},
                 "status": {"type": "string", "enum": ["pending", "approved", "rejected"]},
                 "rejection_comment": {"type": "string"},
                 "created_by_staff_id": {"type": "string", "format": "uuid"},
-                "created_by_admin_id": {"type": "string", "format": "uuid"},
                 "is_active": {"type": "boolean"},
                 "is_frozen": {"type": "boolean"},
                 "deactivated_at": {"type": "string", "format": "date-time"},
@@ -1016,6 +1171,11 @@ const docTemplate = `{
                 "owner_full_name": {"type": "string"},
                 "owner_inn": {"type": "string"},
                 "owner_passport": {"type": "string"},
+                "owner_phone": {"type": "string"},
+                "additional_phone": {"type": "string"},
+                "interior_photo": {"type": "string"},
+                "exterior_photo": {"type": "string"},
+                "comment": {"type": "string"},
                 "status": {"type": "string", "enum": ["approved", "rejected"]},
                 "rejection_comment": {"type": "string"},
                 "is_active": {"type": "boolean"},
@@ -1119,6 +1279,66 @@ const docTemplate = `{
                 "new_value": {"type": "object"},
                 "ip_address": {"type": "string"},
                 "created_at": {"type": "string", "format": "date-time"}
+            }
+        },
+        "SystemUser": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string", "format": "uuid"},
+                "full_name": {"type": "string"},
+                "login": {"type": "string"},
+                "role": {"type": "string", "enum": ["admin", "supervisor"]},
+                "is_active": {"type": "boolean"},
+                "deactivated_at": {"type": "string", "format": "date-time"},
+                "deactivated_by_id": {"type": "integer"},
+                "deactivation_reason": {"type": "string"},
+                "created_at": {"type": "string", "format": "date-time"}
+            }
+        },
+        "CreateSystemUser": {
+            "type": "object",
+            "required": ["full_name", "login", "password", "confirm_password", "role"],
+            "properties": {
+                "full_name": {"type": "string"},
+                "login": {"type": "string"},
+                "password": {"type": "string", "minLength": 8, "maxLength": 20},
+                "confirm_password": {"type": "string", "minLength": 8, "maxLength": 20},
+                "role": {"type": "string", "enum": ["admin", "supervisor"]}
+            }
+        },
+        "UpdateSystemUser": {
+            "type": "object",
+            "properties": {
+                "full_name": {"type": "string"},
+                "is_active": {"type": "boolean"},
+                "deactivated_at": {"type": "string", "format": "date-time"},
+                "deactivated_by_id": {"type": "integer"},
+                "deactivation_reason": {"type": "string"}
+            }
+        },
+        "Schedule": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string", "format": "uuid"},
+                "staff_id": {"type": "string", "format": "uuid"},
+                "store_id": {"type": "string", "format": "uuid"},
+                "planned_date": {"type": "string", "format": "date-time"},
+                "description": {"type": "string"},
+                "window_open": {"type": "string", "format": "date-time"},
+                "window_close": {"type": "string", "format": "date-time"},
+                "is_photo_required": {"type": "boolean"},
+                "is_selfie_required": {"type": "boolean"},
+                "is_comment_required": {"type": "boolean"},
+                "status": {"type": "string"},
+                "created_by_admin_id": {"type": "string", "format": "uuid"}
+            }
+        },
+        "Pagination": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer"},
+                "offset": {"type": "integer"},
+                "total": {"type": "integer"}
             }
         },
         "ErrorResponse": {
