@@ -76,7 +76,7 @@ type StaffUserResponse struct {
 
 type StaffUserProfile struct {
 	User       *StaffUser `json:"user"`
-	Schedules  []Schedule `json:"schedules"`
+	Visits     []Visit    `json:"visits"`
 	TotalCount int        `json:"total_count"`
 }
 

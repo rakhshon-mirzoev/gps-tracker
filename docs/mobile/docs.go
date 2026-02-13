@@ -694,9 +694,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "user": {"$ref": "#/definitions/StaffUser"},
-                "schedules": {
+                "visits": {
                     "type": "array",
-                    "items": {"$ref": "#/definitions/Schedule"}
+                    "items": {"$ref": "#/definitions/Visit"}
                 },
                 "total_count": {"type": "integer"}
             }

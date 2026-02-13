@@ -32,14 +32,15 @@ type StaffUsers interface {
 }
 type staffUserService struct {
 	r             repository.StaffUsersRepository
+	visitRepo     repository.VisitRepository
 	schedules     Schedule
 	audit         AuditLogs
 	notifications Notification
 	minio         minioservice.Minio
 }
 
-func NewStaffUserService(r repository.StaffUsersRepository, sch Schedule, sender fcm.PushSender, notifications Notification, audit AuditLogs, minio minioservice.Minio) StaffUsers {
-	return &staffUserService{r: r, schedules: sch, notifications: notifications, audit: audit, minio: minio}
+func NewStaffUserService(r repository.StaffUsersRepository, visitRepo repository.VisitRepository, sch Schedule, sender fcm.PushSender, notifications Notification, audit AuditLogs, minio minioservice.Minio) StaffUsers {
+	return &staffUserService{r: r, visitRepo: visitRepo, schedules: sch, notifications: notifications, audit: audit, minio: minio}
 }
 
 func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error) {
@@ -58,14 +59,14 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 		user.AvatarUrl = &url
 	}
 
-	schedules, total, err := s.schedules.ListByStaffID(ctx, id, lim, off)
+	visits, total, err := s.visitRepo.ListByStaffID(ctx, id, lim, off)
 	if err != nil {
 		return nil, err
 	}
 
 	return &model.StaffUserProfile{
 		User:       user,
-		Schedules:  schedules,
+		Visits:     visits,
 		TotalCount: total,
 	}, nil
 }
