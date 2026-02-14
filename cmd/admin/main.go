@@ -87,6 +87,11 @@ func run() error {
 
 	registerAdminRoutes(router, mw, handler, minio, app.WsHub(), service, token)
 
+	// Создаём топик Kafka, если он ещё не существует
+	if err := kafka.EnsureTopic(cfg.Kafka.Brokers, cfg.Kafka.Topic, 1, 1); err != nil {
+		logger.Log.Warn("failed to ensure kafka topic (may already exist)", zap.Error(err))
+	}
+
 	// Kafka consumer — читает локации из топика и бросает в Hub
 	kafkaConsumer := kafka.NewLocationConsumer(cfg.Kafka.Brokers, cfg.Kafka.Topic, app.WsHub())
 	defer kafkaConsumer.Close()

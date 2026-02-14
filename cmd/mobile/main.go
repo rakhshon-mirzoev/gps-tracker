@@ -74,6 +74,11 @@ func run() error {
 
 	cleanupCron := cron.StartCleanupCron(client)
 
+	// Создаём топик Kafka, если он ещё не существует
+	if err := kafka.EnsureTopic(cfg.Kafka.Brokers, cfg.Kafka.Topic, 1, 1); err != nil {
+		logger.Log.Warn("failed to ensure kafka topic (may already exist)", zap.Error(err))
+	}
+
 	// Kafka publisher — отправляет локации в топик, admin consumer прочитает и пробросит в WebSocket
 	publisher := kafka.NewLocationPublisher(cfg.Kafka.Brokers, cfg.Kafka.Topic)
 	defer publisher.Close()
