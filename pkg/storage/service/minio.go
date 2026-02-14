@@ -43,16 +43,29 @@ func NewMinio(cfg config.MinioConfig) (Minio, error) {
 		),
 		Secure: cfg.UseSSL,
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
-	minio := NewMinioService(client, cfg.Bucket)
+	ctx := context.Background()
 
-	return minio, nil
+	exists, err := client.BucketExists(ctx, cfg.Bucket)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		err = client.MakeBucket(ctx, cfg.Bucket, minio.MakeBucketOptions{})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &minioService{
+		minio:  client,
+		bucket: cfg.Bucket,
+	}, nil
 }
-
 func NewMinioService(client *minio.Client, bucket string) Minio {
 	return &minioService{
 		minio:  client,
@@ -167,7 +180,7 @@ func (s *minioService) UploadFile(ctx context.Context, file *multipart.FileHeade
 	var lastErr error
 	backoff := retryConfig.InitialBackoff
 
-	for attempt := 0; attempt <= retryConfig.MaxRetries; attempt++ {
+	for attempt := 0; attempt < retryConfig.MaxRetries; attempt++ {
 		if attempt > 0 {
 
 			jitter := time.Duration(rand.Int63n(int64(backoff / 2)))
