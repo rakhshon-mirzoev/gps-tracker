@@ -49,4 +49,3 @@ func EnsureTopic(brokers []string, topic string, numPartitions int, replicationF
 
 	return nil
 }
-
