@@ -15,7 +15,7 @@ type Store struct {
 	OwnerFullName      string     `json:"owner_full_name" db:"owner_full_name"`
 	OwnerINN           string     `json:"owner_inn" db:"owner_inn"`
 	OwnerPassport      *string    `json:"owner_passport,omitempty" db:"owner_passport"`
-	OwnerPhone         string     `json:"owner_phone" db:"owner_phone"`
+	OwnerPhone         *string    `json:"owner_phone,omitempty" db:"owner_phone"`
 	AdditionalPhone    *string    `json:"additional_phone,omitempty" db:"additional_phone"`
 	InteriorPhoto      *string    `json:"-" db:"interior_photo"`
 	ExteriorPhoto      *string    `json:"-" db:"exterior_photo"`
