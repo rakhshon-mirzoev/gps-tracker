@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
@@ -24,7 +25,7 @@ type visitPhotosService struct {
 }
 
 func NewVisitPhotosService(repo repository.VisitPhotosRepository, minio minioservice.Minio) VisitPhotos {
-	return &visitPhotosService{repo: repo}
+	return &visitPhotosService{repo: repo, minio: minio}
 }
 
 func (s *visitPhotosService) Create(ctx context.Context, vp *model.VisitPhotos) error {
@@ -54,6 +55,10 @@ func (s *visitPhotosService) Delete(ctx context.Context, id uuid.UUID) error {
 	vp, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	if s.minio == nil {
+		log.Fatal("s minio")
 	}
 
 	if err := s.minio.RemoveObject(ctx, vp.PhotoKey); err != nil {
