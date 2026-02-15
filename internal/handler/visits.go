@@ -254,7 +254,7 @@ func (h *Handler) GetVisitByID(c *gin.Context) {
 		return
 	}
 
-	visit, err := h.s.Visit.GetByID(c.Request.Context(), uid)
+	visit, err := h.s.Visit.GetByIDPhoto(c.Request.Context(), uid)
 	if err != nil {
 		h.handleError(c, "GetVisitByID: get by id", err, http.StatusInternalServerError)
 		return

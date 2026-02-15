@@ -115,7 +115,7 @@ func (r *visit) Create(ctx context.Context, v model.Visit) error {
 func (r *visit) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error) {
 	sql := `
         SELECT id, schedule_id, staff_id, store_id, check_in_at, check_out_at, 
-			   check_in_lat, check_in_lon, distance_deviation, selfie_url, comment,
+			   check_in_lat, check_in_lon, distance_deviation, selfie_key, comment,
                is_offline, review_status, review_comment, reviewer_id,
                reviewed_at, created_at
         FROM visits WHERE id = $1
@@ -124,7 +124,7 @@ func (r *visit) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	var v model.Visit
 	err := r.DB.Pool.QueryRow(ctx, sql, id).Scan(
 		&v.ID, &v.ScheduleID, &v.StaffID, &v.StoreID, &v.CheckInAt, &v.CheckOutAt,
-		&v.CheckInLat, &v.CheckInLon, &v.DistanceDeviation, &v.SelfieURL, &v.Comment,
+		&v.CheckInLat, &v.CheckInLon, &v.DistanceDeviation, &v.SelfieKey, &v.Comment,
 		&v.IsOffline, &v.ReviewStatus, &v.ReviewComment, &v.ReviewerID,
 		&v.ReviewedAt, &v.CreatedAt,
 	)
@@ -138,7 +138,7 @@ func (r *visit) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 func (r *visit) List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error) {
 	sql := `
         SELECT id, schedule_id, staff_id, store_id, check_in_at, check_out_at,
-               check_in_lat, check_in_lon, distance_deviation, selfie_url, comment,
+               check_in_lat, check_in_lon, distance_deviation, selfie_key, comment,
                is_offline, review_status, review_comment, reviewer_id,
                reviewed_at, created_at
         FROM visits WHERE schedule_id = $1
@@ -156,7 +156,7 @@ func (r *visit) List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, 
 
 		if err := rows.Scan(
 			&v.ID, &v.ScheduleID, &v.StaffID, &v.StoreID, &v.CheckInAt, &v.CheckOutAt,
-			&v.CheckInLat, &v.CheckInLon, &v.DistanceDeviation, &v.SelfieURL, &v.Comment,
+			&v.CheckInLat, &v.CheckInLon, &v.DistanceDeviation, &v.SelfieKey, &v.Comment,
 			&v.IsOffline, &v.ReviewStatus, &v.ReviewComment, &v.ReviewerID,
 			&v.ReviewedAt, &v.CreatedAt,
 		); err != nil {
@@ -466,7 +466,7 @@ func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UU
 func (s *visit) GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, staffID uuid.UUID) (*model.Visit, error) {
 	sql := `
 		SELECT id, check_in_at, check_out_at,
-			   check_in_lat, check_in_lon, distance_deviation, selfie_url, comment,
+			   check_in_lat, check_in_lon, distance_deviation, selfie_key, comment,
 			   is_offline, review_status, review_comment, reviewer_id,
 			   reviewed_at, created_at
 		FROM visits 
@@ -482,7 +482,7 @@ func (s *visit) GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, s
 		&v.CheckInLat,
 		&v.CheckInLon,
 		&v.DistanceDeviation,
-		&v.SelfieURL,
+		&v.SelfieKey,
 		&v.Comment,
 		&v.IsOffline,
 		&v.ReviewStatus,
@@ -521,7 +521,7 @@ func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off 
 
 	sql := `
 		SELECT id, check_in_at, check_out_at,
-			   check_in_lat, check_in_lon, distance_deviation, selfie_url, comment,
+			   check_in_lat, check_in_lon, distance_deviation, selfie_key, comment,
 			   is_offline, review_status, review_comment, reviewer_id,
 			   reviewed_at, created_at
 		FROM visits 
@@ -544,7 +544,7 @@ func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off 
 			&visit.CheckInLat,
 			&visit.CheckInLon,
 			&visit.DistanceDeviation,
-			&visit.SelfieURL,
+			&visit.SelfieKey,
 			&visit.Comment,
 			&visit.IsOffline,
 			&visit.ReviewStatus,

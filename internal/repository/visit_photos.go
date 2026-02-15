@@ -12,7 +12,7 @@ import (
 
 type VisitPhotosRepository interface {
 	Create(ctx context.Context, v *model.VisitPhotos) error
-	GetByID(ctx context.Context, id uuid.UUID) (*model.VisitPhotos, error)
+	GetByVisitID(ctx context.Context, id uuid.UUID) ([]model.VisitPhotos, error)
 	List(ctx context.Context, visitID uuid.UUID) ([]model.VisitPhotos, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisitPhotos) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -30,7 +30,7 @@ func (r *visitPhotos) Create(ctx context.Context, v *model.VisitPhotos) error {
 	sql := `
 		INSERT INTO visit_photos (
 			visit_id,
-			photo_url,
+			photo_key,
 			original_name,
 			captured_at
 		) VALUES (
@@ -41,7 +41,7 @@ func (r *visitPhotos) Create(ctx context.Context, v *model.VisitPhotos) error {
 		) RETURNING id;
 	`
 
-	err := r.DB.Pool.QueryRow(ctx, sql, v.VisitID, v.PhotoURL, v.OriginalName, v.CapturedAt).Scan(&v.ID)
+	err := r.DB.Pool.QueryRow(ctx, sql, v.VisitID, v.PhotoKey, v.OriginalName, v.CapturedAt).Scan(&v.ID)
 	if err != nil {
 		return fmt.Errorf("create visit photos: %w", err)
 	}
@@ -51,7 +51,7 @@ func (r *visitPhotos) Create(ctx context.Context, v *model.VisitPhotos) error {
 
 func (r *visitPhotos) List(ctx context.Context, id uuid.UUID) ([]model.VisitPhotos, error) {
 	sql := `
-		SELECT id, visit_id, photo_url, original_name, captured_at
+		SELECT id, visit_id, photo_key, original_name, captured_at
 		FROM visit_photos WHERE visit_id = $1
 	`
 
@@ -68,7 +68,7 @@ func (r *visitPhotos) List(ctx context.Context, id uuid.UUID) ([]model.VisitPhot
 		if err := rows.Scan(
 			&vPh.ID,
 			&vPh.VisitID,
-			&vPh.PhotoURL,
+			&vPh.PhotoKey,
 			&vPh.OriginalName,
 			&vPh.CapturedAt,
 		); err != nil {
@@ -85,25 +85,38 @@ func (r *visitPhotos) List(ctx context.Context, id uuid.UUID) ([]model.VisitPhot
 	return v, nil
 }
 
-func (r *visitPhotos) GetByID(ctx context.Context, id uuid.UUID) (*model.VisitPhotos, error) {
+func (r *visitPhotos) GetByVisitID(ctx context.Context, id uuid.UUID) ([]model.VisitPhotos, error) {
 	sql := `
-        SELECT id, visit_id, photo_url, original_name, captured_at
-        FROM visit_photos WHERE id = $1
+        SELECT id, visit_id, photo_key, original_name, captured_at
+        FROM visit_photos WHERE visit_id = $1
     `
 
-	var v model.VisitPhotos
-	err := r.DB.Pool.QueryRow(ctx, sql, id).Scan(
-		&v.ID,
-		&v.VisitID,
-		&v.PhotoURL,
-		&v.OriginalName,
-		&v.CapturedAt,
-	)
+	var v []model.VisitPhotos
+	rows, err := r.DB.Pool.Query(ctx, sql, id)
 	if err != nil {
-		return nil, fmt.Errorf("get by id visit photos: %w", err)
+		return nil, fmt.Errorf("get by id visit photos rows: %w", err)
 	}
 
-	return &v, nil
+	for rows.Next() {
+		var vp model.VisitPhotos
+		if err := rows.Scan(
+			&vp.ID,
+			&vp.VisitID,
+			&vp.PhotoKey,
+			&vp.OriginalName,
+			&vp.CapturedAt,
+		); err != nil {
+			return nil, fmt.Errorf("rows scan: %w", err)
+		}
+
+		v = append(v, vp)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows.Err: %w", err)
+	}
+
+	return v, nil
 }
 
 func (r *visitPhotos) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisitPhotos) error {

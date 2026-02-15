@@ -16,7 +16,8 @@ type Visit struct {
 	CheckInLat        *float64   `json:"check_in_lat" db:"check_in_lat"`
 	CheckInLon        *float64   `json:"check_in_lon" db:"check_in_lon"`
 	DistanceDeviation int        `json:"distance_deviation" db:"distance_deviation"`
-	SelfieURL         *string    `json:"selfie_url" db:"selfie_url"`
+	SelfieKey         *string    `json:"-" db:"selfie_key"`
+	SelfieUrl         *string    `json:"selfie_url"`
 	Comment           *string    `json:"comment" db:"comment"`
 	IsOffline         bool       `json:"is_offline" db:"is_offline"`
 	ReviewStatus      string     `json:"review_status" db:"review_status"`
@@ -104,4 +105,9 @@ type VisitExcel struct {
 	Reviewer          *SystemUser `json:"reviewer"`
 	ReviewedAt        *time.Time  `json:"reviewed_at"`
 	CreatedAt         time.Time   `json:"created_at"`
+}
+
+type VisitWithPhoto struct {
+	Visit Visit         `json:"visit"`
+	Photo []VisitPhotos `json:"photos"`
 }

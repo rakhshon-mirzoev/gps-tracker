@@ -30,6 +30,7 @@ type Visits interface {
 	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error)
 	UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, user_id uuid.UUID, role, ip, settings, action string) error
 	GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UUID, begin, end *time.Time) ([]model.VisitExcel, error)
+	GetByIDPhoto(ctx context.Context, id uuid.UUID) (*model.VisitWithPhoto, error)
 }
 type visitsService struct {
 	repo          repository.VisitRepository
@@ -141,19 +142,44 @@ func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, u
 	return nil
 }
 
-func (s *visitsService) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error) {
-	if id == uuid.Nil {
-		return nil, errors.New("id is required")
+func (s *visitsService) GetByIDPhoto(ctx context.Context, id uuid.UUID) (*model.VisitWithPhoto, error) {
+
+	photos, err := s.photo.GetByVisitID(ctx, id)
+	if err != nil {
+		return nil, err
 	}
 
+	for i := range photos {
+		url, err := s.minio.PresignedDownload(ctx, photos[i].PhotoKey, time.Minute*15)
+		if err != nil {
+			return nil, err
+		}
+
+		photos[i].PhotoUrl = url
+	}
+
+	visit, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	url, err := s.minio.PresignedDownload(ctx, *visit.SelfieKey, time.Minute*15)
+	if err != nil {
+		return nil, err
+	}
+	visit.SelfieUrl = &url
+
+	return &model.VisitWithPhoto{
+		Visit: *visit,
+		Photo: photos,
+	}, nil
+}
+
+func (s *visitsService) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
 func (s *visitsService) List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error) {
-	if scheduleID == uuid.Nil {
-		return nil, errors.New("schedule_id is required")
-	}
-
 	return s.repo.List(ctx, scheduleID)
 }
 
@@ -236,7 +262,7 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.
 
 	vp := &model.VisitPhotos{
 		VisitID:      id,
-		PhotoURL:     selfieKey,
+		PhotoKey:     selfieKey,
 		OriginalName: selfie[0].Filename,
 	}
 
@@ -273,7 +299,7 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.
 		}
 
 		vp = &model.VisitPhotos{
-			PhotoURL:     photoKey,
+			PhotoKey:     photoKey,
 			VisitID:      id,
 			OriginalName: f.Filename,
 		}
