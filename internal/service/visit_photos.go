@@ -26,12 +26,6 @@ func NewVisitPhotosService(repo repository.VisitPhotosRepository) VisitPhotos {
 }
 
 func (s *visitPhotosService) Create(ctx context.Context, vp *model.VisitPhotos) error {
-	if vp.VisitID == uuid.Nil {
-		return errors.New("visit_id is required")
-	}
-	if vp.PhotoURL == "" {
-		return errors.New("photo_url is required")
-	}
 
 	return s.repo.Create(ctx, vp)
 }

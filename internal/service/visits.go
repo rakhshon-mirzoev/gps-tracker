@@ -5,10 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"mime/multipart"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -227,30 +224,19 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.
 		return errs.ErrorFileExt
 	}
 	timestamp := time.Now().Unix()
-	filename := fmt.Sprintf("%s_%d%s", strings.TrimSuffix(selfie[0].Filename, ext), timestamp, ext)
+	filename := fmt.Sprintf("%s_%d%s", uuid.New(), timestamp, ext)
 	objectName := fmt.Sprintf(constants.VisitDir+constants.SelfieDir+"/%s/%s", id, filename)
 
-	selfiePath, err := s.minio.UploadFile(ctx, selfie[0], objectName)
+	selfieKey, err := s.minio.UploadFile(ctx, selfie[0], objectName)
 	if err != nil {
 		return fmt.Errorf("failed to upload selfie to minio: %w", err)
 	}
 
-	localPath, err := utils.PathCreator(filename, constants.VisitDir, constants.SelfieDir, id)
-	if err == nil {
-		if src, err := selfie[0].Open(); err == nil {
-			defer src.Close()
-			if dst, err := os.Create(localPath); err == nil {
-				defer dst.Close()
-				io.Copy(dst, src)
-			}
-		}
-	}
-
-	dto.SelfieURL = &selfiePath
+	dto.SelfieURL = &selfieKey
 
 	vp := &model.VisitPhotos{
 		VisitID:      id,
-		PhotoURL:     selfiePath,
+		PhotoURL:     selfieKey,
 		OriginalName: selfie[0].Filename,
 	}
 
@@ -278,29 +264,18 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.
 			return errs.ErrorFileExt
 		}
 		timestamp := time.Now().Unix()
-		filename := fmt.Sprintf("%s_%d%s", strings.TrimSuffix(f.Filename, ext), timestamp, ext)
+		filename := fmt.Sprintf("%s_%d%s", uuid.New(), timestamp, ext)
 		objectName := fmt.Sprintf(constants.VisitDir+constants.ShelfDir+"/%s/%s", id, filename)
 
-		photoPath, err := s.minio.UploadFile(ctx, f, objectName)
+		photoKey, err := s.minio.UploadFile(ctx, f, objectName)
 		if err != nil {
 			return fmt.Errorf("failed to upload shelf photo %d to minio: %w", idx+1, err)
 		}
 
-		localPath, err := utils.PathCreator(filename, constants.VisitDir, constants.ShelfDir, id)
-		if err == nil {
-			if src, err := f.Open(); err == nil {
-				defer src.Close()
-				if dst, err := os.Create(localPath); err == nil {
-					defer dst.Close()
-					io.Copy(dst, src)
-				}
-			}
-		}
-
 		vp = &model.VisitPhotos{
-			PhotoURL:     photoPath,
+			PhotoURL:     photoKey,
+			VisitID:      id,
 			OriginalName: f.Filename,
-			CapturedAt:   time.Now(),
 		}
 
 		err = s.photo.Create(ctx, vp)
