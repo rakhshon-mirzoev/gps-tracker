@@ -246,3 +246,19 @@ func (h *Handler) ListVisitsByStaffID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, model.NewPaginatedResponse(visits, lim, off, total))
 }
+
+func (h *Handler) GetVisitByID(c *gin.Context) {
+	uid, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		h.handleFieldError(c, "GetVisitByID: uuid parse", err)
+		return
+	}
+
+	visit, err := h.s.Visit.GetByID(c.Request.Context(), uid)
+	if err != nil {
+		h.handleError(c, "GetVisitByID: get by id", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": visit})
+}
