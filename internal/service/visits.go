@@ -253,7 +253,7 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.
 	}
 	timestamp := time.Now().Unix()
 	filename := fmt.Sprintf("%s_%d%s", uuid.New(), timestamp, ext)
-	objectName := fmt.Sprintf(constants.VisitDir+constants.SelfieDir+"/%s/%s", id, filename)
+	objectName := fmt.Sprintf(constants.VisitDir+"/"+constants.SelfieDir+"/%s/%s", id, filename)
 
 	selfieKey, err := s.minio.UploadFile(ctx, selfie[0], objectName)
 	if err != nil {
@@ -293,7 +293,7 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.
 		}
 		timestamp := time.Now().Unix()
 		filename := fmt.Sprintf("%s_%d%s", uuid.New(), timestamp, ext)
-		objectName := fmt.Sprintf(constants.VisitDir+constants.ShelfDir+"/%s/%s", id, filename)
+		objectName := fmt.Sprintf(constants.VisitDir+"/"+constants.ShelfDir+"/%s/%s", id, filename)
 
 		photoKey, err := s.minio.UploadFile(ctx, f, objectName)
 		if err != nil {
