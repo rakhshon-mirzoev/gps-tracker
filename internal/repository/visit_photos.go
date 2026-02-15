@@ -96,6 +96,7 @@ func (r *visitPhotos) GetByVisitID(ctx context.Context, id uuid.UUID) ([]model.V
 	if err != nil {
 		return nil, fmt.Errorf("get by id visit photos rows: %w", err)
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var vp model.VisitPhotos
