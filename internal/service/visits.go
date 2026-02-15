@@ -258,7 +258,7 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.
 		return fmt.Errorf("failed to upload selfie to minio: %w", err)
 	}
 
-	dto.SelfieURL = &selfieKey
+	dto.SelfieKey = &selfieKey
 
 	vp := &model.VisitPhotos{
 		VisitID:      id,

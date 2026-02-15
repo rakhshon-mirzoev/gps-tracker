@@ -35,7 +35,7 @@ type UpdateVisit struct {
 	CheckInLat        *float64   `json:"check_in_lat"`
 	CheckInLon        *float64   `json:"check_in_lon"`
 	DistanceDeviation *int       `json:"distance_deviation"`
-	SelfieURL         *string    `json:"selfie_url"`
+	SelfieKey         *string    `json:"selfie_key"`
 	Comment           *string    `json:"comment"`
 	IsOffline         *bool      `json:"is_offline"`
 	ReviewStatus      *string    `json:"review_status"`

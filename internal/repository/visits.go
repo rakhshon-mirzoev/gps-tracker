@@ -220,9 +220,9 @@ func (r *visit) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit)
 		n++
 	}
 
-	if dto.SelfieURL != nil {
-		sql += fmt.Sprintf("selfie_url = $%d, ", n)
-		args = append(args, *dto.SelfieURL)
+	if dto.SelfieKey != nil {
+		sql += fmt.Sprintf("selfie_key = $%d, ", n)
+		args = append(args, *dto.SelfieKey)
 		n++
 	}
 

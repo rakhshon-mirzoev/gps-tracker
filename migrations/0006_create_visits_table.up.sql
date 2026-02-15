@@ -15,7 +15,7 @@ CREATE TABLE visits(
     check_in_lon DECIMAL(9,6),
 
     distance_deviation  INTEGER   DEFAULT 0,
-    selfie_url   VARCHAR(512),
+    selfie_key   VARCHAR(50),
     comment   TEXT,
     is_offline      BOOLEAN   NOT NULL DEFAULT FALSE,
 
