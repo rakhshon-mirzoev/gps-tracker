@@ -163,11 +163,13 @@ func (s *visitsService) GetByIDPhoto(ctx context.Context, id uuid.UUID) (*model.
 		return nil, err
 	}
 
-	url, err := s.minio.PresignedDownload(ctx, *visit.SelfieKey, time.Minute*15)
-	if err != nil {
-		return nil, err
+	if visit.SelfieKey != nil {
+		url, err := s.minio.PresignedDownload(ctx, *visit.SelfieKey, time.Minute*15)
+		if err != nil {
+			return nil, err
+		}
+		visit.SelfieUrl = &url
 	}
-	visit.SelfieUrl = &url
 
 	return &model.VisitWithPhoto{
 		Visit: *visit,
