@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"mime/multipart"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -88,23 +87,18 @@ func (s *minioService) PresignedUpload(ctx context.Context, objectName string, e
 }
 
 func (s *minioService) PresignedDownload(ctx context.Context, objectName string, exp time.Duration) (string, error) {
-	reqParams := make(url.Values)
-	reqParams.Set("host", "minio-gpsttracker.duckdns.org")
 
 	u, err := s.minio.PresignedGetObject(
 		ctx,
 		s.bucket,
 		objectName,
 		exp,
-		reqParams,
+		nil,
 	)
 
 	if err != nil {
 		return "", err
 	}
-
-	u.Host = "minio-gpsttracker.duckdns.org"
-	u.Scheme = "https"
 
 	return u.String(), nil
 }
