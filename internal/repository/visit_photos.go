@@ -92,7 +92,7 @@ func (r *visitPhotos) GetByVisitID(ctx context.Context, id uuid.UUID) ([]model.V
         FROM visit_photos WHERE visit_id = $1
     `
 
-	var v []model.VisitPhotos
+	v := make([]model.VisitPhotos, 0)
 	rows, err := r.DB.Pool.Query(ctx, sql, id)
 	if err != nil {
 		return nil, fmt.Errorf("get by id visit photos rows: %w", err)
