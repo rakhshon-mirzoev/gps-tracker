@@ -16,8 +16,9 @@ import (
 )
 
 type minioService struct {
-	minio  *minio.Client
-	bucket string
+	minio          *minio.Client
+	bucket         string
+	publicEndpoint string
 }
 
 type Minio interface {
@@ -62,15 +63,10 @@ func NewMinio(cfg config.MinioConfig) (Minio, error) {
 	}
 
 	return &minioService{
-		minio:  client,
-		bucket: cfg.Bucket,
+		minio:          client,
+		bucket:         cfg.Bucket,
+		publicEndpoint: cfg.PublicEndpoint,
 	}, nil
-}
-func NewMinioService(client *minio.Client, bucket string) Minio {
-	return &minioService{
-		minio:  client,
-		bucket: bucket,
-	}
 }
 
 func (s *minioService) PresignedUpload(ctx context.Context, objectName string, exp time.Duration) (string, error) {
@@ -87,22 +83,17 @@ func (s *minioService) PresignedUpload(ctx context.Context, objectName string, e
 }
 
 func (s *minioService) PresignedDownload(ctx context.Context, objectName string, exp time.Duration) (string, error) {
-
-	u, err := s.minio.PresignedGetObject(
-		ctx,
-		s.bucket,
-		objectName,
-		exp,
-		nil,
-	)
-
+	u, err := s.minio.PresignedGetObject(ctx, s.bucket, objectName, exp, nil)
 	if err != nil {
 		return "", err
 	}
 
+	if s.publicEndpoint != "" {
+		u.Host = s.publicEndpoint
+	}
+
 	return u.String(), nil
 }
-
 func (s *minioService) MoveObject(ctx context.Context, srcKey, dstKey string) error {
 	src := minio.CopySrcOptions{
 		Bucket: s.bucket,

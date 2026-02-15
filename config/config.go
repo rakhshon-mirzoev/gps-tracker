@@ -37,12 +37,13 @@ type Mobile struct {
 }
 
 type MinioConfig struct {
-	Endpoint   string `json:"endpoint"`
-	AccessKey  string `json:"access_key"`
-	SecretKey  string `json:"secret_key"`
-	Bucket     string `json:"bucket"`
-	UseSSL     bool   `json:"use_ssl"`
-	TTLMinutes int    `json:"ttl_minutes"`
+	Endpoint       string `json:"endpoint"`
+	AccessKey      string `json:"access_key"`
+	SecretKey      string `json:"secret_key"`
+	Bucket         string `json:"bucket"`
+	UseSSL         bool   `json:"use_ssl"`
+	TTLMinutes     int    `json:"ttl_minutes"`
+	PublicEndpoint string `json:"public_endpoint"`
 }
 
 type Firebase struct {
