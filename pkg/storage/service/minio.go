@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"mime/multipart"
-	"net"
 	"net/http"
 	"time"
 
@@ -36,17 +35,11 @@ type RetryConfig struct {
 }
 
 func NewMinio(cfg config.MinioConfig) (Minio, error) {
-	endpoint := "minio-gpsttracker.duckdns.org"
+	endpointInternal := "minio:9000"
 
-	client, err := minio.New(endpoint, &minio.Options{
+	client, err := minio.New(endpointInternal, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
-		Secure: true,
-		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				dialer := &net.Dialer{}
-				return dialer.DialContext(ctx, network, "minio:9000")
-			},
-		},
+		Secure: false,
 	})
 	if err != nil {
 		return nil, err
@@ -96,6 +89,11 @@ func (s *minioService) PresignedDownload(ctx context.Context, objectName string,
 	if err != nil {
 		return "", err
 	}
+
+	u.Host = "minio-gpsttracker.duckdns.org"
+	u.Scheme = "https"
+	u.Port()
+
 	return u.String(), nil
 }
 
