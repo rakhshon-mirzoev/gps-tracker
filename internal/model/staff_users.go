@@ -78,6 +78,7 @@ type StaffUserProfile struct {
 	User       *StaffUser `json:"user"`
 	Visits     []Visit    `json:"visits"`
 	TotalCount int        `json:"total_count"`
+	Done       int        `json:"done_count"`
 }
 
 type StaffUserLocation struct {

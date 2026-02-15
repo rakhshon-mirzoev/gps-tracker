@@ -238,7 +238,7 @@ func (h *Handler) ListVisitsByStaffID(c *gin.Context) {
 		return
 	}
 
-	visits, total, err := h.s.Visit.ListByStaffID(c.Request.Context(), uid, lim, off)
+	visits, total, _, err := h.s.Visit.ListByStaffID(c.Request.Context(), uid, lim, off)
 	if err != nil {
 		h.handleError(c, "ListVisitsByStaffID: list visits", err, http.StatusInternalServerError)
 		return

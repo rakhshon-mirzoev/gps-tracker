@@ -26,7 +26,7 @@ type Visits interface {
 	Create(ctx context.Context, v model.CreateVisit, user_id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
-	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, error)
+	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, int, error)
 	VisitComplete(ctx context.Context, id string, dto model.UpdateVisit, staff_id uuid.UUID) error
 	VisitPhoto(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, file *multipart.Form) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -370,6 +370,6 @@ func (s *visitsService) GetDataForExcel(ctx context.Context, staff_id, store_id 
 	return s.repo.GetDataForExcel(ctx, staff_id, store_id, begin, end)
 }
 
-func (s *visitsService) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, error) {
+func (s *visitsService) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, int, error) {
 	return s.repo.ListByStaffID(ctx, staff_id, lim, off)
 }

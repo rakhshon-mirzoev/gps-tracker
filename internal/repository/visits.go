@@ -18,7 +18,7 @@ type VisitRepository interface {
 	Create(ctx context.Context, v model.Visit) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
-	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, error)
+	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, int, error)
 	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -500,16 +500,23 @@ func (s *visit) GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, s
 	return &v, nil
 }
 
-func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, error) {
+func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, int, error) {
 	var (
 		v     []model.Visit
 		total int
+		done  int
 	)
 
 	totalSql := `SELECT COUNT(*) FROM visits WHERE staff_id = $1`
 
 	if err := s.DB.Pool.QueryRow(ctx, totalSql, staff_id).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("count visits: %w", err)
+		return nil, 0, 0, fmt.Errorf("count visits: %w", err)
+	}
+
+	doneSql := `SELECT COUNT(*) FROM visits where staff_id = $1 AND review_status = 'approved'`
+
+	if err := s.DB.Pool.QueryRow(ctx, doneSql, staff_id).Scan(&done); err != nil {
+		return nil, 0, 0, fmt.Errorf("count done: %w", err)
 	}
 
 	sql := `
@@ -523,7 +530,7 @@ func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off 
 
 	rows, err := s.DB.Pool.Query(ctx, sql, staff_id)
 	if err != nil {
-		return nil, 0, fmt.Errorf("query exec list by staff id: %w", err)
+		return nil, 0, 0, fmt.Errorf("query exec list by staff id: %w", err)
 	}
 	defer rows.Close()
 
@@ -546,15 +553,15 @@ func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off 
 			&visit.ReviewedAt,
 			&visit.CreatedAt,
 		); err != nil {
-			return nil, 0, fmt.Errorf("rows scan list by staff id: %w", err)
+			return nil, 0, 0, fmt.Errorf("rows scan list by staff id: %w", err)
 		}
 
 		v = append(v, visit)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("rows err: %w", err)
+		return nil, 0, 0, fmt.Errorf("rows err: %w", err)
 	}
 
-	return v, total, nil
+	return v, total, done, nil
 }

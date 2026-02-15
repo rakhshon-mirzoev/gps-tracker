@@ -59,7 +59,7 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 		user.AvatarUrl = &url
 	}
 
-	visits, total, err := s.visitRepo.ListByStaffID(ctx, id, lim, off)
+	visits, total, done, err := s.visitRepo.ListByStaffID(ctx, id, lim, off)
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +68,7 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 		User:       user,
 		Visits:     visits,
 		TotalCount: total,
+		Done:       done,
 	}, nil
 }
 
