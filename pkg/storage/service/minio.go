@@ -88,12 +88,9 @@ func (s *minioService) PresignedDownload(ctx context.Context, objectName string,
 		return "", err
 	}
 
-	if s.publicEndpoint != "" {
-		u.Host = s.publicEndpoint
-	}
-
 	return u.String(), nil
 }
+
 func (s *minioService) MoveObject(ctx context.Context, srcKey, dstKey string) error {
 	src := minio.CopySrcOptions{
 		Bucket: s.bucket,
