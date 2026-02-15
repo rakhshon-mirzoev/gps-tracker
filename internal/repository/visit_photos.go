@@ -16,6 +16,7 @@ type VisitPhotosRepository interface {
 	List(ctx context.Context, visitID uuid.UUID) ([]model.VisitPhotos, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisitPhotos) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	GetByID(ctx context.Context, id uuid.UUID) (*model.VisitPhotos, error)
 }
 
 type visitPhotos struct {
@@ -118,6 +119,26 @@ func (r *visitPhotos) GetByVisitID(ctx context.Context, id uuid.UUID) ([]model.V
 	}
 
 	return v, nil
+}
+
+func (r *visitPhotos) GetByID(ctx context.Context, id uuid.UUID) (*model.VisitPhotos, error) {
+	sql := `
+        SELECT id, visit_id, photo_key, original_name, captured_at
+        FROM visit_photos WHERE id = $1
+    `
+
+	var v model.VisitPhotos
+	if err := r.DB.Pool.QueryRow(ctx, sql, id).Scan(
+		&v.ID,
+		&v.VisitID,
+		&v.PhotoKey,
+		&v.OriginalName,
+		&v.CapturedAt,
+	); err != nil {
+		return nil, fmt.Errorf("get by id visit photos: %w", err)
+	}
+
+	return &v, nil
 }
 
 func (r *visitPhotos) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisitPhotos) error {

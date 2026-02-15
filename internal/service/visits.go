@@ -163,14 +163,6 @@ func (s *visitsService) GetByIDPhoto(ctx context.Context, id uuid.UUID) (*model.
 		return nil, err
 	}
 
-	if visit.SelfieKey != nil {
-		url, err := s.minio.PresignedDownload(ctx, *visit.SelfieKey, time.Minute*15)
-		if err != nil {
-			return nil, err
-		}
-		visit.SelfieUrl = &url
-	}
-
 	return &model.VisitWithPhoto{
 		Visit: *visit,
 		Photo: photos,
@@ -235,7 +227,7 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.
 
 	selfie := file.File["selfie"]
 
-	if len(selfie) == 0 || len(selfie) > 1 {
+	if len(selfie) > 1 {
 		return errs.ErrorInvalidFileFormat
 	}
 
@@ -259,8 +251,6 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.
 	if err != nil {
 		return fmt.Errorf("failed to upload selfie to minio: %w", err)
 	}
-
-	dto.SelfieKey = &selfieKey
 
 	vp := &model.VisitPhotos{
 		VisitID:      id,
@@ -300,10 +290,11 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.
 			return fmt.Errorf("failed to upload shelf photo %d to minio: %w", idx+1, err)
 		}
 
-		vp = &model.VisitPhotos{
+		vp := &model.VisitPhotos{
 			PhotoKey:     photoKey,
 			VisitID:      id,
 			OriginalName: f.Filename,
+			CapturedAt:   time.Now().UTC(),
 		}
 
 		err = s.photo.Create(ctx, vp)

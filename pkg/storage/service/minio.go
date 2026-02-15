@@ -12,6 +12,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/rakhshon-mirzoev/gps-tracker/config"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
+	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	"go.uber.org/zap"
 )
 
@@ -211,5 +212,15 @@ func (s *minioService) UploadFile(ctx context.Context, file *multipart.FileHeade
 }
 
 func (s *minioService) RemoveObject(ctx context.Context, objectName string) error {
-	return s.minio.RemoveObject(ctx, s.bucket, objectName, minio.RemoveObjectOptions{})
+	_, err := s.minio.StatObject(ctx, s.bucket, objectName, minio.StatObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("object not found: %w", errs.ErrorNotFound)
+	}
+
+	err = s.minio.RemoveObject(ctx, s.bucket, objectName, minio.RemoveObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("remove object: %w", err)
+	}
+
+	return nil
 }

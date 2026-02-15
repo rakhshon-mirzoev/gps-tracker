@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
+	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 )
 
 type VisitPhotos interface {
@@ -18,7 +19,8 @@ type VisitPhotos interface {
 }
 
 type visitPhotosService struct {
-	repo repository.VisitPhotosRepository
+	repo  repository.VisitPhotosRepository
+	minio minioservice.Minio
 }
 
 func NewVisitPhotosService(repo repository.VisitPhotosRepository) VisitPhotos {
@@ -48,9 +50,19 @@ func (s *visitPhotosService) Update(ctx context.Context, id uuid.UUID, dto model
 }
 
 func (s *visitPhotosService) Delete(ctx context.Context, id uuid.UUID) error {
-	if id == uuid.Nil {
-		return errors.New("id is required")
+
+	vp, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
 	}
 
-	return s.repo.Delete(ctx, id)
+	if err := s.minio.RemoveObject(ctx, vp.PhotoKey); err != nil {
+		return err
+	}
+
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	return nil
 }

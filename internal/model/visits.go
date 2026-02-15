@@ -16,8 +16,6 @@ type Visit struct {
 	CheckInLat        *float64   `json:"check_in_lat" db:"check_in_lat"`
 	CheckInLon        *float64   `json:"check_in_lon" db:"check_in_lon"`
 	DistanceDeviation int        `json:"distance_deviation" db:"distance_deviation"`
-	SelfieKey         *string    `json:"-" db:"selfie_key"`
-	SelfieUrl         *string    `json:"selfie_url"`
 	Comment           *string    `json:"comment" db:"comment"`
 	IsOffline         bool       `json:"is_offline" db:"is_offline"`
 	ReviewStatus      string     `json:"review_status" db:"review_status"`
@@ -35,7 +33,6 @@ type UpdateVisit struct {
 	CheckInLat        *float64   `json:"check_in_lat"`
 	CheckInLon        *float64   `json:"check_in_lon"`
 	DistanceDeviation *int       `json:"distance_deviation"`
-	SelfieKey         *string    `json:"selfie_key"`
 	Comment           *string    `json:"comment"`
 	IsOffline         *bool      `json:"is_offline"`
 	ReviewStatus      *string    `json:"review_status"`
@@ -68,7 +65,6 @@ type VisitResponse struct {
 	CheckInLat        *float64         `json:"check_in_lat"`
 	CheckInLon        *float64         `json:"check_in_lon"`
 	DistanceDeviation int              `json:"distance_deviation"`
-	SelfieURL         *string          `json:"selfie_url"`
 	ShelfPhotos       []string         `json:"shelf_photos"`
 	Comment           *string          `json:"comment"`
 	IsOffline         bool             `json:"is_offline"`
@@ -98,7 +94,6 @@ type VisitExcel struct {
 	CheckInLat        float64     `json:"check_in_lat"`
 	CheckInLon        float64     `json:"check_in_lon"`
 	DistanceDeviation int         `json:"distance_deviation"`
-	SelfieURL         *string     `json:"selfie_url"`
 	Comment           *string     `json:"comment"`
 	ReviewStatus      *string     `json:"review_status"`
 	ReviewComment     *string     `json:"review_comment"`
