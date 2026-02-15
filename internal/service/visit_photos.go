@@ -23,7 +23,7 @@ type visitPhotosService struct {
 	minio minioservice.Minio
 }
 
-func NewVisitPhotosService(repo repository.VisitPhotosRepository) VisitPhotos {
+func NewVisitPhotosService(repo repository.VisitPhotosRepository, minio minioservice.Minio) VisitPhotos {
 	return &visitPhotosService{repo: repo}
 }
 
