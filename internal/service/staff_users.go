@@ -235,9 +235,6 @@ func (s *staffUserService) Delete(ctx context.Context, id uuid.UUID, user_id uui
 }
 
 func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model.DeactivateStaffUser, user_id uuid.UUID, ip, role, st, action string) error {
-	if err := s.r.Deactivate(ctx, id, d); err != nil {
-		return err
-	}
 
 	user, err := s.r.GetByID(ctx, id)
 	if err != nil || user.FcmToken == nil {
@@ -246,6 +243,10 @@ func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model
 
 	if user.DeactivatedByID != nil {
 		return errs.ErrorUserDeactivated
+	}
+
+	if err := s.r.Deactivate(ctx, id, d); err != nil {
+		return err
 	}
 
 	if err := s.notifications.CreateAndPushToUser(ctx, id, "access deny", "account is deactivated", "account_blocked", map[string]any{"type": "account_blocked"}, user.FcmToken); err != nil {
