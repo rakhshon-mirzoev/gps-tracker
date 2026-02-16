@@ -48,6 +48,10 @@ func (w *Worker) process(ctx context.Context) {
 			continue
 		}
 
+		if user.DeactivatedByID != nil {
+			continue
+		}
+
 		err = w.sender.SendToToken(
 			ctx,
 			*user.FcmToken,

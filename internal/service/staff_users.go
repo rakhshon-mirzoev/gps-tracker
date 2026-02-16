@@ -50,6 +50,10 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 		return nil, err
 	}
 
+	if user.DeactivatedByID != nil {
+		return nil, errs.ErrorUserDeactivated
+	}
+
 	if user.AvatarKey != nil {
 		url, err := s.minio.PresignedDownload(ctx, *user.AvatarKey, 15*time.Minute)
 		if err != nil {
@@ -164,7 +168,17 @@ func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser
 }
 
 func (s *staffUserService) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error) {
-	return s.r.GetByID(ctx, id)
+
+	user, err := s.r.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if user.DeactivatedByID != nil {
+		return nil, errs.ErrorUserDeactivated
+	}
+
+	return user, nil
 }
 
 func (s *staffUserService) List(ctx context.Context, limit, offset int) ([]model.StaffUser, int, error) {
@@ -227,8 +241,11 @@ func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model
 
 	user, err := s.r.GetByID(ctx, id)
 	if err != nil || user.FcmToken == nil {
-		logger.Log.Warn("fcm token nil or user get by id error: %w", zap.Error(err))
 		return nil
+	}
+
+	if user.DeactivatedByID != nil {
+		return errs.ErrorUserDeactivated
 	}
 
 	if err := s.notifications.CreateAndPushToUser(ctx, id, "access deny", "account is deactivated", "account_blocked", map[string]any{"type": "account_blocked"}, user.FcmToken); err != nil {

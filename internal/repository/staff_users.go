@@ -102,10 +102,6 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 		return nil, err
 	}
 
-	if u.DeactivatedByID != nil {
-		return nil, errs.ErrorUserDeactivated
-	}
-
 	return &u, nil
 }
 
