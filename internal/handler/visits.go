@@ -232,13 +232,25 @@ func (h *Handler) ListVisitsByStaffID(c *gin.Context) {
 		return
 	}
 
-	lim, off, err := getLimitOffset(c)
+	begin, err := time.Parse("2006-01-02", c.Query("begin"))
 	if err != nil {
-		h.handleFieldError(c, "ReviewQueue: get limit/offset", err)
+		h.handleFieldError(c, "ListVisitsByStaffID: parse begin", err)
 		return
 	}
 
-	visits, total, _, err := h.s.Visit.ListByStaffID(c.Request.Context(), uid, lim, off)
+	end, err := time.Parse("2006-01-02", c.Query("end"))
+	if err != nil {
+		h.handleFieldError(c, "ListVisitsByStaffID: parse end", err)
+		return
+	}
+
+	lim, off, err := getLimitOffset(c)
+	if err != nil {
+		h.handleFieldError(c, "ListVisitsByStaffID: get limit/offset", err)
+		return
+	}
+
+	visits, total, err := h.s.Visit.ListByStaffID(c.Request.Context(), uid, lim, off, begin, end)
 	if err != nil {
 		h.handleError(c, "ListVisitsByStaffID: list visits", err, http.StatusInternalServerError)
 		return

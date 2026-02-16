@@ -59,7 +59,17 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 		user.AvatarUrl = &url
 	}
 
-	visits, total, done, err := s.visitRepo.ListByStaffID(ctx, id, lim, off)
+	visits, total, err := s.visitRepo.ListByStaffID(ctx, id, lim, off, time.Now().AddDate(0, -1, 0), time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	totalMonth, doneMonth, err := s.visitRepo.CountVisit(ctx, id, time.Now().AddDate(0, -1, 0), time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	totalWeek, doneWeek, err := s.visitRepo.CountVisit(ctx, id, time.Now().AddDate(0, 0, -7), time.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +78,10 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 		User:       user,
 		Visits:     visits,
 		TotalCount: total,
-		Done:       done,
+		TotalMonth: totalMonth,
+		DoneMonth:  doneMonth,
+		TotalWeek:  totalWeek,
+		DoneWeek:   doneWeek,
 	}, nil
 }
 

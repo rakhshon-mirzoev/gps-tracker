@@ -49,16 +49,13 @@ func (h *Handler) AllStaffOnlineOffline(c *gin.Context) {
 		return
 	}
 
-	beginStr := c.Query("begin")
-	endStr := c.Query("end")
-
-	begin, err := time.Parse("2006-01-02", beginStr)
+	begin, err := time.Parse("2006-01-02", c.Query("begin"))
 	if err != nil {
 		h.handleFieldError(c, "AllStaffOnlineOffline: parse begin", err)
 		return
 	}
 
-	end, err := time.Parse("2006-01-02", endStr)
+	end, err := time.Parse("2006-01-02", c.Query("end"))
 	if err != nil {
 		h.handleFieldError(c, "AllStaffOnlineOffline: parse end", err)
 		return

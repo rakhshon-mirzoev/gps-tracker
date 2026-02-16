@@ -78,7 +78,10 @@ type StaffUserProfile struct {
 	User       *StaffUser `json:"user"`
 	Visits     []Visit    `json:"visits"`
 	TotalCount int        `json:"total_count"`
-	Done       int        `json:"done_count"`
+	DoneMonth  int        `json:"done_count_month"`
+	DoneWeek   int        `json:"done_count_week"`
+	TotalMonth int        `json:"total_count_month"`
+	TotalWeek  int        `json:"total_count_week"`
 }
 
 type StaffUserLocation struct {

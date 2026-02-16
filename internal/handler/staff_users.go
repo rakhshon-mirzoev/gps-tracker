@@ -319,7 +319,7 @@ func (h *Handler) StartWork(c *gin.Context) {
 		return
 	}
 
-	now := time.Now().UTC()
+	now := time.Now()
 
 	if err := h.s.StaffUser.Update(c.Request.Context(), user_id, model.UpdateStaffUser{
 		StartAt: &now,
@@ -342,7 +342,7 @@ func (h *Handler) EndWork(c *gin.Context) {
 		return
 	}
 
-	now := time.Now().UTC()
+	now := time.Now()
 
 	if err := h.s.StaffUser.Update(c.Request.Context(), user_id, model.UpdateStaffUser{
 		EndAt: &now,

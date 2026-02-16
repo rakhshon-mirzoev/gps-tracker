@@ -23,7 +23,7 @@ type Visits interface {
 	Create(ctx context.Context, v model.CreateVisit, user_id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
-	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, int, error)
+	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int, begin, end time.Time) ([]model.Visit, int, error)
 	VisitComplete(ctx context.Context, id string, dto model.UpdateVisit, staff_id uuid.UUID) error
 	VisitPhoto(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, file *multipart.Form) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -94,7 +94,7 @@ func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, u
 	}
 	defer tx.Rollback(ctx)
 
-	now := time.Now().UTC()
+	now := time.Now()
 
 	visit := model.Visit{
 		StaffID:           user_id,
@@ -183,7 +183,7 @@ func (s *visitsService) VisitComplete(ctx context.Context, id string, dto model.
 		return err
 	}
 	pending := "pending"
-	now := time.Now().UTC()
+	now := time.Now()
 	dto.ReviewStatus = &pending
 	if err := s.repo.Update(ctx, uid, dto); err != nil {
 		return err
@@ -294,7 +294,7 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.
 			PhotoKey:     photoKey,
 			VisitID:      id,
 			OriginalName: f.Filename,
-			CapturedAt:   time.Now().UTC(),
+			CapturedAt:   time.Now(),
 		}
 
 		err = s.photo.Create(ctx, vp)
@@ -364,6 +364,6 @@ func (s *visitsService) GetDataForExcel(ctx context.Context, staff_id, store_id 
 	return s.repo.GetDataForExcel(ctx, staff_id, store_id, begin, end)
 }
 
-func (s *visitsService) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, int, error) {
-	return s.repo.ListByStaffID(ctx, staff_id, lim, off)
+func (s *visitsService) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int, begin, end time.Time) ([]model.Visit, int, error) {
+	return s.repo.ListByStaffID(ctx, staff_id, lim, off, begin, end)
 }

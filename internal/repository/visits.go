@@ -18,7 +18,7 @@ type VisitRepository interface {
 	Create(ctx context.Context, v model.Visit) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
-	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, int, error)
+	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int, begin, end time.Time) ([]model.Visit, int, error)
 	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -26,6 +26,7 @@ type VisitRepository interface {
 	GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, staffID uuid.UUID) (*model.Visit, error)
 	CreateTx(ctx context.Context, tx pgx.Tx, v *model.Visit) error
 	BeginTx(ctx context.Context) (pgx.Tx, error)
+	CountVisit(ctx context.Context, staff_id uuid.UUID, begin, end time.Time) (int, int, error)
 }
 
 type visit struct {
@@ -491,23 +492,16 @@ func (s *visit) GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, s
 	return &v, nil
 }
 
-func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int) ([]model.Visit, int, int, error) {
+func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int, begin, end time.Time) ([]model.Visit, int, error) {
 	var (
 		v     []model.Visit
 		total int
-		done  int
 	)
 
 	totalSql := `SELECT COUNT(*) FROM visits WHERE staff_id = $1`
 
 	if err := s.DB.Pool.QueryRow(ctx, totalSql, staff_id).Scan(&total); err != nil {
-		return nil, 0, 0, fmt.Errorf("count visits: %w", err)
-	}
-
-	doneSql := `SELECT COUNT(*) FROM visits where staff_id = $1 AND review_status = 'approved'`
-
-	if err := s.DB.Pool.QueryRow(ctx, doneSql, staff_id).Scan(&done); err != nil {
-		return nil, 0, 0, fmt.Errorf("count done: %w", err)
+		return nil, 0, fmt.Errorf("total count: %w", err)
 	}
 
 	sql := `
@@ -516,12 +510,12 @@ func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off 
 			   is_offline, review_status, review_comment, reviewer_id,
 			   reviewed_at, created_at
 		FROM visits 
-		WHERE staff_id = $1
+		WHERE staff_id = $1 AND check_in_at >= $2 AND check_in_at < $3
 	`
 
-	rows, err := s.DB.Pool.Query(ctx, sql, staff_id)
+	rows, err := s.DB.Pool.Query(ctx, sql, staff_id, begin, end)
 	if err != nil {
-		return nil, 0, 0, fmt.Errorf("query exec list by staff id: %w", err)
+		return nil, 0, fmt.Errorf("query exec list by staff id: %w", err)
 	}
 	defer rows.Close()
 
@@ -543,15 +537,36 @@ func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off 
 			&visit.ReviewedAt,
 			&visit.CreatedAt,
 		); err != nil {
-			return nil, 0, 0, fmt.Errorf("rows scan list by staff id: %w", err)
+			return nil, 0, fmt.Errorf("rows scan list by staff id: %w", err)
 		}
 
 		v = append(v, visit)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, 0, 0, fmt.Errorf("rows err: %w", err)
+		return nil, 0, fmt.Errorf("rows err: %w", err)
 	}
 
-	return v, total, done, nil
+	return v, total, nil
+}
+
+func (s *visit) CountVisit(ctx context.Context, staff_id uuid.UUID, begin, end time.Time) (int, int, error) {
+	var (
+		done  int
+		total int
+	)
+
+	doneSql := `SELECT COUNT(*) FROM visits WHERE staff_id = $1 AND review_status = 'approved' AND check_in_at >= $2 AND check_in_at < $3`
+
+	if err := s.DB.Pool.QueryRow(ctx, doneSql, staff_id, begin, end).Scan(&done); err != nil {
+		return 0, 0, fmt.Errorf("scan query row count visit: %w", err)
+	}
+
+	totalSql := `SELECT COUNT(*) FROM visits WHERE staff_id = $1 AND check_in_at >= $2 and check_in_at < $3`
+
+	if err := s.DB.Pool.QueryRow(ctx, totalSql, staff_id, begin, end).Scan(&total); err != nil {
+		return 0, 0, fmt.Errorf("count visits: %w", err)
+	}
+
+	return done, total, nil
 }
