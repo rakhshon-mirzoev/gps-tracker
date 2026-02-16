@@ -227,6 +227,7 @@ func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model
 
 	user, err := s.r.GetByID(ctx, id)
 	if err != nil || user.FcmToken == nil {
+		logger.Log.Warn("fcm token nil or user get by id error: %w", zap.Error(err))
 		return nil
 	}
 
