@@ -232,6 +232,10 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 	deactivate.DeactivatedByID = &user_id
 
 	if err := h.s.StaffUser.Deactivate(c.Request.Context(), uid, deactivate, user_id, c.ClientIP(), role.(string), constants.UserTypeStaff, "Deactivate"); err != nil {
+		if errors.Is(err, errs.ErrorUserDeactivated) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "already deactivated"})
+			return
+		}
 		h.handleError(c, "DeactivateStaffUser", err, http.StatusInternalServerError)
 		return
 	}
