@@ -64,12 +64,21 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 		return nil, err
 	}
 
-	totalMonth, doneMonth, err := s.visitRepo.CountVisit(ctx, id, time.Now().AddDate(0, -1, 0), time.Now())
+	/* now := time.Now()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()) - если календарный месяц*/
+
+	/* weekday := int(now.Weekday())
+	if weekday == 0 {
+	    weekday = 7
+	}
+	weekStart := time.Date(now.Year(), now.Month(), now.Day()-weekday+1, 0, 0, 0, 0, now.Location())  - неделя с понедельника*/
+
+	doneMonth, totalMonth, err := s.visitRepo.CountVisit(ctx, id, time.Now().AddDate(0, -1, 0), time.Now())
 	if err != nil {
 		return nil, err
 	}
 
-	totalWeek, doneWeek, err := s.visitRepo.CountVisit(ctx, id, time.Now().AddDate(0, 0, -7), time.Now())
+	doneWeek, totalWeek, err := s.visitRepo.CountVisit(ctx, id, time.Now().AddDate(0, 0, -7), time.Now())
 	if err != nil {
 		return nil, err
 	}
