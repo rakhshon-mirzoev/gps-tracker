@@ -19,11 +19,12 @@ type StaffStoresMapping interface {
 }
 
 type staffStoresMappingService struct {
-	r repository.StaffStoresMappingRepository
+	r     repository.StaffStoresMappingRepository
+	staff StaffUsers
 }
 
-func NewStaffStoresMappingService(r repository.StaffStoresMappingRepository) StaffStoresMapping {
-	return &staffStoresMappingService{r: r}
+func NewStaffStoresMappingService(r repository.StaffStoresMappingRepository, staff StaffUsers) StaffStoresMapping {
+	return &staffStoresMappingService{r: r, staff: staff}
 }
 
 func (s *staffStoresMappingService) Create(ctx context.Context, ssm *model.StaffStoresMapping) error {
@@ -76,5 +77,15 @@ func (s *staffStoresMappingService) Delete(ctx context.Context, id uuid.UUID) er
 }
 
 func (s *staffStoresMappingService) ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]model.Store, int, error) {
-	return s.r.ListByStaffID(ctx, id, lim, off)
+	_, err := s.staff.GetByID(ctx, id)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	store, total, err := s.r.ListByStaffID(ctx, id, lim, off)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return store, total, nil
 }

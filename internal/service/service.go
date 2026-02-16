@@ -39,7 +39,7 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio, send
 	visit := NewVisitsService(r.Visit, minio, store, visitPhotos, staff, notifSvc, audit, sch, group)
 	location := NewLocationHistoryService(r.Location, staff, publisher)
 	ss := NewSystemSettingsService(r.SystemSettings, audit)
-	ssm := NewStaffStoresMappingService(r.StaffStoresMapping)
+	ssm := NewStaffStoresMappingService(r.StaffStoresMapping, staff)
 	excel := NewExcelService()
 	storePhotos := NewStorePhotosService(r.StorePhotos)
 	return &Service{
