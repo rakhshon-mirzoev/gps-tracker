@@ -13,6 +13,7 @@ type VisitPhotos struct {
 	PhotoKey     string    `json:"-" db:"photo_key"`
 	CapturedAt   time.Time `json:"captured_at" db:"captured_at"`
 	OriginalName string    `json:"original_name" db:"original_name"`
+	PhotoType    string    `json:"photo_type"`
 }
 
 type UpdateVisitPhotos struct {

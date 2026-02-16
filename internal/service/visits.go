@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -153,6 +154,11 @@ func (s *visitsService) GetByIDPhoto(ctx context.Context, id uuid.UUID) (*model.
 		url, err := s.minio.PresignedDownload(ctx, photos[i].PhotoKey, time.Minute*15)
 		if err != nil {
 			return nil, err
+		}
+		if strings.Contains(photos[i].PhotoKey, "selfie") {
+			photos[i].PhotoType = "selfie"
+		} else {
+			photos[i].PhotoType = "shelf"
 		}
 
 		photos[i].PhotoUrl = url
