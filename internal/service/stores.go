@@ -39,10 +39,10 @@ func NewStoresService(repo repository.StoreRepository, audit AuditLogs, minio mi
 }
 
 func (s *storesService) Create(ctx context.Context, store model.CreateStore, userID uuid.UUID) error {
+
 	if err := utils.ValidateAllPhotos(store.InteriorPhotos, store.ExteriorPhotos); err != nil {
 		return err
 	}
-
 	if len(store.ExteriorPhotos) > 10 || len(store.InteriorPhotos) > 10 {
 		return errs.ErrorTooManyFiles
 	}
@@ -99,26 +99,20 @@ func (s *storesService) Create(ctx context.Context, store model.CreateStore, use
 
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(5)
+	newKeys := make([]string, len(allPhotos))
 
-	for _, p := range allPhotos {
+	for i, p := range allPhotos {
+		i := i
 		p := p
 		g.Go(func() error {
 			if !strings.HasPrefix(p.Key, "stores/tmp/") {
 				return fmt.Errorf("invalid photo key: %s", p.Key)
 			}
 			newKey := strings.Replace(p.Key, "stores/tmp/", "stores/proposals/", 1)
-
 			if err := s.minio.MoveObject(ctx, p.Key, newKey); err != nil {
 				return err
 			}
-
-			if err := s.photos.CreateTx(ctx, tx, &model.StorePhotos{
-				StoreID:   st.ID,
-				ObjectKey: newKey,
-				Type:      p.Type,
-			}); err != nil {
-				return err
-			}
+			newKeys[i] = newKey
 			return nil
 		})
 	}
@@ -127,9 +121,18 @@ func (s *storesService) Create(ctx context.Context, store model.CreateStore, use
 		return err
 	}
 
+	for i, p := range allPhotos {
+		if err := s.photos.CreateTx(ctx, tx, &model.StorePhotos{
+			StoreID:   st.ID,
+			ObjectKey: newKeys[i],
+			Type:      p.Type,
+		}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
-
 func (s *storesService) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error) {
 
 	return s.r.GetByID(ctx, id)
