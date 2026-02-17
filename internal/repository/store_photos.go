@@ -3,9 +3,9 @@ package repository
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 )
@@ -14,8 +14,8 @@ type StorePhotosRepository interface {
 	Create(ctx context.Context, sp *model.StorePhotos) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StorePhotos, error)
 	List(ctx context.Context, storeID uuid.UUID) ([]model.StorePhotos, error)
-	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStorePhotos) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	CreateTx(ctx context.Context, tx pgx.Tx, sp *model.StorePhotos) error
 }
 
 type storePhotos struct {
@@ -26,20 +26,27 @@ func NewStorePhotosRepository(db *db.DB) StorePhotosRepository {
 	return &storePhotos{DB: db}
 }
 
+func (s *storePhotos) CreateTx(ctx context.Context, tx pgx.Tx, sp *model.StorePhotos) error {
+	sql := `
+	INSERT INTO store_photos (store_id, object_key, type)
+	VALUES ($1,$2,$3)
+	RETURNING id, created_at
+	`
+	if err := tx.QueryRow(ctx, sql, sp.StoreID, sp.ObjectKey, sp.Type).Scan(&sp.ID, &sp.CreatedAt); err != nil {
+		return fmt.Errorf("create store photo tx: %w", err)
+	}
+	return nil
+}
+
 func (r *storePhotos) Create(ctx context.Context, sp *model.StorePhotos) error {
 	sql := `
-        INSERT INTO store_photos (
-            store_id,
-            photo_url,
-            type
-        ) VALUES (
-            $1, $2, $3
-        ) RETURNING id, created_at;
-    `
+		INSERT INTO store_photos (store_id, object_key, type)
+		VALUES ($1, $2, $3)
+	`
 
-	err := r.DB.Pool.QueryRow(ctx, sql, sp.StoreID, sp.PhotoURL, sp.Type).Scan(&sp.ID, &sp.CreatedAt)
+	_, err := r.DB.Pool.Exec(ctx, sql, sp.StoreID, sp.ObjectKey, sp.Type)
 	if err != nil {
-		return fmt.Errorf("create store photos: %w", err)
+		return fmt.Errorf("add store photo: %w", err)
 	}
 
 	return nil
@@ -47,7 +54,7 @@ func (r *storePhotos) Create(ctx context.Context, sp *model.StorePhotos) error {
 
 func (r *storePhotos) GetByID(ctx context.Context, id uuid.UUID) (*model.StorePhotos, error) {
 	sql := `
-        SELECT id, store_id, photo_url, type, created_at
+        SELECT id, store_id, object_key, type, created_at
         FROM store_photos WHERE id = $1
     `
 
@@ -55,7 +62,7 @@ func (r *storePhotos) GetByID(ctx context.Context, id uuid.UUID) (*model.StorePh
 	err := r.DB.Pool.QueryRow(ctx, sql, id).Scan(
 		&sp.ID,
 		&sp.StoreID,
-		&sp.PhotoURL,
+		&sp.ObjectKey,
 		&sp.Type,
 		&sp.CreatedAt,
 	)
@@ -68,8 +75,8 @@ func (r *storePhotos) GetByID(ctx context.Context, id uuid.UUID) (*model.StorePh
 
 func (r *storePhotos) List(ctx context.Context, storeID uuid.UUID) ([]model.StorePhotos, error) {
 	sql := `
-        SELECT id, store_id, photo_url, type, created_at
-        FROM store_photos WHERE store_id = $1
+        SELECT id, store_id, object_key, type, created_at
+        FROM store_photos WHERE store_id = $1 ORDER BY created_at
     `
 
 	rows, err := r.DB.Pool.Query(ctx, sql, storeID)
@@ -85,7 +92,7 @@ func (r *storePhotos) List(ctx context.Context, storeID uuid.UUID) ([]model.Stor
 		if err := rows.Scan(
 			&sp.ID,
 			&sp.StoreID,
-			&sp.PhotoURL,
+			&sp.ObjectKey,
 			&sp.Type,
 			&sp.CreatedAt,
 		); err != nil {
@@ -100,45 +107,6 @@ func (r *storePhotos) List(ctx context.Context, storeID uuid.UUID) ([]model.Stor
 	}
 
 	return photos, nil
-}
-
-func (r *storePhotos) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStorePhotos) error {
-	sql := `UPDATE store_photos SET `
-	var args []any
-	n := 1
-
-	if dto.StoreID != nil {
-		sql += fmt.Sprintf("store_id = $%d, ", n)
-		args = append(args, *dto.StoreID)
-		n++
-	}
-
-	if dto.PhotoURL != nil {
-		sql += fmt.Sprintf("photo_url = $%d, ", n)
-		args = append(args, *dto.PhotoURL)
-		n++
-	}
-
-	if dto.Type != nil {
-		sql += fmt.Sprintf("type = $%d, ", n)
-		args = append(args, *dto.Type)
-		n++
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	sql = strings.TrimSuffix(sql, ", ")
-	sql += fmt.Sprintf(" WHERE id = $%d", n)
-	args = append(args, id)
-
-	_, err := r.DB.Pool.Exec(ctx, sql, args...)
-	if err != nil {
-		return fmt.Errorf("update store photos: %w", err)
-	}
-
-	return nil
 }
 
 func (r *storePhotos) Delete(ctx context.Context, id uuid.UUID) error {

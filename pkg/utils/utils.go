@@ -121,3 +121,32 @@ func ValidateStoreStatus(status string) error {
 	return nil
 
 }
+
+func ValidateAllPhotos(interior, exterior []string) error {
+	seen := make(map[string]struct{})
+
+	check := func(keys []string) error {
+		for _, key := range keys {
+			if !strings.HasPrefix(key, "stores/tmp/") {
+				return fmt.Errorf("invalid photo key: %s", key)
+			}
+
+			if _, exists := seen[key]; exists {
+				return fmt.Errorf("%w: %s", errs.ErrorDuplicatePhotoKey, key)
+			}
+
+			seen[key] = struct{}{}
+		}
+		return nil
+	}
+
+	if err := check(interior); err != nil {
+		return err
+	}
+
+	if err := check(exterior); err != nil {
+		return err
+	}
+
+	return nil
+}

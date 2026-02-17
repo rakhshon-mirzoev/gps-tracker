@@ -28,6 +28,7 @@ type Service struct {
 
 func New(r *repository.Repository, t token.Token, minio minioservice.Minio, sender fcm.PushSender, publisher events.LocationPublisher) *Service {
 	audit := NewAuditLogsService(r.Audit)
+	storePhotos := NewStorePhotosService(r.StorePhotos)
 	sch := NewScheduleService(r.Schedules, audit)
 	sys := NewSystemUsersService(r.SystemUsers, audit)
 	group := NewGroupService(r.Groups, audit)
@@ -35,13 +36,13 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio, send
 	staff := NewStaffUserService(r.StaffUsers, r.Visit, sch, sender, notifSvc, audit, minio)
 	authorize := NewAuthorizeService(t, r.Auth, sys, staff)
 	visitPhotos := NewVisitPhotosService(r.VisitPhotos, minio)
-	store := NewStoresService(r.Store, audit, minio)
+	store := NewStoresService(r.Store, audit, minio, storePhotos)
 	visit := NewVisitsService(r.Visit, minio, store, visitPhotos, staff, notifSvc, audit, sch, group)
 	location := NewLocationHistoryService(r.Location, staff, publisher)
 	ss := NewSystemSettingsService(r.SystemSettings, audit)
 	ssm := NewStaffStoresMappingService(r.StaffStoresMapping, staff)
 	excel := NewExcelService()
-	storePhotos := NewStorePhotosService(r.StorePhotos)
+
 	return &Service{
 		SystemUsers:        sys,
 		Group:              group,

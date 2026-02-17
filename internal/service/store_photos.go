@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 )
@@ -13,8 +14,8 @@ type StorePhotos interface {
 	Create(ctx context.Context, sp *model.StorePhotos) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StorePhotos, error)
 	List(ctx context.Context, storeID uuid.UUID) ([]model.StorePhotos, error)
-	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStorePhotos) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	CreateTx(ctx context.Context, tx pgx.Tx, sp *model.StorePhotos) error
 }
 
 type storePhotosService struct {
@@ -26,17 +27,11 @@ func NewStorePhotosService(repo repository.StorePhotosRepository) StorePhotos {
 }
 
 func (s *storePhotosService) Create(ctx context.Context, sp *model.StorePhotos) error {
-	if sp.StoreID == uuid.Nil {
-		return errors.New("store_id is required")
-	}
-	if sp.PhotoURL == "" {
-		return errors.New("photo_url is required")
-	}
-	if sp.Type == "" {
-		return errors.New("type is required")
-	}
-
 	return s.repo.Create(ctx, sp)
+}
+
+func (s *storePhotosService) CreateTx(ctx context.Context, tx pgx.Tx, sp *model.StorePhotos) error {
+	return s.repo.CreateTx(ctx, tx, sp)
 }
 
 func (s *storePhotosService) GetByID(ctx context.Context, id uuid.UUID) (*model.StorePhotos, error) {
@@ -48,15 +43,7 @@ func (s *storePhotosService) GetByID(ctx context.Context, id uuid.UUID) (*model.
 }
 
 func (s *storePhotosService) List(ctx context.Context, storeID uuid.UUID) ([]model.StorePhotos, error) {
-	if storeID == uuid.Nil {
-		return nil, errors.New("store_id is required")
-	}
-
 	return s.repo.List(ctx, storeID)
-}
-
-func (s *storePhotosService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStorePhotos) error {
-	return s.repo.Update(ctx, id, dto)
 }
 
 func (s *storePhotosService) Delete(ctx context.Context, id uuid.UUID) error {

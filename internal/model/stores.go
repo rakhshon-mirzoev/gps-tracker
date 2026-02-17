@@ -17,10 +17,6 @@ type Store struct {
 	OwnerPassport      *string    `json:"owner_passport,omitempty" db:"owner_passport"`
 	OwnerPhone         *string    `json:"owner_phone,omitempty" db:"owner_phone"`
 	AdditionalPhone    *string    `json:"additional_phone,omitempty" db:"additional_phone"`
-	InteriorPhoto      *string    `json:"-" db:"interior_photo"`
-	ExteriorPhoto      *string    `json:"-" db:"exterior_photo"`
-	InteriorPhotoURL   *string    `json:"interior_photo"`
-	ExteriorPhotoURL   *string    `json:"exterior_photo"`
 	Comment            *string    `json:"comment,omitempty" db:"comment"`
 	Status             string     `json:"status" db:"status"`
 	RejectionComment   *string    `json:"rejection_comment,omitempty" db:"rejection_comment"`
@@ -34,19 +30,18 @@ type Store struct {
 }
 
 type CreateStore struct {
-	Name             string  `json:"name" binding:"required"`
-	Address          string  `json:"address" binding:"required"`
-	Latitude         float64 `json:"latitude" binding:"required"`
-	Longitude        float64 `json:"longitude" binding:"required"`
-	OwnerFullName    string  `json:"owner_full_name" binding:"required"`
-	OwnerINN         string  `json:"owner_inn" binding:"required"`
-	OwnerPhone       string  `json:"owner_phone" binding:"required"`
-	OwnerPassport    *string `json:"owner_passport"`
-	AdditionalPhone  *string `json:"additional_phone"`
-	Comment          *string `json:"comment"`
-	InteriorPhoto    *string `json:"interior_photo"`
-	ExteriorPhoto    *string `json:"exterior_photo"`
-	CreatedByStaffID string  `json:"created_by_staff_id"`
+	Name            string   `json:"name" binding:"required"`
+	Address         string   `json:"address" binding:"required"`
+	Latitude        float64  `json:"latitude" binding:"required"`
+	Longitude       float64  `json:"longitude" binding:"required"`
+	OwnerFullName   string   `json:"owner_full_name" binding:"required"`
+	OwnerINN        string   `json:"owner_inn" binding:"required"`
+	OwnerPhone      string   `json:"owner_phone" binding:"required"`
+	OwnerPassport   *string  `json:"owner_passport"`
+	AdditionalPhone *string  `json:"additional_phone"`
+	Comment         *string  `json:"comment"`
+	InteriorPhotos  []string `json:"interior_photos"`
+	ExteriorPhotos  []string `json:"exterior_photos"`
 }
 
 type UpdateStore struct {
@@ -59,8 +54,6 @@ type UpdateStore struct {
 	OwnerPassport      *string    `json:"owner_passport"`
 	OwnerPhone         *string    `json:"owner_phone"`
 	AdditionalPhone    *string    `json:"additional_phone"`
-	InteriorPhoto      *string    `json:"interior_photo"`
-	ExteriorPhoto      *string    `json:"exterior_photo"`
 	Comment            *string    `json:"comment"`
 	CreatedByStaffID   *string    `json:"created_by_staff_id"`
 	Status             *string    `json:"status"`
@@ -70,4 +63,9 @@ type UpdateStore struct {
 	DeactivatedAt      *time.Time `json:"deactivated_at,omitempty"`
 	DeactivatedByID    *string    `json:"deactivated_by_id,omitempty"`
 	DeactivationReason *string    `json:"deactivation_reason,omitempty"`
+}
+
+type StoreWithPhoto struct {
+	Store       Store         `json:"store"`
+	StorePhotos []StorePhotos `json:"photos"`
 }

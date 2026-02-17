@@ -37,4 +37,6 @@ var (
 	ErrorInvalidStatus       = errors.New("invalid status")
 	ErrorGroupIDRequired     = errors.New("group id required for staff user")
 	ErrorUserDeactivated     = errors.New("user is deactivated")
+	ErrorTooManyFiles        = errors.New("too many files")
+	ErrorDuplicatePhotoKey   = errors.New("duplicate photo key")
 )

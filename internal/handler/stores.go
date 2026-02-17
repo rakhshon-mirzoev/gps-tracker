@@ -20,12 +20,8 @@ func (h *Handler) GetStoreByID(c *gin.Context) {
 		return
 	}
 
-	store, err := h.s.Store.GetByID(c.Request.Context(), uid)
+	store, err := h.s.Store.GetByIDPhoto(c.Request.Context(), uid)
 	if err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Store not found"})
-			return
-		}
 		h.handleError(c, "GetStoreByID", err, http.StatusInternalServerError)
 		return
 	}
@@ -34,7 +30,7 @@ func (h *Handler) GetStoreByID(c *gin.Context) {
 }
 
 func (h *Handler) CreateStore(c *gin.Context) {
-	var dto *model.CreateStore
+	var dto model.CreateStore
 	user_id, err := checkStaffUser(c)
 	if err != nil {
 		h.handleFieldError(c, "CreateStore: check staff", err)
@@ -50,6 +46,9 @@ func (h *Handler) CreateStore(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, errs.ErrorAlreadyExists) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "store already exists by that name"})
+			return
+		} else if errors.Is(err, errs.ErrorDuplicatePhotoKey) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "duplicate photo key"})
 			return
 		}
 		h.handleError(c, "CreateStore: create store", err, http.StatusInternalServerError)

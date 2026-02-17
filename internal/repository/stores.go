@@ -25,10 +25,66 @@ type StoreRepository interface {
 	List(ctx context.Context, isActive, status, sortBy, sortOrder string, lim, off int) ([]model.Store, int, error)
 	Deactivate(ctx context.Context, id, deactivatedBy uuid.UUID, reason string) error
 	IfExists(ctx context.Context, name string) (bool, error)
+	BeginTx(ctx context.Context) (pgx.Tx, error)
+	IfExistsTx(ctx context.Context, tx pgx.Tx, name string) (bool, error)
+	CreateTx(ctx context.Context, tx pgx.Tx, st *model.Store) error
 }
 
 func NewStoreRepository(db *db.DB) StoreRepository {
 	return &stores{DB: db}
+}
+
+func (r *stores) BeginTx(ctx context.Context) (pgx.Tx, error) {
+	return r.DB.Pool.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel: pgx.ReadCommitted,
+	})
+
+}
+
+func (s *stores) IfExistsTx(ctx context.Context, tx pgx.Tx, name string) (bool, error) {
+	sql := `SELECT EXISTS(SELECT 1 FROM stores WHERE name=$1)`
+	var exists bool
+	if err := tx.QueryRow(ctx, sql, name).Scan(&exists); err != nil {
+		return false, fmt.Errorf("check exists: %w", err)
+	}
+	return exists, nil
+}
+
+func (r *stores) CreateTx(ctx context.Context, tx pgx.Tx, st *model.Store) error {
+	sql := `
+		INSERT INTO stores (
+			name,
+			address,
+			latitude,
+			longitude,
+			owner_full_name,
+			owner_inn,
+			owner_passport,
+			owner_phone,
+			additional_phone,
+			comment,
+			created_by_staff_id
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id;
+	`
+	if err := r.DB.Pool.QueryRow(
+		ctx,
+		sql,
+		st.Name,
+		st.Address,
+		st.Latitude,
+		st.Longitude,
+		st.OwnerFullName,
+		st.OwnerINN,
+		st.OwnerPassport,
+		st.OwnerPhone,
+		st.AdditionalPhone,
+		st.Comment,
+		st.CreatedByStaffID,
+	).Scan(&st.ID); err != nil {
+		return fmt.Errorf("create store tx: %w", err)
+	}
+	return nil
 }
 
 func (r *stores) Create(ctx context.Context, store *model.Store) error {
@@ -78,8 +134,7 @@ func (r *stores) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error
 		SELECT 
 			id, name, address, latitude, longitude,
 			owner_full_name, owner_inn, owner_passport,
-			owner_phone, additional_phone,
-			interior_photo, exterior_photo, comment,
+			owner_phone, additional_phone, comment,
 			status, rejection_comment,
 			created_by_staff_id,
 			is_active, is_frozen,
@@ -99,8 +154,7 @@ func (r *stores) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error
 		&store.OwnerPassport,
 		&store.OwnerPhone,
 		&store.AdditionalPhone,
-		&store.InteriorPhoto,
-		&store.ExteriorPhoto,
+
 		&store.Comment,
 		&store.Status,
 		&store.RejectionComment,
@@ -179,18 +233,6 @@ func (r *stores) Update(ctx context.Context, store model.UpdateStore, id uuid.UU
 	if store.AdditionalPhone != nil {
 		updates = append(updates, fmt.Sprintf("additional_phone = $%d", argNum))
 		args = append(args, *store.AdditionalPhone)
-		argNum++
-	}
-
-	if store.InteriorPhoto != nil {
-		updates = append(updates, fmt.Sprintf("interior_photo = $%d", argNum))
-		args = append(args, *store.InteriorPhoto)
-		argNum++
-	}
-
-	if store.ExteriorPhoto != nil {
-		updates = append(updates, fmt.Sprintf("exterior_photo = $%d", argNum))
-		args = append(args, *store.ExteriorPhoto)
 		argNum++
 	}
 
@@ -364,8 +406,7 @@ func (r *stores) List(ctx context.Context, isActive, status, sortBy, sortOrder s
 		SELECT 
 			id, name, address, latitude, longitude,
 			owner_full_name, owner_inn, owner_passport,
-			owner_phone, additional_phone,
-			interior_photo, exterior_photo, comment,
+			owner_phone, additional_phone, comment,
 			status, rejection_comment,
 			created_by_staff_id,
 			is_active, is_frozen,
@@ -399,8 +440,7 @@ func (r *stores) List(ctx context.Context, isActive, status, sortBy, sortOrder s
 		if err := rows.Scan(
 			&s.ID, &s.Name, &s.Address, &s.Latitude, &s.Longitude,
 			&s.OwnerFullName, &s.OwnerINN, &s.OwnerPassport,
-			&s.OwnerPhone, &s.AdditionalPhone,
-			&s.InteriorPhoto, &s.ExteriorPhoto, &s.Comment,
+			&s.OwnerPhone, &s.AdditionalPhone, &s.Comment,
 			&s.Status, &s.RejectionComment,
 			&s.CreatedByStaffID,
 			&s.IsActive, &s.IsFrozen,
