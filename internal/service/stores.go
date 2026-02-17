@@ -97,7 +97,7 @@ func (s *storesService) Create(ctx context.Context, store model.CreateStore, use
 		allPhotos = append(allPhotos, photoItem{Key: k, Type: "exterior"})
 	}
 
-	g, ctx := errgroup.WithContext(ctx)
+	g, _ := errgroup.WithContext(ctx)
 	g.SetLimit(5)
 	newKeys := make([]string, len(allPhotos))
 
@@ -109,7 +109,7 @@ func (s *storesService) Create(ctx context.Context, store model.CreateStore, use
 				return fmt.Errorf("invalid photo key: %s", p.Key)
 			}
 			newKey := strings.Replace(p.Key, "stores/tmp/", "stores/proposals/", 1)
-			if err := s.minio.MoveObject(ctx, p.Key, newKey); err != nil {
+			if err := s.minio.MoveObject(context.Background(), p.Key, newKey); err != nil {
 				return err
 			}
 			newKeys[i] = newKey
