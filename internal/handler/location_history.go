@@ -49,13 +49,21 @@ func (h *Handler) AllStaffOnlineOffline(c *gin.Context) {
 		return
 	}
 
-	begin, err := time.Parse("2006-01-02", c.Query("begin"))
+	beginStr := c.Query("begin")
+	endStr := c.Query("end")
+
+	if beginStr == "" || endStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "begin and end dates are required (expected YYYY-MM-DD)"})
+		return
+	}
+
+	begin, err := time.Parse("2006-01-02", beginStr)
 	if err != nil {
 		h.handleFieldError(c, "AllStaffOnlineOffline: parse begin", err)
 		return
 	}
 
-	end, err := time.Parse("2006-01-02", c.Query("end"))
+	end, err := time.Parse("2006-01-02", endStr)
 	if err != nil {
 		h.handleFieldError(c, "AllStaffOnlineOffline: parse end", err)
 		return
