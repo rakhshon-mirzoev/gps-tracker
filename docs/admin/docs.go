@@ -201,10 +201,10 @@ const docTemplate = `{
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/octet-stream"],
                 "parameters": [
-                    {"name": "staff_id", "in": "query", "required": true, "type": "string", "format": "uuid"},
-                    {"name": "store_id", "in": "query", "required": true, "type": "string", "format": "uuid"},
-                    {"name": "begin", "in": "query", "required": true, "type": "string", "format": "date", "description": "Дата начала (YYYY-MM-DD)"},
-                    {"name": "end", "in": "query", "required": true, "type": "string", "format": "date", "description": "Дата окончания (YYYY-MM-DD)"}
+                    {"name": "staff_id", "in": "query", "type": "string", "format": "uuid", "description": "Фильтр по сотруднику (опционально)"},
+                    {"name": "store_id", "in": "query", "type": "string", "format": "uuid", "description": "Фильтр по магазину (опционально)"},
+                    {"name": "begin", "in": "query", "type": "string", "format": "date", "description": "Дата начала (YYYY-MM-DD, опционально)"},
+                    {"name": "end", "in": "query", "type": "string", "format": "date", "description": "Дата окончания (YYYY-MM-DD, опционально)"}
                 ],
                 "responses": {
                     "200": {"description": "Excel-файл с отчётом"},
@@ -728,7 +728,8 @@ const docTemplate = `{
                 "produces": ["application/json"],
                 "parameters": [
                     {"name": "limit", "in": "query", "required": true, "type": "integer"},
-                    {"name": "offset", "in": "query", "required": true, "type": "integer"}
+                    {"name": "offset", "in": "query", "required": true, "type": "integer"},
+                    {"name": "status", "in": "query", "type": "string", "enum": ["pending", "approved", "rejected"], "description": "Фильтр по статусу проверки"}
                 ],
                 "responses": {
                     "200": {
@@ -940,6 +941,22 @@ const docTemplate = `{
                     "400": {"description": "Ошибка валидации"},
                     "403": {"description": "Нет доступа (только admin)"},
                     "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/admin/ws-location": {
+            "get": {
+                "tags": ["Monitoring"],
+                "summary": "WebSocket: обновления геолокации в реальном времени",
+                "description": "WebSocket-соединение для получения обновлений местоположения сотрудников. Подключение через ws:// или wss://. Требуется передать JWT-токен через query-параметр ?token=. Admin видит всех сотрудников, Supervisor — только свою группу. При подключении отправляются текущие последние координаты всех доступных сотрудников.",
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "token", "in": "query", "required": true, "type": "string", "description": "JWT access token (admin или supervisor)"}
+                ],
+                "responses": {
+                    "101": {"description": "Switching Protocols — WebSocket-соединение установлено"},
+                    "401": {"description": "Отсутствует или невалидный токен"},
+                    "403": {"description": "Нет доступа (требуется роль admin или supervisor)"}
                 }
             }
         },
@@ -1331,6 +1348,27 @@ const docTemplate = `{
                 "is_comment_required": {"type": "boolean"},
                 "status": {"type": "string"},
                 "created_by_admin_id": {"type": "string", "format": "uuid"}
+            }
+        },
+        "VisitWithPhoto": {
+            "type": "object",
+            "properties": {
+                "visit": {"$ref": "#/definitions/Visit"},
+                "photos": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/VisitPhotos"}
+                }
+            }
+        },
+        "VisitPhotos": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string", "format": "uuid"},
+                "visit_id": {"type": "string", "format": "uuid"},
+                "photo_url": {"type": "string"},
+                "captured_at": {"type": "string", "format": "date-time"},
+                "original_name": {"type": "string"},
+                "photo_type": {"type": "string", "enum": ["selfie", "shelf"]}
             }
         },
         "Pagination": {

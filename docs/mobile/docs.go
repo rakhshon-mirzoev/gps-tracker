@@ -544,7 +544,9 @@ const docTemplate = `{
                 "produces": ["application/json"],
                 "parameters": [
                     {"name": "limit", "in": "query", "type": "integer", "default": 20},
-                    {"name": "offset", "in": "query", "type": "integer", "default": 0}
+                    {"name": "offset", "in": "query", "type": "integer", "default": 0},
+                    {"name": "begin", "in": "query", "required": true, "type": "string", "format": "date", "description": "Дата начала (YYYY-MM-DD)"},
+                    {"name": "end", "in": "query", "required": true, "type": "string", "format": "date", "description": "Дата окончания (YYYY-MM-DD)"}
                 ],
                 "responses": {
                     "200": {
@@ -595,6 +597,30 @@ const docTemplate = `{
                 }
             }
         },
+        "/mobile/visit/{id}": {
+            "get": {
+                "tags": ["Visits"],
+                "summary": "Получить визит по ID (с фотографиями)",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID визита"}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {"$ref": "#/definitions/VisitWithPhoto"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Невалидный ID"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
         "/mobile/visit/{id}/photo": {
             "post": {
                 "tags": ["Visits"],
@@ -616,6 +642,20 @@ const docTemplate = `{
                         }
                     },
                     "400": {"description": "Ошибка валидации"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            },
+            "delete": {
+                "tags": ["Visits"],
+                "summary": "Удалить фото визита",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID фото визита"}
+                ],
+                "responses": {
+                    "200": {"description": "Фото удалено"},
+                    "400": {"description": "Невалидный ID"},
                     "500": {"description": "Internal Server Error"}
                 }
             }
@@ -877,6 +917,27 @@ const docTemplate = `{
                 "reviewer_id": {"type": "string", "format": "uuid"},
                 "reviewed_at": {"type": "string", "format": "date-time"},
                 "created_at": {"type": "string", "format": "date-time"}
+            }
+        },
+        "VisitWithPhoto": {
+            "type": "object",
+            "properties": {
+                "visit": {"$ref": "#/definitions/Visit"},
+                "photos": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/VisitPhotos"}
+                }
+            }
+        },
+        "VisitPhotos": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string", "format": "uuid"},
+                "visit_id": {"type": "string", "format": "uuid"},
+                "photo_url": {"type": "string"},
+                "captured_at": {"type": "string", "format": "date-time"},
+                "original_name": {"type": "string"},
+                "photo_type": {"type": "string", "enum": ["selfie", "shelf"]}
             }
         },
         "Pagination": {
