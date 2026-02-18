@@ -342,7 +342,7 @@ func (h *Handler) StartWork(c *gin.Context) {
 func (h *Handler) EndWork(c *gin.Context) {
 	user_id, err := checkStaffUser(c)
 	if err != nil {
-		h.handleFieldError(c, "StartWork: check user", err)
+		h.handleFieldError(c, "EndWork: check user", err)
 		return
 	}
 
@@ -355,9 +355,41 @@ func (h *Handler) EndWork(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
 			return
 		}
-		h.handleError(c, "StartWork: update user", err, http.StatusInternalServerError)
+		h.handleError(c, "EndWork: update user", err, http.StatusInternalServerError)
 		return
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (h *Handler) GetWorkTimeStaff(c *gin.Context) {
+	uid, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		h.handleFieldError(c, "GetWorkTimeStaff: parse uuid", err)
+		return
+	}
+
+	time, err := h.s.StaffUser.GetWorkTimeStaff(c.Request.Context(), uid)
+	if err != nil {
+		h.handleError(c, "GetWorkTimeStaff: failed to get time", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"time": time})
+}
+
+func (h *Handler) DayStartedStaff(c *gin.Context) {
+	uid, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		h.handleFieldError(c, "GetWorkTimeStaff: parse uuid", err)
+		return
+	}
+
+	started, err := h.s.StaffUser.DayStarted(c.Request.Context(), uid)
+	if err != nil {
+		h.handleError(c, "GetWorkTimeStaff: failed to get time", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"day_started": started})
 }

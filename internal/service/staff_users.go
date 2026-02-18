@@ -29,6 +29,8 @@ type StaffUsers interface {
 	ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error)
 	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
 	UpdateAvatar(ctx context.Context, userID uuid.UUID, file *multipart.FileHeader) error
+	GetWorkTimeStaff(ctx context.Context, id uuid.UUID) (float64, error)
+	DayStarted(ctx context.Context, id uuid.UUID) (bool, error)
 }
 type staffUserService struct {
 	r             repository.StaffUsersRepository
@@ -41,6 +43,36 @@ type staffUserService struct {
 
 func NewStaffUserService(r repository.StaffUsersRepository, visitRepo repository.VisitRepository, sch Schedule, sender fcm.PushSender, notifications Notification, audit AuditLogs, minio minioservice.Minio) StaffUsers {
 	return &staffUserService{r: r, visitRepo: visitRepo, schedules: sch, notifications: notifications, audit: audit, minio: minio}
+}
+
+func (s *staffUserService) GetWorkTimeStaff(ctx context.Context, id uuid.UUID) (float64, error) {
+	user, err := s.r.GetByID(ctx, id)
+	if err != nil {
+		return 0, err
+	}
+
+	if user.StartAt == nil {
+		return 0, errs.ErrorNotStartedDay
+	}
+
+	if user.EndAt == nil {
+		return 0, errs.ErrorNotFinishedDay
+	}
+
+	if user.StartAt.After(*user.EndAt) {
+		return 0, errs.ErrorUnprocessable
+	}
+
+	return user.EndAt.Sub(*user.StartAt).Hours(), nil
+}
+
+func (s *staffUserService) DayStarted(ctx context.Context, id uuid.UUID) (bool, error) {
+	user, err := s.r.GetByID(ctx, id)
+	if err != nil {
+		return false, err
+	}
+
+	return *user.DayStarted, nil
 }
 
 func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error) {

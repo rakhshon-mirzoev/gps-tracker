@@ -123,7 +123,7 @@ func (r *locationHistory) GetByID(ctx context.Context, id uuid.UUID) (*model.Loc
 func (r *locationHistory) List(ctx context.Context, staffID uuid.UUID) ([]model.LocationHistory, error) {
 	sql := `
         SELECT id, staff_id, latitude, longitude, battery_level, captured_at, status
-        FROM location_history WHERE staff_id = $1
+        FROM location_history WHERE staff_id = $1 ORDER BY captured_at DESC
     `
 
 	rows, err := r.DB.Pool.Query(ctx, sql, staffID)

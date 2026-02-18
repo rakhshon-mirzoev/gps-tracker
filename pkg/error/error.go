@@ -39,4 +39,6 @@ var (
 	ErrorUserDeactivated     = errors.New("user is deactivated")
 	ErrorTooManyFiles        = errors.New("too many files")
 	ErrorDuplicatePhotoKey   = errors.New("duplicate photo key")
+	ErrorNotFinishedDay      = errors.New("day not finished yet")
+	ErrorNotStartedDay       = errors.New("day not started yet")
 )

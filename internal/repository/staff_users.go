@@ -62,7 +62,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 	query := `
 		SELECT id, full_name, role, login, is_active, created_at, inn, birthday, is_temporary_password, group_id, phone_number,
 			   password_updated_at, device_id, fcm_token, app_version, last_battery_level, last_seen_at, deactivated_at,
-			   deactivated_by_id, deactivation_reason, avatar_key, start_at, end_at
+			   deactivated_by_id, deactivation_reason, avatar_key, start_at, end_at, day_started
 		FROM staff_users
 		WHERE id = $1
 	`
@@ -93,6 +93,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 		&u.AvatarKey,
 		&u.StartAt,
 		&u.EndAt,
+		&u.DayStarted,
 	)
 
 	if err != nil {
@@ -122,7 +123,7 @@ func (r *staffUsers) List(ctx context.Context, limit, offset int) ([]model.Staff
 	query := `
 		SELECT id, full_name, role, login, is_active, created_at, inn, birthday, is_temporary_password, group_id, phone_number,
 			   password_updated_at, device_id, fcm_token, app_version, last_battery_level, last_seen_at, deactivated_at,
-			   deactivated_by_id, deactivation_reason
+			   deactivated_by_id, deactivation_reason, start_at, end_at, day_started
 		FROM staff_users
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
@@ -159,6 +160,9 @@ func (r *staffUsers) List(ctx context.Context, limit, offset int) ([]model.Staff
 			&u.DeactivatedAt,
 			&u.DeactivatedByID,
 			&u.DeactivationReason,
+			&u.StartAt,
+			&u.EndAt,
+			&u.DayStarted,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan staff user: %w", err)
 		}
@@ -238,7 +242,7 @@ func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateS
 	}
 
 	if dto.StartAt != nil {
-		query += fmt.Sprintf("start_at = $%d, ", n)
+		query += fmt.Sprintf("start_at = $%d AND day_started = true, ", n)
 		args = append(args, *dto.StartAt)
 		n++
 		if dto.EndAt == nil {
@@ -247,7 +251,7 @@ func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateS
 	}
 
 	if dto.EndAt != nil {
-		query += fmt.Sprintf("end_at = $%d, ", n)
+		query += fmt.Sprintf("end_at = $%d AND day_started = false, ", n)
 		args = append(args, *dto.EndAt)
 		n++
 	}
@@ -317,6 +321,7 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) ([]mo
 		SELECT DISTINCT ON (s.id)
 			s.id, s.full_name, s.login, s.inn, s.birthday, s.group_id, s.phone_number,
 			s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at,
+			s.start_at, s.end_at, s.day_started,
 			l.id, l.latitude, l.longitude, l.battery_level, l.captured_at
 		FROM staff_users s
 		JOIN groups g ON g.id = s.group_id
@@ -349,6 +354,9 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) ([]mo
 			&st.AppVersion,
 			&st.LastBatteryLevel,
 			&st.LastSeenAt,
+			&st.StartAt,
+			&st.EndAt,
+			&st.DayStarted,
 			&st.Location.ID,
 			&st.Location.Latitude,
 			&st.Location.Longitude,
@@ -372,6 +380,7 @@ func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, e
 		SELECT
 			s.id, s.full_name, s.login, s.inn, s.birthday, s.group_id, s.phone_number,
 			s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at,
+			s.start_at, s.end_at, s.day_started,
 			l.id, l.latitude, l.longitude, l.battery_level, l.captured_at, l.status
 		FROM staff_users s
 		JOIN location_history l ON l.staff_id = s.id
@@ -409,6 +418,9 @@ func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, e
 			&staff.AppVersion,
 			&staff.LastBatteryLevel,
 			&staff.LastSeenAt,
+			&staff.StartAt,
+			&staff.EndAt,
+			&staff.DayStarted,
 			&loc.ID,
 			&loc.Latitude,
 			&loc.Longitude,
@@ -432,7 +444,7 @@ func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, e
 func (s *staffUsers) GetByGroupID(ctx context.Context, group_id uuid.UUID) ([]model.StaffUser, error) {
 	sql := `id, full_name, role, login, is_active, created_at, inn, birthday, is_temporary_password, phone_number,
 			   password_updated_at, device_id, fcm_token, app_version, last_battery_level, last_seen_at, deactivated_at,
-			   deactivated_by_id, deactivation_reason
+			   deactivated_by_id, deactivation_reason, start_at, end_at, day_started
 		FROM staff_users
 		WHERE group_id = $1`
 
@@ -466,6 +478,9 @@ func (s *staffUsers) GetByGroupID(ctx context.Context, group_id uuid.UUID) ([]mo
 			&u.DeactivatedAt,
 			&u.DeactivatedByID,
 			&u.DeactivationReason,
+			&u.StartAt,
+			&u.EndAt,
+			&u.DayStarted,
 		); err != nil {
 			return nil, fmt.Errorf("scan staff user: %w", err)
 		}

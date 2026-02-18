@@ -31,6 +31,7 @@ type StaffUser struct {
 	AvatarUrl           *string    `json:"avatar_url,omitempty"`
 	StartAt             *time.Time `json:"start_at" db:"start_at"`
 	EndAt               *time.Time `json:"end_at" db:"end_at"`
+	DayStarted          *bool      `json:"day_started" db:"day_started"`
 	CreatedAt           time.Time  `db:"created_at" json:"created_at"`
 }
 
@@ -44,9 +45,10 @@ type UpdateStaffUser struct {
 	DeactivatedAt      *time.Time `json:"deactivated_at"`
 	DeactivatedByID    *uuid.UUID `json:"deactivated_by_id"`
 	DeactivationReason *string    `json:"deactivation_reason"`
-	AvatarKey          *string
+	AvatarKey          *string    `json:"avatar_key"`
 	StartAt            *time.Time `json:"start_at"`
 	EndAt              *time.Time `json:"end_at"`
+	DayStarted         *bool      `json:"day_started"`
 }
 
 type DeactivateStaffUser struct {
@@ -59,8 +61,8 @@ type CreateStaffUser struct {
 	GroupID         string     `json:"group_id"`
 	FullName        string     `json:"full_name" binding:"required"`
 	Login           string     `json:"login" binding:"required"`
-	PhoneNumber     string     `json:"phone_number"`
-	Inn             string     `json:"inn"`
+	PhoneNumber     string     `json:"phone_number" binding:"required"`
+	Inn             string     `json:"inn" binding:"required"`
 	Birthday        *time.Time `json:"birthday,omitempty"`
 	Password        string     `json:"password" binding:"required"`
 	ConfirmPassword string     `json:"confirm_password" binding:"required"`
@@ -96,6 +98,9 @@ type StaffUserLocation struct {
 	FcmToken         *string          `json:"fcm_token"`
 	AppVersion       *string          `json:"app_version"`
 	LastBatteryLevel *int             `json:"last_battery_level"`
+	StartAt          *time.Time       `json:"start_at"`
+	EndAt            *time.Time       `json:"end_at"`
+	DayStarted       *bool            `json:"day_started"`
 	LastSeenAt       *time.Time       `json:"last_seen_at"`
 	Location         *LocationHistory `json:"location"`
 }
@@ -113,5 +118,8 @@ type StaffUserLocationHistory struct {
 	AppVersion       *string           `json:"app_version"`
 	LastBatteryLevel *int              `json:"last_battery_level"`
 	LastSeenAt       *time.Time        `json:"last_seen_at"`
+	StartAt          *time.Time        `json:"start_at"`
+	EndAt            *time.Time        `json:"end_at"`
+	DayStarted       *bool             `json:"day_started"`
 	Locations        []LocationHistory `json:"location"`
 }
