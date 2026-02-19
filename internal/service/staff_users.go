@@ -39,10 +39,11 @@ type staffUserService struct {
 	audit         AuditLogs
 	notifications Notification
 	minio         minioservice.Minio
+	staffSchedule StaffSchedule
 }
 
-func NewStaffUserService(r repository.StaffUsersRepository, visitRepo repository.VisitRepository, sch Schedule, sender fcm.PushSender, notifications Notification, audit AuditLogs, minio minioservice.Minio) StaffUsers {
-	return &staffUserService{r: r, visitRepo: visitRepo, schedules: sch, notifications: notifications, audit: audit, minio: minio}
+func NewStaffUserService(r repository.StaffUsersRepository, visitRepo repository.VisitRepository, sch Schedule, sender fcm.PushSender, notifications Notification, audit AuditLogs, minio minioservice.Minio, staffSchedule StaffSchedule) StaffUsers {
+	return &staffUserService{r: r, visitRepo: visitRepo, schedules: sch, notifications: notifications, audit: audit, minio: minio, staffSchedule: staffSchedule}
 }
 
 func (s *staffUserService) GetWorkTimeStaff(ctx context.Context, id uuid.UUID) (float64, error) {
@@ -186,6 +187,31 @@ func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser
 
 	if err := s.r.Create(ctx, user); err != nil {
 		return err
+	}
+
+	if len(dto.Schedule) > 0 {
+		if err := s.staffSchedule.CreateBatch(ctx, user.ID, dto.Schedule); err != nil {
+			return err
+		}
+	}
+
+	if len(dto.Schedule) == 0 {
+		defaultSchedule := make([]model.ScheduleDTO, 0, 5)
+
+		for i := int16(1); i <= 5; i++ {
+			start := time.Date(0, 0, 0, 9, 0, 0, 0, time.UTC)
+			end := time.Date(0, 0, 0, 18, 0, 0, 0, time.UTC)
+
+			defaultSchedule = append(defaultSchedule, model.ScheduleDTO{
+				Weekday:   i,
+				StartTime: start,
+				EndTime:   end,
+			})
+		}
+
+		if err := s.staffSchedule.CreateBatch(ctx, user.ID, defaultSchedule); err != nil {
+			return err
+		}
 	}
 
 	if admin_id != uuid.Nil {

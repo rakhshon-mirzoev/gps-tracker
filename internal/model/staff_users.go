@@ -58,14 +58,15 @@ type DeactivateStaffUser struct {
 }
 
 type CreateStaffUser struct {
-	GroupID         string     `json:"group_id"`
-	FullName        string     `json:"full_name" binding:"required"`
-	Login           string     `json:"login" binding:"required"`
-	PhoneNumber     string     `json:"phone_number" binding:"required"`
-	Inn             string     `json:"inn" binding:"required"`
-	Birthday        *time.Time `json:"birthday,omitempty"`
-	Password        string     `json:"password" binding:"required"`
-	ConfirmPassword string     `json:"confirm_password" binding:"required"`
+	GroupID         string        `json:"group_id"`
+	FullName        string        `json:"full_name" binding:"required"`
+	Login           string        `json:"login" binding:"required"`
+	PhoneNumber     string        `json:"phone_number" binding:"required"`
+	Inn             string        `json:"inn" binding:"required"`
+	Birthday        *time.Time    `json:"birthday,omitempty"`
+	Password        string        `json:"password" binding:"required"`
+	ConfirmPassword string        `json:"confirm_password" binding:"required"`
+	Schedule        []ScheduleDTO `json:"schedule"`
 }
 
 type StaffUserResponse struct {

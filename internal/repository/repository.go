@@ -30,6 +30,7 @@ type Repository struct {
 	VisitPhotos         VisitPhotosRepository
 	DailyReportingStats DailyReportingStatsRepository
 	StorePhotos         StorePhotosRepository
+	StaffSchedule       StaffScheduleRepository
 }
 
 func New(db *db.DB) *Repository {
@@ -50,5 +51,6 @@ func New(db *db.DB) *Repository {
 		VisitPhotos:         NewVisitPhotosRepository(db),
 		DailyReportingStats: NewDailyReportingStatsRepository(db),
 		StorePhotos:         NewStorePhotosRepository(db),
+		StaffSchedule:       NewStaffScheduleRepository(db),
 	}
 }

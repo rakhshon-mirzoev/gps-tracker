@@ -24,6 +24,7 @@ type Service struct {
 	Notification       Notification
 	VisitPhotos        VisitPhotos
 	StorePhotos        StorePhotos
+	StaffSchedule      StaffSchedule
 }
 
 func New(r *repository.Repository, t token.Token, minio minioservice.Minio, sender fcm.PushSender, publisher events.LocationPublisher) *Service {
@@ -32,8 +33,9 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio, send
 	sch := NewScheduleService(r.Schedules, audit)
 	sys := NewSystemUsersService(r.SystemUsers, audit)
 	group := NewGroupService(r.Groups, audit)
+	ssch := NewStaffScheduleService(r.StaffSchedule)
 	notifSvc := NewNotificationService(r.Notifications, r.StaffUsers, sender)
-	staff := NewStaffUserService(r.StaffUsers, r.Visit, sch, sender, notifSvc, audit, minio)
+	staff := NewStaffUserService(r.StaffUsers, r.Visit, sch, sender, notifSvc, audit, minio, ssch)
 	authorize := NewAuthorizeService(t, r.Auth, sys, staff)
 	visitPhotos := NewVisitPhotosService(r.VisitPhotos, minio)
 	store := NewStoresService(r.Store, audit, minio, storePhotos)
@@ -59,5 +61,6 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio, send
 		Notification:       notifSvc,
 		VisitPhotos:        visitPhotos,
 		StorePhotos:        storePhotos,
+		StaffSchedule:      ssch,
 	}
 }
