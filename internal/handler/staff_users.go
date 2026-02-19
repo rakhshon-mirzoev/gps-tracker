@@ -315,6 +315,22 @@ func (h *Handler) GetStaffUserByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"staff_user": staff_user})
 }
 
+func (h *Handler) DayStatus(c *gin.Context) {
+	userID, err := checkStaffUser(c)
+	if err != nil {
+		h.handleFieldError(c, "DayStatus: check staff user", err)
+		return
+	}
+
+	started, err := h.s.StaffUser.DayStarted(c.Request.Context(), userID)
+	if err != nil {
+		h.handleError(c, "DayStatus: get day status", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"day_started": started})
+}
+
 func (h *Handler) StartWork(c *gin.Context) {
 
 	user_id, err := checkStaffUser(c)

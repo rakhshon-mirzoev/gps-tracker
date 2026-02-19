@@ -420,6 +420,27 @@ const docTemplate = `{
                 }
             }
         },
+        "/mobile/day-status": {
+            "get": {
+                "tags": ["Work Tracking"],
+                "summary": "Статус рабочего дня (начат или нет)",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "day_started": {"type": "boolean", "example": true}
+                            }
+                        }
+                    },
+                    "400": {"description": "Ошибка авторизации"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
         "/mobile/start-work": {
             "put": {
                 "tags": ["Work Tracking"],

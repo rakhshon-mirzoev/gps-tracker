@@ -2043,10 +2043,33 @@
 					]
 				},
 			{
-				"name": "Work Tracking",
-				"item": [
-					{
-						"name": "Start Work",
+		"name": "Work Tracking",
+			"item": [
+				{
+					"name": "Day Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{mobile_access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{mobile_base_url}}{{api_prefix}}/mobile/day-status",
+							"host": [
+								"{{mobile_base_url}}{{api_prefix}}"
+							],
+							"path": [
+								"mobile",
+								"day-status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Start Work",
 						"request": {
 							"method": "PUT",
 							"header": [
