@@ -214,7 +214,7 @@ func (r *auditLogs) Update(ctx context.Context, id uuid.UUID, dto model.UpdateAu
 	if len(args) == 0 {
 		return nil
 	}
-
+	// .
 	sql = strings.TrimSuffix(sql, ", ")
 	sql += fmt.Sprintf(" WHERE id = $%d", n)
 	args = append(args, id)
