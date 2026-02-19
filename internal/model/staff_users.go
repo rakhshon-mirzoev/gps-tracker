@@ -78,13 +78,14 @@ type StaffUserResponse struct {
 }
 
 type StaffUserProfile struct {
-	User       *StaffUser `json:"user"`
-	Visits     []Visit    `json:"visits"`
-	TotalCount int        `json:"total_count"`
-	DoneMonth  int        `json:"done_count_month"`
-	DoneWeek   int        `json:"done_count_week"`
-	TotalMonth int        `json:"total_count_month"`
-	TotalWeek  int        `json:"total_count_week"`
+	User       *StaffUser          `json:"user"`
+	Visits     []Visit             `json:"visits"`
+	Schedules  []StaffUserSchedule `json:"schedule"`
+	TotalCount int                 `json:"total_count"`
+	DoneMonth  int                 `json:"done_count_month"`
+	DoneWeek   int                 `json:"done_count_week"`
+	TotalMonth int                 `json:"total_count_month"`
+	TotalWeek  int                 `json:"total_count_week"`
 }
 
 type StaffUserLocation struct {
@@ -123,4 +124,9 @@ type StaffUserLocationHistory struct {
 	EndAt            *time.Time        `json:"end_at"`
 	DayStarted       *bool             `json:"day_started"`
 	Locations        []LocationHistory `json:"location"`
+}
+
+type StaffUserSchedules struct {
+	StaffUser StaffUser           `json:"staff_user"`
+	Schedules []StaffUserSchedule `json:"schedule"`
 }

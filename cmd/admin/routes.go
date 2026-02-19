@@ -71,6 +71,13 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			staff.GET("/online-offline", h.AllStaffOnlineOffline)
 			staff.GET("/workday/:id", h.GetWorkTimeStaff)
 			staff.GET("/day-start/:id", h.DayStartedStaff)
+
+			schedule := staff.Group(constants.Schedule)
+			{
+				schedule.DELETE("/:id", h.DeleteStaffSchedule)
+				schedule.PUT("/:id", h.UpdateStaffSchedule)
+				schedule.GET("/:id", h.ListStaffSchedule)
+			}
 		}
 
 		monitoring := staff.Group(constants.Monitoring)

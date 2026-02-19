@@ -8,10 +8,14 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
+	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
 type StaffScheduleRepository interface {
 	CreateBatch(ctx context.Context, staffID uuid.UUID, schedules []model.ScheduleDTO) error
+	List(ctx context.Context, staffID uuid.UUID) ([]model.StaffUserSchedule, error)
+	Delete(ctx context.Context, schID uuid.UUID) error
+	Update(ctx context.Context, schID uuid.UUID, dto model.UpdateStaffSchedule) error
 }
 
 type staffScheduleRepo struct {
@@ -50,4 +54,107 @@ func (r *staffScheduleRepo) CreateBatch(ctx context.Context, staffID uuid.UUID, 
 	}
 
 	return nil
+}
+
+func (r *staffScheduleRepo) List(ctx context.Context, staffID uuid.UUID) ([]model.StaffUserSchedule, error) {
+	sql := `
+		SELECT id, weekday, start_time, end_time, created_at
+		FROM staff_user_schedules
+		WHERE staff_id = $1 ORDER BY weekday
+	`
+
+	rows, err := r.DB.Pool.Query(ctx, sql, staffID)
+	if err != nil {
+		return nil, fmt.Errorf("query: %w", err)
+	}
+	defer rows.Close()
+
+	stSch := make([]model.StaffUserSchedule, 0)
+
+	for rows.Next() {
+		var sch model.StaffUserSchedule
+
+		if err := rows.Scan(
+			&sch.ID,
+			&sch.Weekday,
+			&sch.StartTime,
+			&sch.EndTime,
+			&sch.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("rows scan: %w", err)
+		}
+
+		stSch = append(stSch, sch)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows next: %w", err)
+	}
+
+	return stSch, nil
+}
+
+func (r *staffScheduleRepo) Delete(ctx context.Context, schID uuid.UUID) error {
+	sql := `
+		DELETE FROM staff_user_schedules WHERE id = $1
+	`
+
+	ct, err := r.DB.Pool.Exec(ctx, sql, schID)
+	if err != nil {
+		return fmt.Errorf("exec delete: %w", err)
+	}
+
+	if ct.RowsAffected() == 0 {
+		return errs.ErrorNotFound
+	}
+
+	return nil
+}
+
+func (r *staffScheduleRepo) Update(ctx context.Context, schID uuid.UUID, dto model.UpdateStaffSchedule) error {
+	var (
+		query  []string
+		args   []any
+		argNum = 1
+	)
+
+	if dto.Weekday != nil {
+		query = append(query, fmt.Sprintf("weekday = $%d, ", argNum))
+		args = append(args, *dto.Weekday)
+		argNum++
+	}
+
+	if dto.StartTime != nil {
+		query = append(query, fmt.Sprintf("start_time = $%d, ", argNum))
+		args = append(args, *dto.StartTime)
+		argNum++
+	}
+
+	if dto.EndTime != nil {
+		query = append(query, fmt.Sprintf("end_time = $%d, ", argNum))
+		args = append(args, *dto.EndTime)
+		argNum++
+	}
+
+	sql := fmt.Sprintf(`
+		UPDATE staff_user_schedules
+		SET %s
+		WHERE id = $%d`,
+		utils.Join(query, ", "),
+		argNum,
+	)
+
+	args = append(args, schID)
+
+	ct, err := r.DB.Pool.Exec(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("update staff_user_schedules: %w", err)
+	}
+
+	if ct.RowsAffected() == 0 {
+		return errs.ErrorNotFound
+	}
+
+	return nil
+
 }

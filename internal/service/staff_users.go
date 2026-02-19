@@ -124,9 +124,15 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 		return nil, err
 	}
 
+	schedules, err := s.staffSchedule.List(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
 	return &model.StaffUserProfile{
 		User:       user,
 		Visits:     visits,
+		Schedules:  schedules,
 		TotalCount: total,
 		TotalMonth: totalMonth,
 		DoneMonth:  doneMonth,
