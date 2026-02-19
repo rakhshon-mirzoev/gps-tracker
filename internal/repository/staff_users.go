@@ -242,7 +242,7 @@ func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateS
 	}
 
 	if dto.StartAt != nil {
-		query += fmt.Sprintf("start_at = $%d AND day_started = true, ", n)
+		query += fmt.Sprintf("start_at = $%d, day_started = true, ", n)
 		args = append(args, *dto.StartAt)
 		n++
 		if dto.EndAt == nil {
@@ -251,7 +251,7 @@ func (r *staffUsers) Update(ctx context.Context, id uuid.UUID, dto model.UpdateS
 	}
 
 	if dto.EndAt != nil {
-		query += fmt.Sprintf("end_at = $%d AND day_started = false, ", n)
+		query += fmt.Sprintf("end_at = $%d, day_started = false, ", n)
 		args = append(args, *dto.EndAt)
 		n++
 	}
