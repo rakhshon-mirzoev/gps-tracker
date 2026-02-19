@@ -72,6 +72,10 @@ func (s *staffUserService) DayStarted(ctx context.Context, id uuid.UUID) (bool, 
 		return false, err
 	}
 
+	if user.DayStarted == nil {
+		return false, nil
+	}
+
 	return *user.DayStarted, nil
 }
 
