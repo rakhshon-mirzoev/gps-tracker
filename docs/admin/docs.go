@@ -420,6 +420,68 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/staff/schedules/{id}": {
+            "get": {
+                "tags": ["Staff Users"],
+                "summary": "Получить расписания сотрудника по ID",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID сотрудника"}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "schedules": {
+                                    "type": "array",
+                                    "items": {"$ref": "#/definitions/StaffUserSchedule"}
+                                }
+                            }
+                        }
+                    },
+                    "400": {"description": "Невалидный ID"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            },
+            "put": {
+                "tags": ["Staff Users"],
+                "summary": "Обновить расписание сотрудника",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID расписания"},
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {"$ref": "#/definitions/UpdateStaffSchedule"}
+                    }
+                ],
+                "responses": {
+                    "200": {"description": "Обновлено"},
+                    "400": {"description": "Ошибка валидации"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            },
+            "delete": {
+                "tags": ["Staff Users"],
+                "summary": "Удалить расписание сотрудника",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID расписания"}
+                ],
+                "responses": {
+                    "200": {"description": "Удалено"},
+                    "400": {"description": "Невалидный ID"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
         "/admin/staff/online-offline": {
             "get": {
                 "tags": ["Staff Users"],
@@ -450,6 +512,54 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/admin/staff/workday/{id}": {
+            "get": {
+                "tags": ["Staff Users"],
+                "summary": "Получить рабочее время сотрудника",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid"}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "time": {"type": "object"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Невалидный ID"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/admin/staff/day-start/{id}": {
+            "get": {
+                "tags": ["Staff Users"],
+                "summary": "Проверить, начал ли сотрудник рабочий день",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid"}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "day_started": {"type": "boolean"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Невалидный ID"},
                     "500": {"description": "Internal Server Error"}
                 }
             }
@@ -486,8 +596,8 @@ const docTemplate = `{
                 "produces": ["application/json"],
                 "parameters": [
                     {"name": "staff_id", "in": "path", "required": true, "type": "string", "format": "uuid"},
-                    {"name": "begin", "in": "query", "required": true, "type": "string", "description": "Дата начала (DD.MM.YYYY)"},
-                    {"name": "end", "in": "query", "required": true, "type": "string", "description": "Дата окончания (DD.MM.YYYY)"}
+                    {"name": "begin", "in": "query", "required": true, "type": "string", "format": "date", "description": "Дата начала (YYYY-MM-DD)"},
+                    {"name": "end", "in": "query", "required": true, "type": "string", "format": "date", "description": "Дата окончания (YYYY-MM-DD)"}
                 ],
                 "responses": {
                     "200": {
@@ -1331,6 +1441,25 @@ const docTemplate = `{
                 "deactivated_at": {"type": "string", "format": "date-time"},
                 "deactivated_by_id": {"type": "integer"},
                 "deactivation_reason": {"type": "string"}
+            }
+        },
+        "StaffUserSchedule": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string", "format": "uuid"},
+                "staff_id": {"type": "string", "format": "uuid"},
+                "weekday": {"type": "integer", "description": "День недели (0 = воскресенье, 1 = понедельник, ..., 6 = суббота)"},
+                "start_time": {"type": "string", "format": "date-time"},
+                "end_time": {"type": "string", "format": "date-time"},
+                "created_at": {"type": "string", "format": "date-time"}
+            }
+        },
+        "UpdateStaffSchedule": {
+            "type": "object",
+            "properties": {
+                "weekday": {"type": "integer", "description": "День недели (0-6)"},
+                "start_time": {"type": "string", "format": "date-time"},
+                "end_time": {"type": "string", "format": "date-time"}
             }
         },
         "Schedule": {

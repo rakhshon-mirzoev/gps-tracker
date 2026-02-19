@@ -375,6 +375,56 @@
 							"response": []
 						},
 						{
+							"name": "Get Staff Workday",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff/workday/{{staff_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff",
+										"workday",
+										"{{staff_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Staff Day Started",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff/day-start/{{staff_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff",
+										"day-start",
+										"{{staff_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Staff Store Mapping",
 							"request": {
 								"method": "GET",
@@ -561,6 +611,89 @@
 										"staff",
 										"schedules",
 										"assign"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Staff Schedule by ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff/schedules/{{schedule_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff",
+										"schedules",
+										"{{schedule_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Staff Schedule",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"weekday\": 1,\n  \"start_time\": \"2025-02-15T09:00:00Z\",\n  \"end_time\": \"2025-02-15T18:00:00Z\"\n}"
+								},
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff/schedules/{{schedule_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff",
+										"schedules",
+										"{{schedule_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Staff Schedule",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{admin_base_url}}{{api_prefix}}/admin/staff/schedules/{{schedule_id}}",
+									"host": [
+										"{{admin_base_url}}{{api_prefix}}"
+									],
+									"path": [
+										"admin",
+										"staff",
+										"schedules",
+										"{{schedule_id}}"
 									]
 								}
 							},
