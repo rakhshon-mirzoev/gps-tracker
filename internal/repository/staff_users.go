@@ -65,7 +65,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 			   s.deactivated_by_id, s.deactivation_reason, s.avatar_key, s.start_at, s.end_at, s.day_started, g.name
 		FROM staff_users s
 		JOIN groups g ON g.id = s.group_id
-		WHERE id = $1
+		WHERE s.id = $1
 	`
 
 	var u model.StaffUser
