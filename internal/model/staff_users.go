@@ -99,6 +99,8 @@ type StaffUserLocation struct {
 	LastSeenAt       *time.Time       `json:"last_seen_at"`
 	Location         *LocationHistory `json:"location"`
 	GroupName        *string          `json:"group_name"`
+	AvatarKey        *string          `json:"-" db:"avatar_key"`
+	AvatarUrl        *string          `json:"avatar_url"`
 }
 
 type StaffUserLocationHistory struct {

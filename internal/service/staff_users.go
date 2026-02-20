@@ -250,7 +250,23 @@ func (s *staffUserService) GetByID(ctx context.Context, id uuid.UUID) (*model.St
 }
 
 func (s *staffUserService) List(ctx context.Context, limit, offset int) ([]model.StaffUser, int, error) {
-	return s.r.List(ctx, limit, offset)
+
+	users, total, err := s.r.List(ctx, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range users {
+		if users[i].AvatarKey != nil {
+			url, err := s.minio.PresignedDownload(ctx, *users[i].AvatarKey, time.Minute*15)
+			if err != nil {
+				return nil, 0, err
+			}
+
+			users[i].AvatarUrl = &url
+		}
+	}
+
+	return users, total, nil
 }
 
 func (s *staffUserService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser, user_id uuid.UUID, ip, role, st, action string) error {
@@ -336,7 +352,23 @@ func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model
 }
 
 func (s *staffUserService) ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error) {
-	return s.r.ListByGroupID(ctx, user_id)
+	users, err := s.r.ListByGroupID(ctx, user_id)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range users {
+		if users[i].AvatarKey != nil {
+			url, err := s.minio.PresignedDownload(ctx, *users[i].AvatarKey, time.Minute*15)
+			if err != nil {
+				return nil, err
+			}
+
+			users[i].AvatarUrl = &url
+		}
+	}
+
+	return users, nil
 }
 
 func (s *staffUserService) GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error) {

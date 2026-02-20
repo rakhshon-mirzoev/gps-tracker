@@ -163,6 +163,7 @@ func (r *staffUsers) List(ctx context.Context, limit, offset int) ([]model.Staff
 			&u.DeactivatedAt,
 			&u.DeactivatedByID,
 			&u.DeactivationReason,
+			&u.AvatarKey,
 			&u.StartAt,
 			&u.EndAt,
 			&u.DayStarted,
@@ -325,7 +326,7 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) ([]mo
 		SELECT DISTINCT ON (s.id)
 			s.id, s.full_name, s.login, s.inn, s.birthday, s.group_id, s.phone_number,
 			s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at,
-			s.start_at, s.end_at, s.day_started, g.name,
+			s.start_at, s.end_at, s.day_started, s.avatar_key, g.name,
 			l.id, l.latitude, l.longitude, l.battery_level, l.captured_at
 		FROM staff_users s
 		JOIN groups g ON g.id = s.group_id
@@ -361,6 +362,7 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) ([]mo
 			&st.StartAt,
 			&st.EndAt,
 			&st.DayStarted,
+			&st.AvatarKey,
 			&st.GroupName,
 			&st.Location.ID,
 			&st.Location.Latitude,
