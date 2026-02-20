@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 	"time"
 
@@ -28,10 +27,6 @@ func (h *Handler) Profile(c *gin.Context) {
 
 	bio, err := h.s.StaffUser.GetProfile(c.Request.Context(), user_id, lim, off)
 	if err != nil {
-		if errors.Is(err, errs.ErrorUserDeactivated) {
-			c.JSON(http.StatusGone, gin.H{"error": "user is deactivated", "status": "deactivated"})
-			return
-		}
 		h.handleError(c, "Profile: get profile", err, http.StatusInternalServerError)
 		return
 	}
@@ -55,10 +50,6 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 
 	err = h.s.StaffUser.Update(c.Request.Context(), user_id, dto, uuid.Nil, "", "", "", "")
 	if err != nil {
-		if errors.Is(err, errs.ErrorUserDeactivated) {
-			c.JSON(http.StatusGone, gin.H{"error": "user is deactivated", "status": "deactivated"})
-			return
-		}
 		h.handleError(c, "UpdateProfile: update profile", err, http.StatusInternalServerError)
 		return
 	}
@@ -110,10 +101,6 @@ func (h *Handler) AttachDevice(c *gin.Context) {
 
 	err = h.s.StaffUser.Update(c.Request.Context(), user_id, updateStaff, uuid.Nil, "", "", "", "")
 	if err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "no user found"})
-			return
-		}
 		h.handleError(c, "AttachDevice: update", err, http.StatusInternalServerError)
 		return
 	}
@@ -192,10 +179,7 @@ func (h *Handler) UpdateStaffUser(c *gin.Context) {
 	}
 
 	if err := h.s.StaffUser.Update(c.Request.Context(), uid, dto, user_id, c.ClientIP(), role.(string), constants.UserTypeStaff, "UpdateStaffUser"); err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "no user found"})
-			return
-		}
+
 		h.handleError(c, "UpdateStaffUser", err, http.StatusInternalServerError)
 		return
 	}
@@ -232,10 +216,6 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 	deactivate.DeactivatedByID = &user_id
 
 	if err := h.s.StaffUser.Deactivate(c.Request.Context(), uid, deactivate, user_id, c.ClientIP(), role.(string), constants.UserTypeStaff, "Deactivate"); err != nil {
-		if errors.Is(err, errs.ErrorUserDeactivated) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "already deactivated"})
-			return
-		}
 		h.handleError(c, "DeactivateStaffUser", err, http.StatusInternalServerError)
 		return
 	}
@@ -304,10 +284,6 @@ func (h *Handler) GetStaffUserByID(c *gin.Context) {
 
 	staff_user, err := h.s.StaffUser.GetByID(c.Request.Context(), uid)
 	if err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "no user found"})
-			return
-		}
 		h.handleError(c, "GetStaffUserByID", err, http.StatusInternalServerError)
 		return
 	}
@@ -344,10 +320,6 @@ func (h *Handler) StartWork(c *gin.Context) {
 	if err := h.s.StaffUser.Update(c.Request.Context(), user_id, model.UpdateStaffUser{
 		StartAt: &now,
 	}, uuid.Nil, "", "", "", ""); err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
-			return
-		}
 		h.handleError(c, "StartWork: update user", err, http.StatusInternalServerError)
 		return
 	}
@@ -367,10 +339,6 @@ func (h *Handler) EndWork(c *gin.Context) {
 	if err := h.s.StaffUser.Update(c.Request.Context(), user_id, model.UpdateStaffUser{
 		EndAt: &now,
 	}, uuid.Nil, "", "", "", ""); err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
-			return
-		}
 		h.handleError(c, "EndWork: update user", err, http.StatusInternalServerError)
 		return
 	}

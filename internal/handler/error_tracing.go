@@ -53,6 +53,12 @@ func (h *Handler) handleError(c *gin.Context, operation string, err error, defau
 	case errs.ErrorWrongPasswordFormat:
 		status = http.StatusBadRequest
 		errorMsg = "invalid password format"
+	case errs.ErrorAlreadyReviewed:
+		status = http.StatusBadRequest
+		errorMsg = "already reviewed visit"
+	case errs.ErrorUserDeactivated:
+		status = http.StatusGone
+		errorMsg = "user is deactivated"
 	}
 
 	requestID := c.GetString(constants.RequestIDKey)

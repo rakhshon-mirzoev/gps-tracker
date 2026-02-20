@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -28,10 +27,6 @@ func (h *Handler) DeleteSystemUser(c *gin.Context) {
 	}
 
 	if err := h.s.SystemUsers.Delete(c.Request.Context(), uid); err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "not found user"})
-			return
-		}
 		h.handleError(c, "DeleteSystemUser: delete user", err, http.StatusInternalServerError)
 		return
 	}

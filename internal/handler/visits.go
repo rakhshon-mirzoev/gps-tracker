@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 func (h *Handler) VisitCheckIn(c *gin.Context) {
@@ -28,10 +26,6 @@ func (h *Handler) VisitCheckIn(c *gin.Context) {
 
 	err = h.s.Visit.Create(c.Request.Context(), visit, user_id)
 	if err != nil {
-		if errors.Is(err, errs.ErrorAlreadyReviewed) || errors.Is(err, errs.ErrroActiveVisitExists) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "already reviewed or active visit"})
-			return
-		}
 		h.handleError(c, "VisitCheckIn: create visit", err, http.StatusInternalServerError)
 		return
 	}

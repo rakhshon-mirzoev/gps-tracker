@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -59,10 +58,6 @@ func (h *Handler) DeleteGroup(c *gin.Context) {
 	}
 
 	if err := h.s.Group.Delete(c.Request.Context(), uid, user_id, c.ClientIP(), constants.Group, role.(string), "DeleteGroup"); err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "not found group"})
-			return
-		}
 		h.handleError(c, "DeleteGroup", err, http.StatusInternalServerError)
 		return
 	}
@@ -79,10 +74,6 @@ func (h *Handler) GetByIdGroup(c *gin.Context) {
 
 	g, err := h.s.Group.GetByID(c.Request.Context(), uid)
 	if err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "not found group"})
-			return
-		}
 		h.handleError(c, "GetByIdGroup", err, http.StatusInternalServerError)
 		return
 	}
@@ -139,10 +130,6 @@ func (h *Handler) UpdateGroup(c *gin.Context) {
 	}
 
 	if err := h.s.Group.Update(c.Request.Context(), dto, uid, user_id, c.ClientIP(), constants.Group, role.(string), "UpdateGroup"); err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "not found group"})
-			return
-		}
 		h.handleError(c, "UpdateGroup", err, http.StatusInternalServerError)
 		return
 	}

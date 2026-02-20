@@ -1,13 +1,11 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 func (h *Handler) ListStoresByStaffIdAdmin(c *gin.Context) {
@@ -37,10 +35,6 @@ func (h *Handler) listStoresByStaffId(c *gin.Context, id uuid.UUID) {
 
 	stores, total, err := h.s.StaffStoresMapping.ListByStaffID(c.Request.Context(), id, lim, off)
 	if err != nil {
-		if errors.Is(err, errs.ErrorUserDeactivated) {
-			c.JSON(http.StatusGone, gin.H{"error": "user deactivated"})
-			return
-		}
 		h.handleError(c, "ListStores: list by staff id", err, http.StatusInternalServerError)
 		return
 	}

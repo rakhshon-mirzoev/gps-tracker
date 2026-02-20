@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -42,10 +41,6 @@ func (h *Handler) Login(c *gin.Context) {
 
 	userInfo, err := h.s.Authorize.GetLoginUserInfo(ctx, u)
 	if err != nil {
-		if errors.Is(err, errs.ErrorUserDeactivated) {
-			c.JSON(http.StatusGone, gin.H{"error": "user is deactivated"})
-			return
-		}
 		h.handleError(c, "Login - get user info", err, http.StatusInternalServerError)
 		return
 	}
@@ -123,10 +118,6 @@ func (h *Handler) Refresh(c *gin.Context) {
 
 	access, refresh, err := h.s.Authorize.Refresh(c.Request.Context(), req.RefreshToken)
 	if err != nil {
-		if errors.Is(err, errs.ErrorUserDeactivated) {
-			c.JSON(http.StatusGone, gin.H{"error": "user is deactivated", "status": "deactivated"})
-			return
-		}
 		h.handleError(c, "Refresh", err, http.StatusUnauthorized)
 		return
 	}

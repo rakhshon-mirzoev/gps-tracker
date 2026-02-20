@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -44,13 +43,6 @@ func (h *Handler) CreateStore(c *gin.Context) {
 
 	err = h.s.Store.Create(c.Request.Context(), dto, user_id)
 	if err != nil {
-		if errors.Is(err, errs.ErrorAlreadyExists) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "store already exists by that name"})
-			return
-		} else if errors.Is(err, errs.ErrorDuplicatePhotoKey) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "duplicate photo key"})
-			return
-		}
 		h.handleError(c, "CreateStore: create store", err, http.StatusInternalServerError)
 		return
 	}
@@ -142,10 +134,6 @@ func (h *Handler) ApproveStore(c *gin.Context) {
 
 	err = h.s.Store.Update(c.Request.Context(), s, uID, user_id, c.ClientIP(), role.(string), constants.Stores, "ApproveStore")
 	if err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "no store found"})
-			return
-		}
 		h.handleError(c, "ApproveStore: update store", err, http.StatusInternalServerError)
 		return
 	}
@@ -174,10 +162,6 @@ func (h *Handler) DeleteStore(c *gin.Context) {
 
 	err = h.s.Store.Delete(c.Request.Context(), uID, user_id, c.ClientIP(), role.(string), constants.Stores, "DeleteStore")
 	if err != nil {
-		if errors.Is(err, errs.ErrorNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "no store found"})
-			return
-		}
 		h.handleError(c, "ApproveStore: update store", err, http.StatusInternalServerError)
 		return
 	}
