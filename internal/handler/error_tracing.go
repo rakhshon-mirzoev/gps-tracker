@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -26,9 +25,34 @@ func (h *Handler) handleError(c *gin.Context, operation string, err error, defau
 	status := defaultStatus
 	errorMsg := err.Error()
 
-	if errors.Is(err, errs.ErrorNotFound) {
+	switch err {
+	case errs.ErrorNotFound:
 		status = http.StatusNotFound
 		errorMsg = "resource not found"
+	case errs.ErrorAlreadyExists:
+		status = http.StatusBadRequest
+		errorMsg = "entity already exists"
+	case errs.ErrorDuplicatePhotoKey:
+		status = http.StatusBadRequest
+		errorMsg = "duplicate photo key"
+	case errs.ErrorEmptyRequestBody:
+		status = http.StatusBadRequest
+		errorMsg = "request body is empty"
+	case errs.ErrorNotFinishedDay:
+		status = http.StatusBadRequest
+		errorMsg = "day is not finished yet"
+	case errs.ErrorNotStartedDay:
+		status = http.StatusBadRequest
+		errorMsg = "day is not started yet"
+	case errs.ErrorUnprocessable:
+		status = http.StatusUnprocessableEntity
+		errorMsg = "unporcessable"
+	case errs.ErrroActiveVisitExists:
+		status = http.StatusBadRequest
+		errorMsg = "active visit exists"
+	case errs.ErrorWrongPasswordFormat:
+		status = http.StatusBadRequest
+		errorMsg = "invalid password format"
 	}
 
 	requestID := c.GetString(constants.RequestIDKey)
