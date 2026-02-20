@@ -32,6 +32,7 @@ type StaffUser struct {
 	StartAt             *time.Time `json:"start_at" db:"start_at"`
 	EndAt               *time.Time `json:"end_at" db:"end_at"`
 	DayStarted          *bool      `json:"day_started" db:"day_started"`
+	GroupName           string     `json:"group_name"`
 	CreatedAt           time.Time  `db:"created_at" json:"created_at"`
 }
 
@@ -69,14 +70,6 @@ type CreateStaffUser struct {
 	Schedule        []ScheduleDTO `json:"schedule"`
 }
 
-type StaffUserResponse struct {
-	ID         uuid.UUID  `json:"id"`
-	FullName   string     `json:"full_name"`
-	Login      string     `json:"login"`
-	IsActive   bool       `json:"is_active"`
-	LastSeenAt *time.Time `json:"last_seen_at"`
-}
-
 type StaffUserProfile struct {
 	User       *StaffUser          `json:"user"`
 	Visits     []Visit             `json:"visits"`
@@ -105,6 +98,7 @@ type StaffUserLocation struct {
 	DayStarted       *bool            `json:"day_started"`
 	LastSeenAt       *time.Time       `json:"last_seen_at"`
 	Location         *LocationHistory `json:"location"`
+	GroupName        *string          `json:"group_name"`
 }
 
 type StaffUserLocationHistory struct {
@@ -123,6 +117,7 @@ type StaffUserLocationHistory struct {
 	StartAt          *time.Time        `json:"start_at"`
 	EndAt            *time.Time        `json:"end_at"`
 	DayStarted       *bool             `json:"day_started"`
+	GroupName        string            `json:"group_name"`
 	Locations        []LocationHistory `json:"location"`
 }
 

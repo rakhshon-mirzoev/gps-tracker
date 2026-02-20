@@ -60,10 +60,11 @@ func (r *staffUsers) Create(ctx context.Context, u *model.StaffUser) error {
 
 func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error) {
 	query := `
-		SELECT id, full_name, role, login, is_active, created_at, inn, birthday, is_temporary_password, group_id, phone_number,
-			   password_updated_at, device_id, fcm_token, app_version, last_battery_level, last_seen_at, deactivated_at,
-			   deactivated_by_id, deactivation_reason, avatar_key, start_at, end_at, day_started
-		FROM staff_users
+		SELECT s.id, s.full_name, s.role, s.login, s.is_active, s.created_at, s.inn, s.birthday, s.is_temporary_password, s.group_id, s.phone_number,
+			   s.password_updated_at, s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at, s.deactivated_at,
+			   s.deactivated_by_id, s.deactivation_reason, s.avatar_key, s.start_at, s.end_at, s.day_started, g.name
+		FROM staff_users s
+		JOIN groups g ON g.id = s.group_id
 		WHERE id = $1
 	`
 
@@ -94,6 +95,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 		&u.StartAt,
 		&u.EndAt,
 		&u.DayStarted,
+		&u.GroupName,
 	)
 
 	if err != nil {
@@ -121,10 +123,11 @@ func (r *staffUsers) List(ctx context.Context, limit, offset int) ([]model.Staff
 	}
 
 	query := `
-		SELECT id, full_name, role, login, is_active, created_at, inn, birthday, is_temporary_password, group_id, phone_number,
-			   password_updated_at, device_id, fcm_token, app_version, last_battery_level, last_seen_at, deactivated_at,
-			   deactivated_by_id, deactivation_reason, start_at, end_at, day_started
-		FROM staff_users
+		SELECT s.id, s.full_name, s.role, s.login, s.is_active, s.created_at, s.inn, s.birthday, s.is_temporary_password, s.group_id, s.phone_number,
+			   s.password_updated_at, s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at, s.deactivated_at,
+			   s.deactivated_by_id, s.deactivation_reason, s.avatar_key, s.start_at, s.end_at, s.day_started, g.name
+		FROM staff_users s
+		JOIN groups g ON g.id = s.group_id
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
 	`
@@ -163,6 +166,7 @@ func (r *staffUsers) List(ctx context.Context, limit, offset int) ([]model.Staff
 			&u.StartAt,
 			&u.EndAt,
 			&u.DayStarted,
+			&u.GroupName,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan staff user: %w", err)
 		}
@@ -321,7 +325,7 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) ([]mo
 		SELECT DISTINCT ON (s.id)
 			s.id, s.full_name, s.login, s.inn, s.birthday, s.group_id, s.phone_number,
 			s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at,
-			s.start_at, s.end_at, s.day_started,
+			s.start_at, s.end_at, s.day_started, g.name,
 			l.id, l.latitude, l.longitude, l.battery_level, l.captured_at
 		FROM staff_users s
 		JOIN groups g ON g.id = s.group_id
@@ -357,6 +361,7 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) ([]mo
 			&st.StartAt,
 			&st.EndAt,
 			&st.DayStarted,
+			&st.GroupName,
 			&st.Location.ID,
 			&st.Location.Latitude,
 			&st.Location.Longitude,
@@ -380,10 +385,11 @@ func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, e
 		SELECT
 			s.id, s.full_name, s.login, s.inn, s.birthday, s.group_id, s.phone_number,
 			s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at,
-			s.start_at, s.end_at, s.day_started,
+			s.start_at, s.end_at, s.day_started, g.name,
 			l.id, l.latitude, l.longitude, l.battery_level, l.captured_at, l.status
 		FROM staff_users s
 		JOIN location_history l ON l.staff_id = s.id
+		JOIN groups g ON g.id = s.group_id
 		WHERE s.id = $1
 		AND s.is_active = true
 		AND (l.captured_at >= $2 AND l.captured_at < $3)
@@ -421,6 +427,7 @@ func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, e
 			&staff.StartAt,
 			&staff.EndAt,
 			&staff.DayStarted,
+			&staff.GroupName,
 			&loc.ID,
 			&loc.Latitude,
 			&loc.Longitude,
