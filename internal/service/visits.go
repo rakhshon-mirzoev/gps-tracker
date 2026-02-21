@@ -21,7 +21,7 @@ import (
 )
 
 type Visits interface {
-	Create(ctx context.Context, v model.CreateVisit, user_id uuid.UUID) error
+	Create(ctx context.Context, v model.CreateVisit, user_id uuid.UUID) (*model.Visit, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
 	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int, begin, end time.Time) ([]model.Visit, int, error)
@@ -49,49 +49,49 @@ func NewVisitsService(repo repository.VisitRepository, minio minioservice.Minio,
 	return &visitsService{repo: repo, minio: minio, store: store, photo: photo, staff: staff, notifications: notifications, audit: audit, group: group, schedule: schedule}
 }
 
-func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, user_id uuid.UUID) error {
+func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, user_id uuid.UUID) (*model.Visit, error) {
 	storeID, err := uuid.Parse(vCreate.StoreID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	scheduleID, err := uuid.Parse(vCreate.ScheduleID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	store, err := s.store.GetByID(ctx, storeID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	v, err := s.repo.GetByStoreScheduleId(ctx, storeID, scheduleID, user_id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if v != nil && v.CheckOutAt != nil {
-		return errs.ErrorAlreadyReviewed
+		return nil, errs.ErrorAlreadyReviewed
 	}
 
 	staff, err := s.staff.GetByID(ctx, user_id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	group, err := s.group.GetByID(ctx, staff.GroupID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	distance := utils.Distance(store.Latitude, store.Longitude, vCreate.Lat, vCreate.Lon)
 	if distance > constants.MaxDistanceMeters {
-		return errs.ErrorUnprocessable
+		return nil, errs.ErrorUnprocessable
 	}
 
 	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer tx.Rollback(ctx)
 
@@ -109,14 +109,14 @@ func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, u
 	}
 
 	if err := s.repo.CreateTx(ctx, tx, &visit); err != nil {
-		return err
+		return nil, err
 	}
 
 	meta := map[string]any{"type": "visit_check_in"}
 
 	b, err := json.Marshal(meta)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	n := &model.Notification{
@@ -133,14 +133,14 @@ func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, u
 		tx,
 		n,
 	); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &visit, nil
 }
 
 func (s *visitsService) GetByIDPhoto(ctx context.Context, id uuid.UUID) (*model.VisitWithPhoto, error) {

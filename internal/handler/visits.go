@@ -24,13 +24,13 @@ func (h *Handler) VisitCheckIn(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Visit.Create(c.Request.Context(), visit, user_id)
+	created, err := h.s.Visit.Create(c.Request.Context(), visit, user_id)
 	if err != nil {
 		h.handleError(c, "VisitCheckIn: create visit", err, http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "check-in completed"})
+	c.JSON(http.StatusCreated, gin.H{"data": created})
 
 }
 
