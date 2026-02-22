@@ -478,11 +478,13 @@ func (r *schedules) ListAll(ctx context.Context, staffID, storeID *uuid.UUID, da
 
 	sql := fmt.Sprintf(`
 		SELECT 
-			id, staff_id, store_id, planned_date, description,
-			window_open, window_close,
-			is_photo_required, is_selfie_required, is_comment_required,
-			status, created_by_admin_id
-		FROM schedules %s
+			s.id, s.staff_id, s.store_id, st.name s.planned_date, s.description,
+			s.window_open, s.window_close,
+			s.is_photo_required, s.is_selfie_required, s.is_comment_required,
+			s.status, s.created_by_admin_id
+		FROM schedules s
+		JOIN stores st ON st.id = s.store_id
+		%s
 		ORDER BY planned_date DESC
 		LIMIT $%d OFFSET $%d`, whereClause, argNum, argNum+1)
 
@@ -498,7 +500,7 @@ func (r *schedules) ListAll(ctx context.Context, staffID, storeID *uuid.UUID, da
 	for rows.Next() {
 		s := model.Schedule{}
 		if err := rows.Scan(
-			&s.ID, &s.StaffID, &s.StoreID, &s.PlannedDate, &s.Description,
+			&s.ID, &s.StaffID, &s.StoreID, &s.StoreName, &s.PlannedDate, &s.Description,
 			&s.WindowOpen, &s.WindowClose,
 			&s.IsPhotoRequired, &s.IsSelfieRequired, &s.IsCommentRequired,
 			&s.Status, &s.CreatedByAdminID,

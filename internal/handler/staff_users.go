@@ -48,6 +48,11 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
+	if dto.PhoneNumber != nil {
+		c.JSON(http.StatusNotAcceptable, gin.H{"error": "can't change phone number by yourself. Only admin operation"})
+		return
+	}
+
 	err = h.s.StaffUser.Update(c.Request.Context(), user_id, dto, uuid.Nil, "", "", "", "")
 	if err != nil {
 		h.handleError(c, "UpdateProfile: update profile", err, http.StatusInternalServerError)

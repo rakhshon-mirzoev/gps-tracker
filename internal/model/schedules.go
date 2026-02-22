@@ -10,6 +10,7 @@ type Schedule struct {
 	ID                uuid.UUID `json:"id" db:"id"`
 	StaffID           uuid.UUID `json:"staff_id" db:"staff_id"`
 	StoreID           uuid.UUID `json:"store_id" db:"store_id"`
+	StoreName         string    `json:"store_name"`
 	PlannedDate       time.Time `json:"planned_date" db:"planned_date"`
 	Description       string    `json:"description" db:"description"`
 	WindowOpen        time.Time `json:"window_open" db:"window_open"`
