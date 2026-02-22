@@ -49,7 +49,6 @@ func New() error {
 	Log = zap.New(
 		core,
 		zap.AddCaller(),
-		zap.AddStacktrace(zapcore.ErrorLevel),
 	)
 
 	Sugar = Log.Sugar()
