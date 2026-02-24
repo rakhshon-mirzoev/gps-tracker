@@ -191,21 +191,16 @@ func (s *visitsService) VisitComplete(ctx context.Context, uid uuid.UUID, dto mo
 		return err
 	}
 
-	schedule_id, err := uuid.Parse(*dto.ScheduleID)
+	vSt, err := s.GetByID(ctx, uid)
 	if err != nil {
 		return err
 	}
 
-	err = s.schedule.Update(ctx, schedule_id, model.UpdateSchedule{
+	err = s.schedule.Update(ctx, *vSt.ScheduleID, model.UpdateSchedule{
 		Status: &pending,
 	})
 
 	user, err := s.staff.GetByID(ctx, staff_id)
-	if err != nil {
-		return err
-	}
-
-	vSt, err := s.GetByID(ctx, uid)
 	if err != nil {
 		return err
 	}
