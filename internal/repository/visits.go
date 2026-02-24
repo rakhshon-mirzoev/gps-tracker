@@ -505,11 +505,12 @@ func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off 
 	}
 
 	sql := `
-		SELECT id, check_in_at, check_out_at,
-			   check_in_lat, check_in_lon, distance_deviation, comment,
-			   is_offline, review_status, review_comment, reviewer_id,
-			   reviewed_at, created_at
-		FROM visits 
+		SELECT v.id, v.schedule_id, v.staff_id, v.store_id, s.store_name, v.check_in_at, v.check_out_at,
+			   v.check_in_lat, v.check_in_lon, v.distance_deviation, v.comment,
+			   v.is_offline, v.review_status, v.review_comment, v.eviewer_id,
+			   v.reviewed_at, v.created_at
+		FROM visits v
+		JOIN stores s ON s.id = v.store_id
 		WHERE staff_id = $1 AND check_in_at >= $2 AND check_in_at < $3
 	`
 
@@ -524,6 +525,10 @@ func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off 
 
 		if err := rows.Scan(
 			&visit.ID,
+			&visit.ScheduleID,
+			&visit.StaffID,
+			&visit.StoreID,
+			&visit.StoreName,
 			&visit.CheckInAt,
 			&visit.CheckOutAt,
 			&visit.CheckInLat,

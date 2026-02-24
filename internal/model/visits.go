@@ -11,6 +11,7 @@ type Visit struct {
 	ScheduleID        *uuid.UUID `json:"schedule_id" db:"schedule_id"`
 	StaffID           uuid.UUID  `json:"staff_id" db:"staff_id"`
 	StoreID           uuid.UUID  `json:"store_id" db:"store_id"`
+	StoreName         string     `json:"store_name"`
 	CheckInAt         *time.Time `json:"check_in_at" db:"check_in_at"`
 	CheckOutAt        *time.Time `json:"check_out_at" db:"check_out_at"`
 	CheckInLat        *float64   `json:"check_in_lat" db:"check_in_lat"`
