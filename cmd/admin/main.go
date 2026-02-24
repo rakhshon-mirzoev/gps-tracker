@@ -75,7 +75,6 @@ func run() error {
 
 	app := app.New(router)
 
-	// WebSocket publisher — для локальной публикации в Hub (если admin тоже генерирует локации)
 	wsPublisher := websocket.NewLocationPublisher(app.WsHub())
 
 	repository := repository.New(db)
