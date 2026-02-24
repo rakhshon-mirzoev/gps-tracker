@@ -68,7 +68,11 @@ func (h *Handler) VisitComplete(c *gin.Context) {
 		return
 	}
 
-	vID := c.Param("id")
+	vID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		h.handleFieldError(c, "VisitComplete: uuid parse", err)
+		return
+	}
 
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		h.handleFieldError(c, "VisitComplete", err)

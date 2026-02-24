@@ -25,7 +25,7 @@ type Visits interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
 	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int, begin, end time.Time) ([]model.Visit, int, error)
-	VisitComplete(ctx context.Context, id string, dto model.UpdateVisit, staff_id uuid.UUID) error
+	VisitComplete(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, staff_id uuid.UUID) error
 	VisitPhoto(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, file *multipart.Form) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error)
@@ -183,11 +183,7 @@ func (s *visitsService) List(ctx context.Context, scheduleID uuid.UUID) ([]model
 	return s.repo.List(ctx, scheduleID)
 }
 
-func (s *visitsService) VisitComplete(ctx context.Context, id string, dto model.UpdateVisit, staff_id uuid.UUID) error {
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		return err
-	}
+func (s *visitsService) VisitComplete(ctx context.Context, uid uuid.UUID, dto model.UpdateVisit, staff_id uuid.UUID) error {
 	pending := "pending"
 	now := time.Now()
 	dto.ReviewStatus = &pending
