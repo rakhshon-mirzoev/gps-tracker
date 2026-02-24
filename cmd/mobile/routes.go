@@ -60,8 +60,8 @@ func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Ha
 		mobi.GET("/day-status", h.DayStatus)
 		mobi.PUT("/start-work", h.StartWork)
 		mobi.PUT("/end-work", h.EndWork)
-
 	}
+
 	visit := mobi.Group(constants.VisitGroup)
 	{
 		visit.POST("/check-in", h.VisitCheckIn)
