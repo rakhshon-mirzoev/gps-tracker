@@ -41,4 +41,5 @@ var (
 	ErrorDuplicatePhotoKey   = errors.New("duplicate photo key")
 	ErrorNotFinishedDay      = errors.New("day not finished yet")
 	ErrorNotStartedDay       = errors.New("day not started yet")
+	ErrorNotCompletedVisit   = errors.New("visit is not completed yet")
 )
