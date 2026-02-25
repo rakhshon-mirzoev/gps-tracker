@@ -9,11 +9,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
-	"go.uber.org/zap"
 )
 
 type StaffUsersRepository interface {
@@ -26,7 +24,6 @@ type StaffUsersRepository interface {
 	ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error)
 	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
 	GetByGroupID(ctx context.Context, group_id uuid.UUID) ([]model.StaffUser, error)
-	MakeInactiveUsers(ctx context.Context, timeout time.Duration) error
 }
 
 type staffUsers struct {
@@ -531,23 +528,4 @@ func (s *staffUsers) GetByGroupID(ctx context.Context, group_id uuid.UUID) ([]mo
 
 	return users, nil
 
-}
-
-func (s *staffUsers) MakeInactiveUsers(ctx context.Context, timeout time.Duration) error {
-	sql := `
-		UPDATE staff_users
-		SET status = 'offline'
-		WHERE status = 'online'
-		AND last_location_at < NOW() - ($1 * INTERVAL '1 second');
-	`
-
-	ct, err := s.DB.Pool.Exec(ctx, sql, int(timeout.Seconds()))
-	if err != nil {
-		return fmt.Errorf("exec make inactive: %w", err)
-	}
-
-	rows := ct.RowsAffected()
-
-	logger.Log.Info("users set offline", zap.Int64("count", rows))
-	return nil
 }
