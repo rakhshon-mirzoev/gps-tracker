@@ -21,6 +21,9 @@ type LocationHistoryRepository interface {
 	CreateBatch(ctx context.Context, locations []model.LocationHistory) error
 	LatestByGroupID(ctx context.Context, groupID uuid.UUID) ([]model.LocationHistoryWithStaff, error)
 	LatestAll(ctx context.Context) ([]model.LocationHistoryWithStaff, error)
+	// GetStaffMissingGPS возвращает активных сотрудников, чей последний GPS
+	// старше threshold (или которые вообще не отправляли GPS).
+	GetStaffMissingGPS(ctx context.Context, threshold time.Duration) ([]model.LocationHistoryWithStaff, error)
 }
 
 type locationHistory struct {
@@ -339,4 +342,48 @@ func (r *locationHistory) GetAllStaffOnlineOffline(ctx context.Context, supervis
 	}
 
 	return result, nil
+}
+
+// GetStaffMissingGPS возвращает активных сотрудников, чей последний GPS
+// старше `threshold` или которые вообще не отправляли GPS.
+func (r *locationHistory) GetStaffMissingGPS(ctx context.Context, threshold time.Duration) ([]model.LocationHistoryWithStaff, error) {
+	// Используем LEFT JOIN: берём сотрудников без GPS вообще или с устаревшим последним GPS.
+	sql := `
+		SELECT DISTINCT ON (s.id)
+			s.id, s.group_id, s.full_name, s.phone_number,
+			COALESCE(l.latitude, 0),
+			COALESCE(l.longitude, 0),
+			COALESCE(l.battery_level, 0),
+			COALESCE(l.captured_at, s.created_at),
+			COALESCE(l.status, 'offline')
+		FROM staff_users s
+		LEFT JOIN location_history l ON l.staff_id = s.id
+		WHERE s.is_active = TRUE
+		  AND s.deactivated_by_id IS NULL
+		ORDER BY s.id, l.captured_at DESC NULLS LAST
+	`
+
+	rows, err := r.DB.Pool.Query(ctx, sql)
+	if err != nil {
+		return nil, fmt.Errorf("get staff missing gps: %w", err)
+	}
+	defer rows.Close()
+
+	cutoff := time.Now().Add(-threshold)
+
+	var result []model.LocationHistoryWithStaff
+	for rows.Next() {
+		var loc model.LocationHistoryWithStaff
+		if err := rows.Scan(
+			&loc.StaffID, &loc.GroupID, &loc.FullName, &loc.PhoneNumber,
+			&loc.Latitude, &loc.Longitude, &loc.BatteryLevel, &loc.CapturedAt, &loc.Status,
+		); err != nil {
+			return nil, fmt.Errorf("scan staff missing gps: %w", err)
+		}
+		if loc.CapturedAt.Before(cutoff) {
+			result = append(result, loc)
+		}
+	}
+
+	return result, rows.Err()
 }

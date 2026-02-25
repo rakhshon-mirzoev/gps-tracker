@@ -27,6 +27,8 @@ type SystemUsersRepository interface {
 	List(ctx context.Context) ([]model.SystemUser, error)
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 	GetGroupList(ctx context.Context, groupId uuid.UUID) ([]model.StaffUser, error)
+	GetAllAdmins(ctx context.Context) ([]model.SystemUser, error)
+	GetSupervisorByGroupID(ctx context.Context, groupID uuid.UUID) (*model.SystemUser, error)
 }
 
 func NewSystemUsersRepository(db *db.DB) SystemUsersRepository {
@@ -255,4 +257,49 @@ func (s *systemUsers) GetGroupList(ctx context.Context, groupId uuid.UUID) ([]mo
 	}
 
 	return result, nil
+}
+
+// GetAllAdmins возвращает всех активных system_users с ролью admin.
+func (s *systemUsers) GetAllAdmins(ctx context.Context) ([]model.SystemUser, error) {
+	sql := `SELECT id, full_name, login, role, is_active, created_at
+	        FROM system_users
+	        WHERE role = 'admin' AND is_active = TRUE`
+
+	rows, err := s.DB.Pool.Query(ctx, sql)
+	if err != nil {
+		return nil, fmt.Errorf("get all admins: %w", err)
+	}
+	defer rows.Close()
+
+	var admins []model.SystemUser
+	for rows.Next() {
+		var u model.SystemUser
+		if err := rows.Scan(&u.ID, &u.FullName, &u.Login, &u.Role, &u.IsActive, &u.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan admin: %w", err)
+		}
+		admins = append(admins, u)
+	}
+	return admins, rows.Err()
+}
+
+// GetSupervisorByGroupID возвращает supervisor группы (system_user).
+func (s *systemUsers) GetSupervisorByGroupID(ctx context.Context, groupID uuid.UUID) (*model.SystemUser, error) {
+	sql := `
+		SELECT su.id, su.full_name, su.login, su.role, su.is_active, su.created_at
+		FROM system_users su
+		JOIN groups g ON g.supervisor_id = su.id
+		WHERE g.id = $1 AND su.is_active = TRUE
+		LIMIT 1
+	`
+	var u model.SystemUser
+	err := s.DB.Pool.QueryRow(ctx, sql, groupID).Scan(
+		&u.ID, &u.FullName, &u.Login, &u.Role, &u.IsActive, &u.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil // группа без супервайзера — не ошибка
+		}
+		return nil, fmt.Errorf("get supervisor by group id: %w", err)
+	}
+	return &u, nil
 }

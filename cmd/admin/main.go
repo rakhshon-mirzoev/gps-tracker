@@ -19,6 +19,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/websocket"
+	gps_alert "github.com/rakhshon-mirzoev/gps-tracker/internal/worker/gps_alert"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/kafka"
@@ -77,6 +78,9 @@ func run() error {
 
 	wsPublisher := websocket.NewLocationPublisher(app.WsHub())
 
+	// NotificationHub — адресный хаб для уведомлений admin/supervisor
+	notifHub := websocket.NewNotificationHub()
+
 	repository := repository.New(db)
 	service := service.New(repository, token, client, firebaseService, wsPublisher)
 	minio := miniohandler.New(client)
@@ -84,16 +88,35 @@ func run() error {
 
 	mw := middleware.New(token)
 
-	registerAdminRoutes(router, mw, handler, minio, app.WsHub(), service, token)
+	registerAdminRoutes(router, mw, handler, minio, app.WsHub(), notifHub, service, token)
 
-	// Создаём топик Kafka, если он ещё не существует
+	// Создаём топик Kafka для локаций
 	if err := kafka.EnsureTopic(cfg.Kafka.Brokers, cfg.Kafka.Topic, 1, 1); err != nil {
-		logger.Log.Warn("failed to ensure kafka topic (may already exist)", zap.Error(err))
+		logger.Log.Warn("failed to ensure kafka location topic (may already exist)", zap.Error(err))
 	}
 
-	// Kafka consumer — читает локации из топика и бросает в Hub
+	// Создаём топик Kafka для уведомлений
+	notifTopic := cfg.Kafka.NotificationTopic
+	if notifTopic == "" {
+		notifTopic = "admin-notifications"
+	}
+	if err := kafka.EnsureTopic(cfg.Kafka.Brokers, notifTopic, 1, 1); err != nil {
+		logger.Log.Warn("failed to ensure kafka notification topic (may already exist)", zap.Error(err))
+	}
+
+	// Kafka consumer для локаций
 	kafkaConsumer := kafka.NewLocationConsumer(cfg.Kafka.Brokers, cfg.Kafka.Topic, app.WsHub())
 	defer kafkaConsumer.Close()
+
+	// Kafka consumer для уведомлений
+	notifPublisher := kafka.NewNotificationPublisher(cfg.Kafka.Brokers, notifTopic)
+	defer notifPublisher.Close()
+
+	notifConsumer := kafka.NewNotificationConsumer(cfg.Kafka.Brokers, notifTopic, service.SystemNotification, notifHub)
+	defer notifConsumer.Close()
+
+	// GPS-alert worker: каждые 5 минут ищет сотрудников без GPS и кидает в Kafka
+	gpsWorker := gps_alert.New(repository.Location, repository.GpsAlertStates, notifPublisher, 5*time.Minute)
 
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
@@ -102,7 +125,11 @@ func run() error {
 	)
 	defer stop()
 
+	// app.WsHub().Run(ctx) уже запущен внутри app.New()
+	go notifHub.Run(ctx)
 	go kafkaConsumer.Run(ctx)
+	go notifConsumer.Run(ctx)
+	go gpsWorker.Run()
 
 	go func() {
 		addr := fmt.Sprintf(":%s", cfg.Admin.Port)
@@ -113,6 +140,8 @@ func run() error {
 
 	<-ctx.Done()
 	logger.Log.Info("shutdown signal received")
+
+	gpsWorker.Stop()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

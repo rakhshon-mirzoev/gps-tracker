@@ -26,13 +26,19 @@ type LocationHistory interface {
 }
 
 type locationHistoryService struct {
-	r         repository.LocationHistoryRepository
-	staff     StaffUsers
-	publisher events.LocationPublisher
+	r          repository.LocationHistoryRepository
+	alertRepo  repository.GpsAlertStatesRepository
+	staff      StaffUsers
+	publisher  events.LocationPublisher
 }
 
-func NewLocationHistoryService(r repository.LocationHistoryRepository, staff StaffUsers, publisher events.LocationPublisher) LocationHistory {
-	return &locationHistoryService{r: r, staff: staff, publisher: publisher}
+func NewLocationHistoryService(
+	r repository.LocationHistoryRepository,
+	alertRepo repository.GpsAlertStatesRepository,
+	staff StaffUsers,
+	publisher events.LocationPublisher,
+) LocationHistory {
+	return &locationHistoryService{r: r, alertRepo: alertRepo, staff: staff, publisher: publisher}
 }
 
 func (s *locationHistoryService) Create(ctx context.Context, lh *model.LocationHistory) error {
@@ -57,6 +63,15 @@ func (s *locationHistoryService) CreateBatch(ctx context.Context, locations []mo
 		staff, err := s.staff.GetByID(ctx, latest.StaffID)
 		if err != nil {
 			logger.Log.Error("err while staff get by id", zap.Error(err))
+		}
+
+		// Сотрудник прислал GPS — сбрасываем активный GPS-алерт,
+		// чтобы при следующей "пропаже" уведомление отправилось снова.
+		if err := s.alertRepo.Resolve(ctx, latest.StaffID); err != nil {
+			logger.Log.Warn("location history: resolve gps alert",
+				zap.Stringer("staff_id", latest.StaffID),
+				zap.Error(err),
+			)
 		}
 
 		update := events.LocationUpdate{

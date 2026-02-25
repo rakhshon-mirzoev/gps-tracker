@@ -19,6 +19,8 @@ type Repository struct {
 	Groups              GroupsRepository
 	StaffUsers          StaffUsersRepository
 	Notifications       NotificationsRepository
+	SystemNotifications SystemNotificationsRepository
+	GpsAlertStates      GpsAlertStatesRepository
 	Auth                Auth
 	Schedules           ScheduleRepository
 	Visit               VisitRepository
@@ -40,6 +42,8 @@ func New(db *db.DB) *Repository {
 		Groups:              NewGroupsRepository(db),
 		StaffUsers:          NewStaffUsersRepository(db),
 		Notifications:       NewNotificationsRepository(db),
+		SystemNotifications: NewSystemNotificationsRepository(db),
+		GpsAlertStates:      NewGpsAlertStatesRepository(db),
 		Auth:                NewAuthRepository(db),
 		Schedules:           NewScheduleRepository(db),
 		Visit:               NewVisitRepository(db),

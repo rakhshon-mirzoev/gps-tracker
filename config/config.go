@@ -18,8 +18,9 @@ type GeneralConfig struct {
 }
 
 type Kafka struct {
-	Brokers []string `json:"brokers"`
-	Topic   string   `json:"topic"`
+	Brokers           []string `json:"brokers"`
+	Topic             string   `json:"topic"`
+	NotificationTopic string   `json:"notification_topic"`
 }
 
 type Admin struct {
