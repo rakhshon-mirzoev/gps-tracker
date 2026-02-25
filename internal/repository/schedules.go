@@ -479,7 +479,7 @@ func (r *schedules) ListAll(ctx context.Context, staffID, storeID *uuid.UUID, da
 
 	sql := fmt.Sprintf(`
 		SELECT 
-			s.id, s.staff_id, s.store_id, st.name s.planned_date, s.description,
+			s.id, s.staff_id, s.store_id, st.name, s.planned_date, s.description,
 			s.window_open, s.window_close,
 			s.is_photo_required, s.is_selfie_required, s.is_comment_required,
 			s.status, s.created_by_admin_id
