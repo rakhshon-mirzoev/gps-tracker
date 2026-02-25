@@ -59,6 +59,9 @@ func (h *Handler) handleError(c *gin.Context, operation string, err error, defau
 	case errs.ErrorUserDeactivated:
 		status = http.StatusGone
 		errorMsg = "user is deactivated"
+	case errs.ErrorInvalidFileFormat:
+		status = http.StatusBadRequest
+		errorMsg = "file is invalid"
 	}
 
 	requestID := c.GetString(constants.RequestIDKey)

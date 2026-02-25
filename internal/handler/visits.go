@@ -35,7 +35,6 @@ func (h *Handler) VisitCheckIn(c *gin.Context) {
 }
 
 func (h *Handler) VisitPhoto(c *gin.Context) {
-	var dto model.UpdateVisit
 
 	vID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -49,7 +48,7 @@ func (h *Handler) VisitPhoto(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Visit.VisitPhoto(c.Request.Context(), vID, dto, file)
+	err = h.s.Visit.VisitPhoto(c.Request.Context(), vID, file)
 	if err != nil {
 		h.handleError(c, "VisitPhoto: update visit", err, http.StatusInternalServerError)
 		return

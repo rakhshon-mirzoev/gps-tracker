@@ -26,7 +26,7 @@ type Visits interface {
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
 	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int, begin, end time.Time) ([]model.Visit, int, error)
 	VisitComplete(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, staff_id uuid.UUID) error
-	VisitPhoto(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, file *multipart.Form) error
+	VisitPhoto(ctx context.Context, id uuid.UUID, file *multipart.Form) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error)
 	UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, user_id uuid.UUID, role, ip, settings, action string) error
@@ -220,7 +220,11 @@ func (s *visitsService) VisitComplete(ctx context.Context, uid uuid.UUID, dto mo
 	return nil
 }
 
-func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, file *multipart.Form) error {
+func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, file *multipart.Form) error {
+
+	if file == nil || file.File == nil {
+		return errs.ErrorInvalidFileFormat
+	}
 
 	selfie := file.File["selfie"]
 
@@ -228,70 +232,35 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.
 		return errs.ErrorInvalidFileFormat
 	}
 
-	if err := utils.ValidateFileType(selfie[0]); err != nil {
-		return err
-	}
-
-	if err := utils.ValidateFileSize(selfie[0]); err != nil {
-		return err
-	}
-
-	ext := utils.GetFileExtension(selfie[0].Filename)
-	if ext == "" {
-		return errs.ErrorFileExt
-	}
-	timestamp := time.Now().Unix()
-	filename := fmt.Sprintf("%s_%d%s", uuid.New(), timestamp, ext)
-	objectName := fmt.Sprintf(constants.VisitDir+"/"+constants.SelfieDir+"/%s/%s", id, filename)
-
-	selfieKey, err := s.minio.UploadFile(ctx, selfie[0], objectName)
-	if err != nil {
-		return fmt.Errorf("failed to upload selfie to minio: %w", err)
-	}
-
-	vp := &model.VisitPhotos{
-		VisitID:      id,
-		PhotoKey:     selfieKey,
-		OriginalName: selfie[0].Filename,
-	}
-
-	err = s.photo.Create(ctx, vp)
-	if err != nil {
-		return err
-	}
-
-	shelf := file.File["shelf"]
-	if len(shelf) == 0 {
-		return errs.ErrorEmptyRequestBody
-	}
-
-	for idx, f := range shelf {
-		if err := utils.ValidateFileType(f); err != nil {
+	if len(selfie) != 0 {
+		if selfie[0] == nil {
+			return errs.ErrorInvalidFileFormat
+		}
+		if err := utils.ValidateFileType(selfie[0]); err != nil {
 			return err
 		}
 
-		if err := utils.ValidateFileSize(f); err != nil {
+		if err := utils.ValidateFileSize(selfie[0]); err != nil {
 			return err
 		}
 
-		ext := utils.GetFileExtension(f.Filename)
+		ext := utils.GetFileExtension(selfie[0].Filename)
 		if ext == "" {
 			return errs.ErrorFileExt
 		}
 		timestamp := time.Now().Unix()
 		filename := fmt.Sprintf("%s_%d%s", uuid.New(), timestamp, ext)
-		objectName := fmt.Sprintf(constants.VisitDir+"/"+constants.ShelfDir+"/%s/%s", id, filename)
+		objectName := fmt.Sprintf(constants.VisitDir+"/"+constants.SelfieDir+"/%s/%s", id, filename)
 
-		photoKey, err := s.minio.UploadFile(ctx, f, objectName)
+		selfieKey, err := s.minio.UploadFile(ctx, selfie[0], objectName)
 		if err != nil {
-			return fmt.Errorf("failed to upload shelf photo %d to minio: %w", idx+1, err)
+			return fmt.Errorf("failed to upload selfie to minio: %w", err)
 		}
 
 		vp := &model.VisitPhotos{
-			PhotoKey:     photoKey,
 			VisitID:      id,
-			OriginalName: f.Filename,
-			CapturedAt:   time.Now(),
+			PhotoKey:     selfieKey,
+			OriginalName: selfie[0].Filename,
 		}
 
 		err = s.photo.Create(ctx, vp)
@@ -299,7 +268,46 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, dto model.
 			return err
 		}
 	}
-	return s.repo.Update(ctx, id, dto)
+
+	shelf := file.File["shelf"]
+	if len(shelf) != 0 {
+		for idx, f := range shelf {
+			if err := utils.ValidateFileType(f); err != nil {
+				return err
+			}
+
+			if err := utils.ValidateFileSize(f); err != nil {
+				return err
+			}
+
+			ext := utils.GetFileExtension(f.Filename)
+			if ext == "" {
+				return errs.ErrorFileExt
+			}
+			timestamp := time.Now().Unix()
+			filename := fmt.Sprintf("%s_%d%s", uuid.New(), timestamp, ext)
+			objectName := fmt.Sprintf(constants.VisitDir+"/"+constants.ShelfDir+"/%s/%s", id, filename)
+
+			photoKey, err := s.minio.UploadFile(ctx, f, objectName)
+			if err != nil {
+				return fmt.Errorf("failed to upload shelf photo %d to minio: %w", idx+1, err)
+			}
+
+			vp := &model.VisitPhotos{
+				PhotoKey:     photoKey,
+				VisitID:      id,
+				OriginalName: f.Filename,
+				CapturedAt:   time.Now(),
+			}
+
+			err = s.photo.Create(ctx, vp)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s *visitsService) Delete(ctx context.Context, id uuid.UUID) error {
