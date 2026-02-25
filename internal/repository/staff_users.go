@@ -9,9 +9,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
+	"go.uber.org/zap"
 )
 
 type StaffUsersRepository interface {
@@ -513,10 +515,13 @@ func (s *staffUsers) MakeInactiveUsers(ctx context.Context, timeout time.Duratio
 		AND last_location_at < NOW() - ($1 * INTERVAL '1 second');
 	`
 
-	_, err := s.DB.Pool.Exec(ctx, sql, int(timeout.Seconds()))
+	ct, err := s.DB.Pool.Exec(ctx, sql, int(timeout.Seconds()))
 	if err != nil {
 		return fmt.Errorf("exec make inactive: %w", err)
 	}
 
+	rows := ct.RowsAffected()
+
+	logger.Log.Info("users set offline", zap.Int64("count", rows))
 	return nil
 }
