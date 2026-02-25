@@ -63,11 +63,23 @@ func (r *staffUsers) Create(ctx context.Context, u *model.StaffUser) error {
 
 func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error) {
 	query := `
-		SELECT s.id, s.full_name, s.role, s.login, s.is_active, s.created_at, s.inn, s.birthday, s.is_temporary_password, s.group_id, s.phone_number,
-			   s.password_updated_at, s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at, s.deactivated_at,
-			   s.deactivated_by_id, s.deactivation_reason, s.avatar_key, s.start_at, s.end_at, s.day_started, g.name
+			SELECT s.id, s.full_name, s.role, s.login, s.is_active, s.created_at, s.inn, s.birthday, s.is_temporary_password, s.group_id, s.phone_number,
+				s.password_updated_at, s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at, s.deactivated_at,
+				s.deactivated_by_id, s.deactivation_reason, s.avatar_key, s.start_at, s.end_at, s.day_started, g.name
+			    CASE
+					WHEN l.captured_at IS NULL THEN 'offline'
+					WHEN l.captured_at < NOW() - INTERVAL '5 minutes' THEN 'offline'
+					ELSE 'online'
+				END AS status
 		FROM staff_users s
 		JOIN groups g ON g.id = s.group_id
+		LEFT JOIN LATERAL (
+			SELECT captured_at
+			FROM location_history
+			WHERE staff_id = s.id
+			ORDER BY captured_at DESC
+			LIMIT 1
+		) l ON true
 		WHERE s.id = $1
 	`
 
@@ -99,6 +111,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 		&u.EndAt,
 		&u.DayStarted,
 		&u.GroupName,
+		&u.Status,
 	)
 
 	if err != nil {
@@ -129,9 +142,21 @@ func (r *staffUsers) List(ctx context.Context, limit, offset int) ([]model.Staff
 		SELECT s.id, s.full_name, s.role, s.login, s.is_active, s.created_at, s.inn, s.birthday, s.is_temporary_password, s.group_id, s.phone_number,
 			   s.password_updated_at, s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at, s.deactivated_at,
 			   s.deactivated_by_id, s.deactivation_reason, s.avatar_key, s.start_at, s.end_at, s.day_started, g.name
+			    CASE
+					WHEN l.captured_at IS NULL THEN 'offline'
+					WHEN l.captured_at < NOW() - INTERVAL '5 minutes' THEN 'offline'
+					ELSE 'online'
+				END AS status
 		FROM staff_users s
 		JOIN groups g ON g.id = s.group_id
-		ORDER BY created_at DESC
+		LEFT JOIN LATERAL (
+			SELECT captured_at
+			FROM location_history
+			WHERE staff_id = s.id
+			ORDER BY captured_at DESC
+			LIMIT 1
+		) l ON true
+		ORDER BY s.created_at DESC
 		LIMIT $1 OFFSET $2
 	`
 
@@ -171,6 +196,7 @@ func (r *staffUsers) List(ctx context.Context, limit, offset int) ([]model.Staff
 			&u.EndAt,
 			&u.DayStarted,
 			&u.GroupName,
+			&u.Status,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan staff user: %w", err)
 		}

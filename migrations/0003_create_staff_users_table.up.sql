@@ -41,3 +41,6 @@ CREATE TABLE staff_users (
 
     created_at TIMESTAMP NOT NULL DEFAULT now()
 );
+
+CREATE INDEX idx_location_history_staff_captured_at
+ON location_history (staff_id, captured_at DESC);

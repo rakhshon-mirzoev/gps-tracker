@@ -94,8 +94,6 @@ func run() error {
 
 	registerMobileRoutes(router, mw, handlers, minioHandler)
 
-	makeIncative := cron.MakeInactive(*services)
-
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
@@ -127,10 +125,6 @@ func run() error {
 	cleanupCtx := cleanupCron.Stop()
 	<-cleanupCtx.Done()
 	logger.Log.Info("cleanupCtx cron stopped")
-
-	makeIncativeCtx := makeIncative.Stop()
-	<-makeIncativeCtx.Done()
-	logger.Log.Info("makeIncativeCtx cron stopped")
 
 	worker.Stop()
 

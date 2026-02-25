@@ -33,6 +33,7 @@ type StaffUser struct {
 	EndAt               *time.Time `json:"end_at" db:"end_at"`
 	DayStarted          *bool      `json:"day_started" db:"day_started"`
 	GroupName           string     `json:"group_name"`
+	Status              string     `json:"status"`
 	CreatedAt           time.Time  `db:"created_at" json:"created_at"`
 }
 
