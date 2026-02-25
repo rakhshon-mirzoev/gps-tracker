@@ -62,6 +62,9 @@ func GetFileExtension(filename string) string {
 }
 
 func ValidateFileSize(file *multipart.FileHeader) error {
+	if file == nil {
+		return errs.ErrorInvalidFileFormat
+	}
 	if file.Size > MaxFileSize {
 		return errs.ErrorExceedsFileSize
 	}
@@ -72,6 +75,9 @@ func ValidateFileSize(file *multipart.FileHeader) error {
 }
 
 func ValidateFileType(file *multipart.FileHeader) error {
+	if file == nil {
+		return errs.ErrorInvalidFileFormat
+	}
 	allowedExtensions := []string{".png", ".jpg", ".jpeg"}
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 
