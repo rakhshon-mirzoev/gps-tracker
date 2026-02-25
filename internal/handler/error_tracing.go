@@ -62,6 +62,9 @@ func (h *Handler) handleError(c *gin.Context, operation string, err error, defau
 	case errs.ErrorInvalidFileFormat:
 		status = http.StatusBadRequest
 		errorMsg = "file is invalid"
+	case errs.ErrorUserIDorGroupID:
+		status = http.StatusBadRequest
+		errorMsg = "user_id or group_id required"
 	}
 
 	requestID := c.GetString(constants.RequestIDKey)

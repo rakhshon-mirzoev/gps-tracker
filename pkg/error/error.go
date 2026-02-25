@@ -42,4 +42,5 @@ var (
 	ErrorNotFinishedDay      = errors.New("day not finished yet")
 	ErrorNotStartedDay       = errors.New("day not started yet")
 	ErrorNotCompletedVisit   = errors.New("visit is not completed yet")
+	ErrorUserIDorGroupID     = errors.New("user_id or group_id required")
 )

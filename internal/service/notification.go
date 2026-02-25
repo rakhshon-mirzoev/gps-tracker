@@ -57,6 +57,18 @@ func (s *notificationService) CreateAndPushToUser(ctx context.Context, userID uu
 		return fmt.Errorf("create notification: %w", err)
 	}
 
+	if token == nil {
+		u, err := s.staffRepo.GetByID(ctx, userID)
+		if err != nil {
+			return err
+		}
+
+		if u != nil && u.FcmToken != nil {
+			token = u.FcmToken
+		}
+
+	}
+
 	if token != nil {
 		if err := s.sender.SendToToken(ctx, *token, title, body, map[string]string{"type": ntype}); err == nil {
 			if err := s.r.UpdatePushSent(ctx, n.ID, true); err != nil {

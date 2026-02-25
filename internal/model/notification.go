@@ -21,3 +21,12 @@ type Notification struct {
 	PushSentAt time.Time       `json:"push_sent_at" db:"push_sent_at"`
 	CreatedAt  time.Time       `json:"created_at" db:"created_at"`
 }
+
+type CreateNotificationRequest struct {
+	UserID  *uuid.UUID     `json:"user_id"`
+	GroupID *uuid.UUID     `json:"group_id"`
+	Title   string         `json:"title" binding:"required"`
+	Body    string         `json:"body" binding:"required"`
+	Type    string         `json:"type" binding:"required"`
+	Meta    map[string]any `json:"meta"`
+}

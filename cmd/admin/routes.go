@@ -131,6 +131,11 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			administrate.POST("", h.CreateSystemUser)
 		}
 
+		notifications := admin.Group(constants.Notifications)
+		{
+			notifications.POST("", h.CreateNotification)
+		}
+
 	}
 
 	r.GET("/api/v1/admin/ws-location", websocket.Handler(websocket.Deps{
