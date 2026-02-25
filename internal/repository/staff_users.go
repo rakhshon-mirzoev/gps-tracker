@@ -24,6 +24,7 @@ type StaffUsersRepository interface {
 	ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error)
 	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
 	GetByGroupID(ctx context.Context, group_id uuid.UUID) ([]model.StaffUser, error)
+	MakeInactiveUsers(ctx context.Context, timeout time.Duration) error
 }
 
 type staffUsers struct {
@@ -502,4 +503,20 @@ func (s *staffUsers) GetByGroupID(ctx context.Context, group_id uuid.UUID) ([]mo
 
 	return users, nil
 
+}
+
+func (s *staffUsers) MakeInactiveUsers(ctx context.Context, timeout time.Duration) error {
+	sql := `
+		UPDATE staff_users
+		SET status = 'offline'
+		WHERE status = 'online'
+		AND last_location_at < NOW() - ($1 * INTERVAL '1 second');
+	`
+
+	_, err := s.DB.Pool.Exec(ctx, sql, int(timeout.Seconds()))
+	if err != nil {
+		return fmt.Errorf("exec make inactive: %w", err)
+	}
+
+	return nil
 }

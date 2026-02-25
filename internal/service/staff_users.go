@@ -31,6 +31,7 @@ type StaffUsers interface {
 	UpdateAvatar(ctx context.Context, userID uuid.UUID, file *multipart.FileHeader) error
 	GetWorkTimeStaff(ctx context.Context, id uuid.UUID) (float64, error)
 	DayStarted(ctx context.Context, id uuid.UUID) (bool, error)
+	MakeInactiveUsers(ctx context.Context) error
 }
 type staffUserService struct {
 	r             repository.StaffUsersRepository
@@ -373,4 +374,8 @@ func (s *staffUserService) ListByGroupID(ctx context.Context, user_id uuid.UUID)
 
 func (s *staffUserService) GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error) {
 	return s.r.GetLocationByID(ctx, id, begin, end)
+}
+
+func (s *staffUserService) MakeInactiveUsers(ctx context.Context) error {
+	return s.r.MakeInactiveUsers(ctx, time.Minute*5)
 }
