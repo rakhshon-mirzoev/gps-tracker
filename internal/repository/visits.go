@@ -284,12 +284,23 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 	}
 
 	var total int
-	countSQL := `SELECT COUNT(*) FROM visits WHERE review_status = $1 AND reviewer_id = $2`
-	if err := r.DB.Pool.QueryRow(ctx, countSQL, status, id).Scan(&total); err != nil {
+	var countSQL string
+	var countArgs []any
+	if status != "" {
+		countSQL = `SELECT COUNT(*) FROM visits WHERE review_status = $1 AND reviewer_id = $2`
+		countArgs = []any{status, id}
+	} else {
+		countSQL = `SELECT COUNT(*) FROM visits WHERE reviewer_id = $1`
+		countArgs = []any{id}
+	}
+	if err := r.DB.Pool.QueryRow(ctx, countSQL, countArgs...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count visits: %w", err)
 	}
 
-	sql := `
+	var sql string
+	var args []any
+	if status != "" {
+		sql = `
 		SELECT v.id, v.schedule_id, v.staff_id, v.store_id, v.check_in_at, v.check_out_at,
 			   v.check_in_lat, v.check_in_lon, v.distance_deviation, v.comment,
 			   v.is_offline, v.review_status, v.review_comment, v.reviewer_id,
@@ -303,8 +314,26 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 		ORDER BY v.created_at DESC
 		LIMIT $3 OFFSET $4
 	`
+		args = []any{status, id, limit, offset}
+	} else {
+		sql = `
+		SELECT v.id, v.schedule_id, v.staff_id, v.store_id, v.check_in_at, v.check_out_at,
+			   v.check_in_lat, v.check_in_lon, v.distance_deviation, v.comment,
+			   v.is_offline, v.review_status, v.review_comment, v.reviewer_id,
+			   v.reviewed_at, v.created_at,
+			   su.id, su.full_name, su.phone_number,
+			   st.id, st.name, st.address, st.latitude, st.longitude
+		FROM visits v
+		LEFT JOIN staff_users su ON v.staff_id = su.id
+		LEFT JOIN stores st ON v.store_id = st.id
+		WHERE v.reviewer_id = $1
+		ORDER BY v.created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+		args = []any{id, limit, offset}
+	}
 
-	rows, err := r.DB.Pool.Query(ctx, sql, status, id, limit, offset)
+	rows, err := r.DB.Pool.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list visits by review status: %w", err)
 	}
