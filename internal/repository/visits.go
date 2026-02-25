@@ -507,7 +507,7 @@ func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off 
 	sql := `
 		SELECT v.id, v.schedule_id, v.staff_id, v.store_id, s.name, v.check_in_at, v.check_out_at,
 			   v.check_in_lat, v.check_in_lon, v.distance_deviation, v.comment,
-			   v.is_offline, v.review_status, v.review_comment, v.eviewer_id,
+			   v.is_offline, v.review_status, v.review_comment, v.reviewer_id,
 			   v.reviewed_at, v.created_at
 		FROM visits v
 		JOIN stores s ON s.id = v.store_id
