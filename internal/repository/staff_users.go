@@ -65,7 +65,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 	query := `
 			SELECT s.id, s.full_name, s.role, s.login, s.is_active, s.created_at, s.inn, s.birthday, s.is_temporary_password, s.group_id, s.phone_number,
 				s.password_updated_at, s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at, s.deactivated_at,
-				s.deactivated_by_id, s.deactivation_reason, s.avatar_key, s.start_at, s.end_at, s.day_started, g.name
+				s.deactivated_by_id, s.deactivation_reason, s.avatar_key, s.start_at, s.end_at, s.day_started, g.name,
 			    CASE
 					WHEN l.captured_at IS NULL THEN 'offline'
 					WHEN l.captured_at < NOW() - INTERVAL '5 minutes' THEN 'offline'
@@ -141,7 +141,7 @@ func (r *staffUsers) List(ctx context.Context, limit, offset int) ([]model.Staff
 	query := `
 		SELECT s.id, s.full_name, s.role, s.login, s.is_active, s.created_at, s.inn, s.birthday, s.is_temporary_password, s.group_id, s.phone_number,
 			   s.password_updated_at, s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at, s.deactivated_at,
-			   s.deactivated_by_id, s.deactivation_reason, s.avatar_key, s.start_at, s.end_at, s.day_started, g.name
+			   s.deactivated_by_id, s.deactivation_reason, s.avatar_key, s.start_at, s.end_at, s.day_started, g.name,
 			    CASE
 					WHEN l.captured_at IS NULL THEN 'offline'
 					WHEN l.captured_at < NOW() - INTERVAL '5 minutes' THEN 'offline'
