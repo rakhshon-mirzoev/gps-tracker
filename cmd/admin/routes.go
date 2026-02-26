@@ -134,6 +134,8 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 		notifications := admin.Group(constants.Notifications)
 		{
 			notifications.POST("", h.CreateNotification)
+			notifications.GET("", h.GetSystemNotifications)
+			notifications.PATCH("/:id/read", h.MarkSystemNotificationRead)
 		}
 
 	}
