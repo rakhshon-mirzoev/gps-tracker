@@ -32,7 +32,9 @@ const docTemplate = `{
         {"name": "Visits", "description": "Визиты и отчёты"},
         {"name": "Settings", "description": "Системные настройки"},
         {"name": "Audit", "description": "Журнал аудита"},
-        {"name": "System Users", "description": "Управление системными пользователями (admin/supervisor)"}
+        {"name": "System Users", "description": "Управление системными пользователями (admin/supervisor)"},
+        {"name": "Notifications", "description": "Системные уведомления для admin/supervisor"},
+        {"name": "WebSocket", "description": "⚠️ WebSocket-соединения. Swagger не поддерживает WS — эндпоинты показаны только для документации, протестировать через UI не получится."}
     ],
     "paths": {
         "/ping": {
@@ -1109,6 +1111,111 @@ const docTemplate = `{
                     "500": {"description": "Internal Server Error"}
                 }
             }
+        },
+        "/admin/notifications": {
+            "get": {
+                "tags": ["Notifications"],
+                "summary": "Получить историю уведомлений текущего пользователя",
+                "description": "Возвращает пагинированный список системных уведомлений, адресованных авторизованному admin или supervisor.",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "limit",  "in": "query", "type": "integer", "default": 20, "description": "Количество записей"},
+                    {"name": "offset", "in": "query", "type": "integer", "default": 0,  "description": "Смещение"}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список уведомлений",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "type": "array",
+                                    "items": {"$ref": "#/definitions/SystemNotification"}
+                                },
+                                "total":  {"type": "integer"},
+                                "limit":  {"type": "integer"},
+                                "offset": {"type": "integer"}
+                            }
+                        }
+                    },
+                    "401": {"description": "Не авторизован"},
+                    "403": {"description": "Нет доступа"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            },
+            "post": {
+                "tags": ["Notifications"],
+                "summary": "Отправить push-уведомление сотруднику или группе",
+                "description": "Создаёт уведомление и отправляет FCM push. Нужно указать ровно одно из полей: user_id или group_id.",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {"$ref": "#/definitions/CreateNotificationRequest"}
+                    }
+                ],
+                "responses": {
+                    "200": {"description": "Уведомление отправлено"},
+                    "400": {"description": "Ошибка валидации (отсутствует user_id/group_id или оба сразу)"},
+                    "401": {"description": "Не авторизован"},
+                    "403": {"description": "Нет доступа"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/admin/notifications/{id}/read": {
+            "patch": {
+                "tags": ["Notifications"],
+                "summary": "Пометить уведомление как прочитанное",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID уведомления"}
+                ],
+                "responses": {
+                    "200": {"description": "Успешно помечено"},
+                    "400": {"description": "Невалидный UUID"},
+                    "401": {"description": "Не авторизован"},
+                    "403": {"description": "Нет доступа"},
+                    "404": {"description": "Уведомление не найдено"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/admin/ws-location": {
+            "get": {
+                "tags": ["WebSocket"],
+                "summary": "⚠️ [WebSocket] Локации сотрудников в реальном времени",
+                "description": "**Это WebSocket-соединение, не HTTP-запрос.**\n\nПодключение: `ws://{host}/api/v1/admin/ws-location?token=<jwt>`\n\nПосле подключения сервер широковещательно рассылает JSON-сообщения с координатами сотрудников. Admin получает все локации, supervisor — только своей группы.\n\n**Формат сообщения:**\n```json\n{\n  \"staff_id\": \"uuid\",\n  \"group_id\": \"uuid\",\n  \"lat\": 41.123,\n  \"lon\": 69.456,\n  \"captured_at\": \"2024-01-01T10:00:00Z\"\n}\n```\n\nАутентификация передаётся через query-параметр `token` (JWT). Роли: `admin`, `supervisor`.",
+                "parameters": [
+                    {"name": "token", "in": "query", "required": true, "type": "string", "description": "JWT access token"}
+                ],
+                "responses": {
+                    "101": {"description": "Switching Protocols — соединение upgraded до WebSocket"},
+                    "401": {"description": "Токен отсутствует или невалиден"},
+                    "403": {"description": "Недостаточно прав"}
+                }
+            }
+        },
+        "/admin/ws-notification": {
+            "get": {
+                "tags": ["WebSocket"],
+                "summary": "⚠️ [WebSocket] Системные уведомления в реальном времени",
+                "description": "**Это WebSocket-соединение, не HTTP-запрос.**\n\nПодключение: `ws://{host}/api/v1/admin/ws-notification?token=<jwt>`\n\nСервер адресно доставляет уведомления конкретному пользователю (по `user_id` из токена). Клиент ничего не отправляет — соединение только на приём.\n\n**Формат сообщения** (`SystemNotification`):\n```json\n{\n  \"id\": \"uuid\",\n  \"recipient_id\": \"uuid\",\n  \"staff_id\": \"uuid\",\n  \"group_id\": \"uuid\",\n  \"type\": \"gps_missing\",\n  \"title\": \"GPS не получен\",\n  \"body\": \"Сотрудник Иванов не отправлял GPS уже 10m0s\",\n  \"is_read\": false,\n  \"created_at\": \"2024-01-01T10:00:00Z\"\n}\n```\n\nАутентификация передаётся через query-параметр `token` (JWT). Роли: `admin`, `supervisor`.",
+                "parameters": [
+                    {"name": "token", "in": "query", "required": true, "type": "string", "description": "JWT access token"}
+                ],
+                "responses": {
+                    "101": {"description": "Switching Protocols — соединение upgraded до WebSocket"},
+                    "401": {"description": "Токен отсутствует или невалиден"},
+                    "403": {"description": "Недостаточно прав (требуется admin или supervisor)"}
+                }
+            }
         }
     },
     "definitions": {
@@ -1514,6 +1621,33 @@ const docTemplate = `{
                 "error": {"type": "string"},
                 "status_code": {"type": "integer"},
                 "request_id": {"type": "string"}
+            }
+        },
+        "SystemNotification": {
+            "type": "object",
+            "properties": {
+                "id":           {"type": "string", "format": "uuid"},
+                "recipient_id": {"type": "string", "format": "uuid"},
+                "staff_id":     {"type": "string", "format": "uuid"},
+                "group_id":     {"type": "string", "format": "uuid"},
+                "type":         {"type": "string", "example": "gps_missing"},
+                "title":        {"type": "string"},
+                "body":         {"type": "string"},
+                "is_read":      {"type": "boolean"},
+                "read_at":      {"type": "string", "format": "date-time"},
+                "created_at":   {"type": "string", "format": "date-time"}
+            }
+        },
+        "CreateNotificationRequest": {
+            "type": "object",
+            "required": ["title", "body", "type"],
+            "properties": {
+                "user_id":  {"type": "string", "format": "uuid", "description": "ID сотрудника (исключает group_id)"},
+                "group_id": {"type": "string", "format": "uuid", "description": "ID группы (исключает user_id)"},
+                "title":    {"type": "string"},
+                "body":     {"type": "string"},
+                "type":     {"type": "string"},
+                "meta":     {"type": "object", "additionalProperties": true}
             }
         }
     }
