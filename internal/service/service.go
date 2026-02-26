@@ -37,7 +37,7 @@ func New(r *repository.Repository, t token.Token, minio minioservice.Minio, send
 	ssch := NewStaffScheduleService(r.StaffSchedule)
 	notifSvc := NewNotificationService(r.Notifications, r.StaffUsers, sender)
 	sysNotifSvc := NewSystemNotificationService(r.SystemNotifications, r.SystemUsers)
-	staff := NewStaffUserService(r.StaffUsers, r.Visit, sch, sender, notifSvc, audit, minio, ssch)
+	staff := NewStaffUserService(r.StaffUsers, r.Visit, sch, sender, notifSvc, audit, minio, ssch, r.GpsAlertStates)
 	authorize := NewAuthorizeService(t, r.Auth, sys, staff)
 	visitPhotos := NewVisitPhotosService(r.VisitPhotos, minio)
 	store := NewStoresService(r.Store, audit, minio, storePhotos)

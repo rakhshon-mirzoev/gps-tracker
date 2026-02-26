@@ -38,12 +38,13 @@ type staffUserService struct {
 	schedules     Schedule
 	audit         AuditLogs
 	notifications Notification
+	alertRepo     repository.GpsAlertStatesRepository
 	minio         minioservice.Minio
 	staffSchedule StaffSchedule
 }
 
-func NewStaffUserService(r repository.StaffUsersRepository, visitRepo repository.VisitRepository, sch Schedule, sender fcm.PushSender, notifications Notification, audit AuditLogs, minio minioservice.Minio, staffSchedule StaffSchedule) StaffUsers {
-	return &staffUserService{r: r, visitRepo: visitRepo, schedules: sch, notifications: notifications, audit: audit, minio: minio, staffSchedule: staffSchedule}
+func NewStaffUserService(r repository.StaffUsersRepository, visitRepo repository.VisitRepository, sch Schedule, sender fcm.PushSender, notifications Notification, audit AuditLogs, minio minioservice.Minio, staffSchedule StaffSchedule, alertRepo repository.GpsAlertStatesRepository) StaffUsers {
+	return &staffUserService{r: r, visitRepo: visitRepo, schedules: sch, notifications: notifications, audit: audit, minio: minio, staffSchedule: staffSchedule, alertRepo: alertRepo}
 }
 
 func (s *staffUserService) GetWorkTimeStaff(ctx context.Context, id uuid.UUID) (float64, error) {
@@ -281,6 +282,17 @@ func (s *staffUserService) Update(ctx context.Context, id uuid.UUID, dto model.U
 
 	if err := s.r.Update(ctx, id, dto); err != nil {
 		return err
+	}
+
+	// Если сотрудник заканчивает день — сбрасываем активный GPS-алерт.
+	// Это нужно чтобы на следующий рабочий день алерт снова мог сработать.
+	if dto.EndAt != nil {
+		if err := s.alertRepo.Resolve(ctx, id); err != nil {
+			logger.Log.Warn("staff update: resolve gps alert on day end",
+				zap.Stringer("staff_id", id),
+				zap.Error(err),
+			)
+		}
 	}
 
 	if user_id != uuid.Nil {

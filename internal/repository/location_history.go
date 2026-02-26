@@ -344,22 +344,24 @@ func (r *locationHistory) GetAllStaffOnlineOffline(ctx context.Context, supervis
 	return result, nil
 }
 
-// GetStaffMissingGPS возвращает активных сотрудников, чей последний GPS
-// старше `threshold` или которые вообще не отправляли GPS.
+// GetStaffMissingGPS возвращает сотрудников у которых:
+//   - день начат (day_started = TRUE)
+//   - они активны (не деактивированы)
+//   - последний GPS старше `threshold` (или GPS не было вообще)
 func (r *locationHistory) GetStaffMissingGPS(ctx context.Context, threshold time.Duration) ([]model.LocationHistoryWithStaff, error) {
-	// Используем LEFT JOIN: берём сотрудников без GPS вообще или с устаревшим последним GPS.
 	sql := `
 		SELECT DISTINCT ON (s.id)
 			s.id, s.group_id, s.full_name, s.phone_number,
 			COALESCE(l.latitude, 0),
 			COALESCE(l.longitude, 0),
 			COALESCE(l.battery_level, 0),
-			COALESCE(l.captured_at, s.created_at),
+			COALESCE(l.captured_at, s.start_at),
 			COALESCE(l.status, 'offline')
 		FROM staff_users s
 		LEFT JOIN location_history l ON l.staff_id = s.id
-		WHERE s.is_active = TRUE
+		WHERE s.is_active          = TRUE
 		  AND s.deactivated_by_id IS NULL
+		  AND s.day_started        = TRUE
 		ORDER BY s.id, l.captured_at DESC NULLS LAST
 	`
 
@@ -380,6 +382,7 @@ func (r *locationHistory) GetStaffMissingGPS(ctx context.Context, threshold time
 		); err != nil {
 			return nil, fmt.Errorf("scan staff missing gps: %w", err)
 		}
+		// Фильтруем в Go: только те, чей последний GPS старше порога
 		if loc.CapturedAt.Before(cutoff) {
 			result = append(result, loc)
 		}
