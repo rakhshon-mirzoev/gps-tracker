@@ -16,7 +16,7 @@ import (
 	_ "github.com/rakhshon-mirzoev/gps-tracker/docs/admin"
 )
 
-func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Handler, m *miniohandler.MinioHandler, wsHub *websocket.Hub, svc *service.Service, tokenSvc token.Token) {
+func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Handler, m *miniohandler.MinioHandler, wsHub *websocket.Hub, nfHub *websocket.NotificationHub, svc *service.Service, tokenSvc token.Token) {
 	r.Use(cors.New(cors.Config{
 		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
@@ -131,6 +131,11 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			administrate.POST("", h.CreateSystemUser)
 		}
 
+		notifications := admin.Group(constants.Notifications)
+		{
+			notifications.POST("", h.CreateNotification)
+		}
+
 	}
 
 	r.GET("/api/v1/admin/ws-location", websocket.Handler(websocket.Deps{
@@ -140,4 +145,5 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 		GroupResolver:    svc.Group,
 	}))
 
+	r.GET("/api/v1/admin/ws-notification", websocket.NotificationHandler(nfHub, tokenSvc))
 }
