@@ -33,8 +33,7 @@ const docTemplate = `{
         {"name": "Settings", "description": "Системные настройки"},
         {"name": "Audit", "description": "Журнал аудита"},
         {"name": "System Users", "description": "Управление системными пользователями (admin/supervisor)"},
-        {"name": "Notifications", "description": "Системные уведомления для admin/supervisor"},
-        {"name": "WebSocket", "description": "⚠️ WebSocket-соединения. Swagger не поддерживает WS — эндпоинты показаны только для документации, протестировать через UI не получится."}
+        {"name": "Notifications", "description": "Системные уведомления для admin/supervisor"}
     ],
     "paths": {
         "/ping": {
@@ -1056,22 +1055,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/ws-location": {
-            "get": {
-                "tags": ["Monitoring", "WebSocket"],
-                "summary": "⚠️ [WebSocket] Локации сотрудников в реальном времени",
-                "description": "WebSocket-соединение для получения обновлений местоположения сотрудников. Подключение через ws:// или wss://. Требуется передать JWT-токен через query-параметр ?token=. Admin видит всех сотрудников, Supervisor — только свою группу. При подключении отправляются текущие последние координаты всех доступных сотрудников.",
-                "produces": ["application/json"],
-                "parameters": [
-                    {"name": "token", "in": "query", "required": true, "type": "string", "description": "JWT access token (admin или supervisor)"}
-                ],
-                "responses": {
-                    "101": {"description": "Switching Protocols — WebSocket-соединение установлено"},
-                    "401": {"description": "Отсутствует или невалидный токен"},
-                    "403": {"description": "Нет доступа (требуется роль admin или supervisor)"}
-                }
-            }
-        },
         "/admin/system/{id}": {
             "put": {
                 "tags": ["System Users"],
@@ -1184,20 +1167,6 @@ const docTemplate = `{
                     "403": {"description": "Нет доступа"},
                     "404": {"description": "Уведомление не найдено"},
                     "500": {"description": "Internal Server Error"}
-                }
-            }
-        },
-        "/admin/ws-notification": {
-            "get": {
-                "tags": ["WebSocket"],
-                "summary": "⚠️ [WebSocket] Системные уведомления в реальном времени",
-                "parameters": [
-                    {"name": "token", "in": "query", "required": true, "type": "string", "description": "JWT access token"}
-                ],
-                "responses": {
-                    "101": {"description": "Switching Protocols — соединение upgraded до WebSocket"},
-                    "401": {"description": "Токен отсутствует или невалиден"},
-                    "403": {"description": "Недостаточно прав (требуется admin или supervisor)"}
                 }
             }
         }
