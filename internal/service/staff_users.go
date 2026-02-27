@@ -10,7 +10,6 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
 	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
@@ -178,7 +177,7 @@ func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser
 
 	hash, err := utils.HashPassword(dto.Password)
 	if err != nil {
-		return errors.ErrorPasswordHashError
+		return errs.ErrorPasswordHashError
 	}
 
 	user := &model.StaffUser{

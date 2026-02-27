@@ -1147,7 +1147,7 @@ const docTemplate = `{
             "post": {
                 "tags": ["Notifications"],
                 "summary": "Отправить push-уведомление сотруднику или группе",
-                "description": "Создаёт уведомление и отправляет FCM push. Нужно указать ровно одно из полей: user_id или group_id.",
+                "description": "Создаёт FCM push-уведомление для конкретного сотрудника или всей группы. Нужно указать ровно одно из полей: user_id или group_id.",
                 "security": [{"BearerAuth": []}],
                 "consumes": ["application/json"],
                 "produces": ["application/json"],
@@ -1191,7 +1191,6 @@ const docTemplate = `{
             "get": {
                 "tags": ["WebSocket"],
                 "summary": "⚠️ [WebSocket] Локации сотрудников в реальном времени",
-                "description": "**Это WebSocket-соединение, не HTTP-запрос.**\n\nПодключение: `ws://{host}/api/v1/admin/ws-location?token=<jwt>`\n\nПосле подключения сервер широковещательно рассылает JSON-сообщения с координатами сотрудников. Admin получает все локации, supervisor — только своей группы.\n\n**Формат сообщения:**\n```json\n{\n  \"staff_id\": \"uuid\",\n  \"group_id\": \"uuid\",\n  \"lat\": 41.123,\n  \"lon\": 69.456,\n  \"captured_at\": \"2024-01-01T10:00:00Z\"\n}\n```\n\nАутентификация передаётся через query-параметр `token` (JWT). Роли: `admin`, `supervisor`.",
                 "parameters": [
                     {"name": "token", "in": "query", "required": true, "type": "string", "description": "JWT access token"}
                 ],
@@ -1206,7 +1205,6 @@ const docTemplate = `{
             "get": {
                 "tags": ["WebSocket"],
                 "summary": "⚠️ [WebSocket] Системные уведомления в реальном времени",
-                "description": "**Это WebSocket-соединение, не HTTP-запрос.**\n\nПодключение: `ws://{host}/api/v1/admin/ws-notification?token=<jwt>`\n\nСервер адресно доставляет уведомления конкретному пользователю (по `user_id` из токена). Клиент ничего не отправляет — соединение только на приём.\n\n**Формат сообщения** (`SystemNotification`):\n```json\n{\n  \"id\": \"uuid\",\n  \"recipient_id\": \"uuid\",\n  \"staff_id\": \"uuid\",\n  \"group_id\": \"uuid\",\n  \"type\": \"gps_missing\",\n  \"title\": \"GPS не получен\",\n  \"body\": \"Сотрудник Иванов не отправлял GPS уже 10m0s\",\n  \"is_read\": false,\n  \"created_at\": \"2024-01-01T10:00:00Z\"\n}\n```\n\nАутентификация передаётся через query-параметр `token` (JWT). Роли: `admin`, `supervisor`.",
                 "parameters": [
                     {"name": "token", "in": "query", "required": true, "type": "string", "description": "JWT access token"}
                 ],
