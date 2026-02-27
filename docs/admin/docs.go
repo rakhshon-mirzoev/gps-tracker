@@ -1058,8 +1058,8 @@ const docTemplate = `{
         },
         "/admin/ws-location": {
             "get": {
-                "tags": ["Monitoring"],
-                "summary": "WebSocket: обновления геолокации в реальном времени",
+                "tags": ["Monitoring", "WebSocket"],
+                "summary": "⚠️ [WebSocket] Локации сотрудников в реальном времени",
                 "description": "WebSocket-соединение для получения обновлений местоположения сотрудников. Подключение через ws:// или wss://. Требуется передать JWT-токен через query-параметр ?token=. Admin видит всех сотрудников, Supervisor — только свою группу. При подключении отправляются текущие последние координаты всех доступных сотрудников.",
                 "produces": ["application/json"],
                 "parameters": [
@@ -1184,20 +1184,6 @@ const docTemplate = `{
                     "403": {"description": "Нет доступа"},
                     "404": {"description": "Уведомление не найдено"},
                     "500": {"description": "Internal Server Error"}
-                }
-            }
-        },
-        "/admin/ws-location": {
-            "get": {
-                "tags": ["WebSocket"],
-                "summary": "⚠️ [WebSocket] Локации сотрудников в реальном времени",
-                "parameters": [
-                    {"name": "token", "in": "query", "required": true, "type": "string", "description": "JWT access token"}
-                ],
-                "responses": {
-                    "101": {"description": "Switching Protocols — соединение upgraded до WebSocket"},
-                    "401": {"description": "Токен отсутствует или невалиден"},
-                    "403": {"description": "Недостаточно прав"}
                 }
             }
         },
