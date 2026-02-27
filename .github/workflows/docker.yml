@@ -31,13 +31,11 @@ jobs:
             admin:
               - 'cmd/admin/**'
               - 'Dockerfile.admin'
-	    - 'docs/admin/**'
-
+	          - 'docs/admin/**'
             mobile:
               - 'cmd/mobile/**'
               - 'Dockerfile.mobile'
-	    - 'docs/admin/**'
-
+		       - 'docs/admin/**'
             shared:
               - 'internal/**'
               - 'pkg/**'
