@@ -332,9 +332,6 @@ func (s *visitsService) UpdateVisit(ctx context.Context, id uuid.UUID, dto model
 		return err
 	}
 
-	if v.CheckOutAt != nil {
-		return errs.ErrorNotCompletedVisit
-	}
 
 	if err := s.schedule.Update(ctx, *v.ScheduleID, model.UpdateSchedule{
 		Status: dto.ReviewStatus,
