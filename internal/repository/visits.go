@@ -452,7 +452,11 @@ func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UU
 	var visits []model.VisitExcel
 
 	for rows.Next() {
-		var v model.VisitExcel
+		var (
+			reviewerName *string
+			v            model.VisitExcel
+		)
+
 		if err := rows.Scan(
 			&v.ID,
 			&v.CheckInAt,
@@ -469,13 +473,18 @@ func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UU
 			&v.Staff.PhoneNumber,
 			&v.Group.Name,
 			&v.Store.Name,
-			&v.Reviewer.FullName,
+			&reviewerName,
 		); err != nil {
 			return nil, fmt.Errorf("scan visit excel: %w", err)
 		}
 
-		visits = append(visits, v)
+		if reviewerName != nil {
+			v.Reviewer = &model.SystemUser{
+				FullName: *reviewerName,
+			}
+		}
 
+		visits = append(visits, v)
 	}
 
 	if err := rows.Err(); err != nil {

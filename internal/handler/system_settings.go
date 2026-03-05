@@ -14,7 +14,7 @@ import (
 func (h *Handler) CreateSystemSetting(c *gin.Context) {
 	var ss *model.SystemSettings
 
-	user_id, err := checkSystemUser(c)
+	user_id, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleFieldError(c, "CreateSystemSetting: check system", err)
 		return
@@ -65,7 +65,7 @@ func (h *Handler) DeleteSystemSetting(c *gin.Context) {
 		return
 	}
 
-	user_id, err := checkSystemUser(c)
+	user_id, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleFieldError(c, "DeleteSystemSetting: check system", err)
 		return
@@ -94,7 +94,7 @@ func (h *Handler) UpdateSystemSetting(c *gin.Context) {
 		return
 	}
 
-	user_id, err := checkSystemUser(c)
+	user_id, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleFieldError(c, "UpdateSystemSetting: check system", err)
 		return

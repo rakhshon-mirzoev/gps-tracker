@@ -65,6 +65,18 @@ func (h *Handler) handleError(c *gin.Context, operation string, err error, defau
 	case errs.ErrorUserIDorGroupID:
 		status = http.StatusBadRequest
 		errorMsg = "user_id or group_id required"
+	case errs.ErrorUniqueViolation:
+		status = http.StatusBadRequest
+		errorMsg = "sent data duplicates in database"
+	case errs.ErrorWeakPassword:
+		status = http.StatusBadRequest
+		errorMsg = "password is weak"
+	case errs.ErrorInvalidPhone:
+		status = http.StatusBadRequest
+		errorMsg = "phone number is invalid"
+	case errs.ErrorInvalidINN:
+		status = http.StatusBadRequest
+		errorMsg = "INN is invalid"
 	}
 
 	requestID := c.GetString(constants.RequestIDKey)

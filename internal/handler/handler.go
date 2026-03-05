@@ -64,16 +64,22 @@ func checkStaffUser(c *gin.Context) (uuid.UUID, error) {
 	return user_id.(uuid.UUID), nil
 }
 
-func checkSystemUser(c *gin.Context) (uuid.UUID, error) {
-	user_id, ok := c.Get("user_id")
+func checkSystemUser(c *gin.Context) (uuid.UUID, string, error) {
+	userIDRaw, ok := c.Get("user_id")
 	if !ok {
-		return uuid.Nil, errs.ErrorPermissionDenied
+		return uuid.Nil, "", errs.ErrorPermissionDenied
 	}
 
-	role, _ := c.Get("role")
+	roleRaw, ok := c.Get("role")
+	if !ok {
+		return uuid.Nil, "", errs.ErrorPermissionDenied
+	}
+
+	role := roleRaw.(string)
+
 	if role != "admin" && role != "supervisor" {
-		return uuid.Nil, errs.ErrorPermissionDenied
+		return uuid.Nil, "", errs.ErrorPermissionDenied
 	}
 
-	return user_id.(uuid.UUID), nil
+	return userIDRaw.(uuid.UUID), role, nil
 }

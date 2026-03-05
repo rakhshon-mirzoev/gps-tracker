@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 )
@@ -57,13 +58,13 @@ func (r *locationHistory) Create(ctx context.Context, lh *model.LocationHistory)
 }
 
 func (r *locationHistory) CreateBatch(ctx context.Context, locations []model.LocationHistory) error {
-	tx, err := r.DB.Pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("begin tx: %w", err)
+	if len(locations) == 0 {
+		return nil
 	}
-	defer tx.Rollback(ctx)
 
-	sql := `
+	batch := &pgx.Batch{}
+
+	sqlInsert := `
 		INSERT INTO location_history (
 			staff_id,
 			latitude,
@@ -71,30 +72,44 @@ func (r *locationHistory) CreateBatch(ctx context.Context, locations []model.Loc
 			battery_level,
 			captured_at,
 			status
-		) VALUES (
-			$1, $2, $3, $4, $5, $6
-		) RETURNING id;
+		) VALUES ($1, $2, $3, $4, $5, $6)
 	`
 
-	for i := range locations {
-		err := tx.QueryRow(
-			ctx,
-			sql,
-			locations[i].StaffID,
-			locations[i].Latitude,
-			locations[i].Longitude,
-			locations[i].BatteryLevel,
-			locations[i].CapturedAt,
-			locations[i].Status,
-		).Scan(&locations[i].ID)
+	sqlUpdate := `
+		UPDATE staff_users
+		SET last_seen_at = $1
+		WHERE id = $2
+	`
 
-		if err != nil {
-			return fmt.Errorf("insert location[%d]: %w", i, err)
+	for _, loc := range locations {
+
+		if loc.Status == "online" {
+			batch.Queue(
+				sqlUpdate,
+				loc.CapturedAt,
+				loc.StaffID,
+			)
 		}
+
+		batch.Queue(
+			sqlInsert,
+			loc.StaffID,
+			loc.Latitude,
+			loc.Longitude,
+			loc.BatteryLevel,
+			loc.CapturedAt,
+			loc.Status,
+		)
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("commit tx: %w", err)
+	br := r.DB.Pool.SendBatch(ctx, batch)
+	defer br.Close()
+
+	for i := 0; i < batch.Len(); i++ {
+		_, err := br.Exec()
+		if err != nil {
+			return fmt.Errorf("batch exec error: %w", err)
+		}
 	}
 
 	return nil

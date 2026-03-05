@@ -26,10 +26,10 @@ type LocationHistory interface {
 }
 
 type locationHistoryService struct {
-	r          repository.LocationHistoryRepository
-	alertRepo  repository.GpsAlertStatesRepository
-	staff      StaffUsers
-	publisher  events.LocationPublisher
+	r         repository.LocationHistoryRepository
+	alertRepo repository.GpsAlertStatesRepository
+	staff     StaffUsers
+	publisher events.LocationPublisher
 }
 
 func NewLocationHistoryService(
@@ -92,10 +92,6 @@ func (s *locationHistoryService) CreateBatch(ctx context.Context, locations []mo
 }
 
 func (s *locationHistoryService) GetByID(ctx context.Context, id uuid.UUID) (*model.LocationHistory, error) {
-	if id == uuid.Nil {
-		return nil, errors.New("id is required")
-	}
-
 	return s.r.GetByID(ctx, id)
 }
 

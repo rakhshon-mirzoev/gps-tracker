@@ -132,15 +132,9 @@ func (h *Handler) ListStaffUsers(c *gin.Context) {
 func (h *Handler) CreateStaffUser(c *gin.Context) {
 	var dto model.CreateStaffUser
 
-	user_id, err := checkSystemUser(c)
+	user_id, role, err := checkSystemUser(c)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "failed to check system user"})
-		return
-	}
-
-	role, ok := c.Get("role")
-	if !ok {
-		h.handleFieldError(c, "CreateStaffUser: get role", errs.ErrorRoleEmpty)
 		return
 	}
 
@@ -149,7 +143,7 @@ func (h *Handler) CreateStaffUser(c *gin.Context) {
 		return
 	}
 
-	if err := h.s.StaffUser.Create(c.Request.Context(), dto, user_id, c.ClientIP(), role.(string), constants.UserTypeStaff, "CreateStaffUser"); err != nil {
+	if err := h.s.StaffUser.Create(c.Request.Context(), dto, user_id, c.ClientIP(), role, constants.UserTypeStaff, "CreateStaffUser"); err != nil {
 		h.handleError(c, "CreateStaffUser", err, http.StatusInternalServerError)
 		return
 	}
@@ -166,7 +160,7 @@ func (h *Handler) UpdateStaffUser(c *gin.Context) {
 		return
 	}
 
-	user_id, err := checkSystemUser(c)
+	user_id, _, err := checkSystemUser(c)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "failed to check system user"})
 		return
@@ -195,7 +189,7 @@ func (h *Handler) UpdateStaffUser(c *gin.Context) {
 func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 	var deactivate model.DeactivateStaffUser
 
-	user_id, err := checkSystemUser(c)
+	user_id, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleFieldError(c, "DeactivateStaffUser", err)
 		return
@@ -229,20 +223,28 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 }
 
 func (h *Handler) ListStaffUsersLocationByGroupID(c *gin.Context) {
-	id, err := checkSystemUser(c)
+	id, role, err := checkSystemUser(c)
 	if err != nil {
 		h.handleError(c, "ListStaffUsersLocationByGroupID: check system user", err, http.StatusBadRequest)
 		return
 	}
 
-	staff_users, err := h.s.StaffUser.ListByGroupID(c.Request.Context(), id)
+	var supervisorID *uuid.UUID
+
+	if role == "supervisor" {
+		supervisorID = &id
+	} else {
+		supervisorID = nil
+	}
+
+	staffUsers, err := h.s.StaffUser.ListByGroupID(c.Request.Context(), supervisorID)
 	if err != nil {
 		h.handleError(c, "ListStaffUsersLocationByGroupID: list", err, http.StatusBadRequest)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"staff_users": staff_users})
-}
 
+	c.JSON(http.StatusOK, gin.H{"staff_users": staffUsers})
+}
 func (h *Handler) ListStaffUserLocationByDate(c *gin.Context) {
 	beginStr := c.Query("begin")
 	endStr := c.Query("end")

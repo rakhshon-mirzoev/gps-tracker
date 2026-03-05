@@ -29,7 +29,7 @@ func NewStorePhotosRepository(db *db.DB) StorePhotosRepository {
 func (s *storePhotos) CreateTx(ctx context.Context, tx pgx.Tx, sp *model.StorePhotos) error {
 	sql := `
 		INSERT INTO store_photos (store_id, object_key, type)
-		VALUES ($1,$2,$3)
+		VALUES ($1, $2, $3)
 		RETURNING id, created_at
 	`
 	if err := tx.QueryRow(ctx, sql, sp.StoreID, sp.ObjectKey, sp.Type).Scan(&sp.ID, &sp.CreatedAt); err != nil {

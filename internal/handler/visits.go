@@ -88,7 +88,7 @@ func (h *Handler) VisitComplete(c *gin.Context) {
 }
 
 func (h *Handler) ReviewQueue(c *gin.Context) {
-	id, err := checkSystemUser(c)
+	id, _, err := checkSystemUser(c)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err})
 		return
@@ -116,7 +116,7 @@ func (h *Handler) ReviewVisit(c *gin.Context) {
 		ReviewComment string `json:"review_comment"`
 	}
 
-	reviewerID, err := checkSystemUser(c)
+	reviewerID, _, err := checkSystemUser(c)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err})
 		return

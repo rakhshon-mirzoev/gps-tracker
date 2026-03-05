@@ -33,7 +33,7 @@ func ConnectToDb(cfg *config.DB) (*DB, error) {
 		return nil, fmt.Errorf("error while parsing config into db: %v", err)
 	}
 
-	config.MaxConns = 10
+	config.MaxConns = 50
 	config.MinConns = 2
 	config.MaxConnIdleTime = 5 * time.Minute
 

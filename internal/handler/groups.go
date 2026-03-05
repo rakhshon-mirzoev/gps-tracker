@@ -11,7 +11,7 @@ import (
 )
 
 func (h *Handler) CreateGroup(c *gin.Context) {
-	user_id, err := checkSystemUser(c)
+	user_id, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleFieldError(c, "CreateGroup: CheckSystemUser", err)
 		return
@@ -39,7 +39,7 @@ func (h *Handler) CreateGroup(c *gin.Context) {
 }
 
 func (h *Handler) DeleteGroup(c *gin.Context) {
-	user_id, err := checkSystemUser(c)
+	user_id, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleFieldError(c, "DeleteGroup: CheckSystemUser", err)
 		return
@@ -82,7 +82,7 @@ func (h *Handler) GetByIdGroup(c *gin.Context) {
 }
 
 func (h *Handler) ListGroups(c *gin.Context) {
-	user_id, err := checkSystemUser(c)
+	userID, role, err := checkSystemUser(c)
 	if err != nil {
 		h.handleError(c, "ListGroups: check system user", err, http.StatusBadRequest)
 		return
@@ -94,7 +94,15 @@ func (h *Handler) ListGroups(c *gin.Context) {
 		return
 	}
 
-	groups, total, err := h.s.Group.List(c.Request.Context(), &user_id, lim, off)
+	var supervisorID *uuid.UUID
+
+	if role == "supervisor" {
+		supervisorID = &userID
+	} else {
+		supervisorID = nil
+	}
+
+	groups, total, err := h.s.Group.List(c.Request.Context(), supervisorID, lim, off)
 	if err != nil {
 		h.handleError(c, "ListGroups: list", err, http.StatusInternalServerError)
 		return
@@ -102,9 +110,8 @@ func (h *Handler) ListGroups(c *gin.Context) {
 
 	c.JSON(http.StatusOK, model.NewPaginatedResponse(groups, lim, off, total))
 }
-
 func (h *Handler) UpdateGroup(c *gin.Context) {
-	user_id, err := checkSystemUser(c)
+	user_id, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleFieldError(c, "UpdateGroup: CheckSystemUser", err)
 		return

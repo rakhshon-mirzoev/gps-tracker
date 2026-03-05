@@ -43,4 +43,8 @@ var (
 	ErrorNotStartedDay       = errors.New("day not started yet")
 	ErrorNotCompletedVisit   = errors.New("visit is not completed yet")
 	ErrorUserIDorGroupID     = errors.New("user_id or group_id required")
+	ErrorInvalidPhone        = errors.New("invalid phone number")
+	ErrorWeakPassword        = errors.New("password is weak")
+	ErrorInvalidINN          = errors.New("invalid INN")
+	ErrorUniqueViolation     = errors.New("data duplication")
 )

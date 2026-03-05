@@ -11,7 +11,7 @@ import (
 
 // ListSchedulesAdmin handles GET /admin/staff/schedules for admin panel
 func (h *Handler) ListSchedulesAdmin(c *gin.Context) {
-	_, err := checkSystemUser(c)
+	_, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleError(c, "ListSchedulesAdmin: check system user", err, http.StatusForbidden)
 		return
@@ -63,7 +63,7 @@ func (h *Handler) ListShedules(c *gin.Context) {
 func (h *Handler) AssignSchedule(c *gin.Context) {
 	var dto *model.CreateSchedule
 
-	adminID, err := checkSystemUser(c)
+	adminID, _, err := checkSystemUser(c)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err})
 		return

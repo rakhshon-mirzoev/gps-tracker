@@ -48,7 +48,7 @@ func (r *schedules) Create(ctx context.Context, schedule *model.Schedule) error 
 			created_by_admin_id
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING id`
+		RETURNING id `
 
 	err := r.DB.Pool.QueryRow(
 		ctx,

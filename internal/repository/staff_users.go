@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
@@ -21,7 +22,7 @@ type StaffUsersRepository interface {
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Deactivate(ctx context.Context, id uuid.UUID, dReason model.DeactivateStaffUser) error
-	ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error)
+	ListByGroupID(ctx context.Context, user_id *uuid.UUID) (staff []model.StaffUserLocation, err error)
 	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
 	GetByGroupID(ctx context.Context, group_id uuid.UUID) ([]model.StaffUser, error)
 }
@@ -44,7 +45,7 @@ func (r *staffUsers) Create(ctx context.Context, u *model.StaffUser) error {
 		RETURNING id, created_at
 	`
 
-	return r.DB.Pool.QueryRow(
+	err := r.DB.Pool.QueryRow(
 		ctx,
 		query,
 		u.GroupID,
@@ -56,6 +57,16 @@ func (r *staffUsers) Create(ctx context.Context, u *model.StaffUser) error {
 		u.PasswordHash,
 		u.IsTemporaryPassword,
 	).Scan(&u.ID, &u.CreatedAt)
+
+	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			if pgErr.Code == "23505" {
+				return errs.ErrorUniqueViolation
+			}
+		}
+	}
+
+	return nil
 }
 
 func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error) {
@@ -347,21 +358,32 @@ func (s *staffUsers) Deactivate(ctx context.Context, id uuid.UUID, deactivate mo
 	return nil
 }
 
-func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) ([]model.StaffUserLocation, error) {
-	sql := `
+func (s *staffUsers) ListByGroupID(ctx context.Context, supervisorID *uuid.UUID) ([]model.StaffUserLocation, error) {
+
+	var where string
+	var args []any
+
+	if supervisorID != nil {
+		where = "WHERE g.supervisor_id = $1 AND s.is_active = true"
+		args = append(args, *supervisorID)
+	} else {
+		where = "WHERE s.is_active = true"
+	}
+
+	sql := fmt.Sprintf(`
 		SELECT DISTINCT ON (s.id)
 			s.id, s.full_name, s.login, s.inn, s.birthday, s.group_id, s.phone_number,
 			s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at,
 			s.start_at, s.end_at, s.day_started, s.avatar_key, g.name,
-			l.id, l.latitude, l.longitude, l.battery_level, l.captured_at
+			l.id, l.latitude, l.longitude, l.battery_level, l.captured_at, l.status
 		FROM staff_users s
 		JOIN groups g ON g.id = s.group_id
 		JOIN location_history l ON l.staff_id = s.id
-		WHERE g.supervisor_id = $1 AND s.is_active = true
+		%s
 		ORDER BY s.id, l.captured_at DESC
-	`
+	`, where)
 
-	rows, err := s.DB.Pool.Query(ctx, sql, user_id)
+	rows, err := s.DB.Pool.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list staff by group id: %w", err)
 	}
@@ -395,6 +417,7 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, user_id uuid.UUID) ([]mo
 			&st.Location.Longitude,
 			&st.Location.BatteryLevel,
 			&st.Location.CapturedAt,
+			&st.Location.Status,
 		); err != nil {
 			return nil, fmt.Errorf("scan staff user location: %w", err)
 		}

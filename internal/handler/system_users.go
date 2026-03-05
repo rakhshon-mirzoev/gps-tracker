@@ -37,7 +37,7 @@ func (h *Handler) DeleteSystemUser(c *gin.Context) {
 func (h *Handler) CreateSystemUser(c *gin.Context) {
 	var user model.CreateSystemUser
 
-	id, err := checkSystemUser(c)
+	id, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleFieldError(c, "CreateSystemUser: check user", err)
 		return
@@ -68,7 +68,7 @@ func (h *Handler) CreateSystemUser(c *gin.Context) {
 func (h *Handler) UpdateSystemUser(c *gin.Context) {
 	var f model.UpdateSystemUser
 
-	id, err := checkSystemUser(c)
+	id, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleFieldError(c, "UpdateSystemUser: check user", err)
 		return

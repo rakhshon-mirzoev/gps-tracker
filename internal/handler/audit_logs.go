@@ -8,7 +8,7 @@ import (
 )
 
 func (h *Handler) AuditLogs(c *gin.Context) {
-	user_id, err := checkSystemUser(c)
+	user_id, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleFieldError(c, "AuditLogs", err)
 		return

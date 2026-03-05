@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -30,7 +31,11 @@ func (h *Handler) Location(c *gin.Context) {
 		loc[i].StaffID = user_id
 	}
 
-	err = h.s.Location.CreateBatch(c.Request.Context(), loc)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	err = h.s.Location.CreateBatch(ctx, loc)
+
 	if err != nil {
 		h.handleError(c, "Location: create location batch", err, http.StatusInternalServerError)
 		return
@@ -43,7 +48,7 @@ func (h *Handler) Location(c *gin.Context) {
 }
 
 func (h *Handler) AllStaffOnlineOffline(c *gin.Context) {
-	id, err := checkSystemUser(c)
+	id, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleError(c, "AllStaffOnlineOffline: check system user", err, http.StatusInternalServerError)
 		return

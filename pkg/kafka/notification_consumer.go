@@ -16,9 +16,9 @@ import (
 // NotificationConsumer читает NotificationEvent из Kafka,
 // сохраняет уведомления в БД и пушит активным WS-соединениям.
 type NotificationConsumer struct {
-	reader  *kafkago.Reader
-	svc     service.SystemNotification
-	hub     *websocket.NotificationHub
+	reader *kafkago.Reader
+	svc    service.SystemNotification
+	hub    *websocket.NotificationHub
 }
 
 func NewNotificationConsumer(

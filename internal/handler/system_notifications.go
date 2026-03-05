@@ -12,7 +12,7 @@ import (
 //
 // GET /api/v1/admin/notifications?limit=20&offset=0
 func (h *Handler) GetSystemNotifications(c *gin.Context) {
-	recipientID, err := checkSystemUser(c)
+	recipientID, _, err := checkSystemUser(c)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
@@ -50,7 +50,7 @@ func (h *Handler) GetSystemNotifications(c *gin.Context) {
 //
 // PATCH /api/v1/admin/notifications/:id/read
 func (h *Handler) MarkSystemNotificationRead(c *gin.Context) {
-	recipientID, err := checkSystemUser(c)
+	recipientID, _, err := checkSystemUser(c)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return

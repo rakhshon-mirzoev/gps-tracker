@@ -10,6 +10,7 @@ import (
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
+	"github.com/rakhshon-mirzoev/gps-tracker/internal/validator"
 	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
 	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
@@ -25,7 +26,7 @@ type StaffUsers interface {
 	List(ctx context.Context, limit, offset int) ([]model.StaffUser, int, error)
 	Deactivate(ctx context.Context, id uuid.UUID, d model.DeactivateStaffUser, user_id uuid.UUID, ip, role, st, action string) error
 	GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error)
-	ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error)
+	ListByGroupID(ctx context.Context, user_id *uuid.UUID) (staff []model.StaffUserLocation, err error)
 	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
 	UpdateAvatar(ctx context.Context, userID uuid.UUID, file *multipart.FileHeader) error
 	GetWorkTimeStaff(ctx context.Context, id uuid.UUID) (float64, error)
@@ -170,6 +171,20 @@ func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser
 		return errs.ErrorPasswordsDoNotMatch
 	}
 
+	if !validator.IsStrongPassword(dto.Password) {
+		return errs.ErrorWeakPassword
+	}
+
+	normalizedPhone, ok := validator.NormalizeTajikPhone(dto.PhoneNumber)
+	if !ok {
+		return errs.ErrorInvalidPhone
+	}
+
+	normalizedINN, ok := validator.NormalizeAndValidateINN(dto.Inn)
+	if !ok {
+		return errs.ErrorInvalidINN
+	}
+
 	groupID, err := uuid.Parse(dto.GroupID)
 	if err != nil {
 		return errs.ErrorInvalidGroup
@@ -184,8 +199,8 @@ func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser
 		GroupID:             groupID,
 		FullName:            dto.FullName,
 		Login:               dto.Login,
-		PhoneNumber:         dto.PhoneNumber,
-		Inn:                 dto.Inn,
+		PhoneNumber:         normalizedPhone,
+		Inn:                 normalizedINN,
 		Birthday:            dto.Birthday,
 		PasswordHash:        hash,
 		IsTemporaryPassword: true,
@@ -362,8 +377,8 @@ func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model
 	return nil
 }
 
-func (s *staffUserService) ListByGroupID(ctx context.Context, user_id uuid.UUID) (staff []model.StaffUserLocation, err error) {
-	users, err := s.r.ListByGroupID(ctx, user_id)
+func (s *staffUserService) ListByGroupID(ctx context.Context, supervisorID *uuid.UUID) ([]model.StaffUserLocation, error) {
+	users, err := s.r.ListByGroupID(ctx, supervisorID)
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +389,6 @@ func (s *staffUserService) ListByGroupID(ctx context.Context, user_id uuid.UUID)
 			if err != nil {
 				return nil, err
 			}
-
 			users[i].AvatarUrl = &url
 		}
 	}

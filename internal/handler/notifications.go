@@ -53,7 +53,7 @@ func (h *Handler) MarkNotificationRead(c *gin.Context) {
 }
 
 func (h *Handler) CreateNotification(c *gin.Context) {
-	_, err := checkSystemUser(c)
+	_, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleError(c, "CreateNotification: check system user", err, http.StatusForbidden)
 		return

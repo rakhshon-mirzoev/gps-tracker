@@ -115,7 +115,7 @@ func (h *Handler) ApproveStore(c *gin.Context) {
 		return
 	}
 
-	user_id, err := checkSystemUser(c)
+	user_id, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleError(c, "ApproveStore: check system", err, http.StatusBadRequest)
 		return
@@ -148,7 +148,7 @@ func (h *Handler) DeleteStore(c *gin.Context) {
 		return
 	}
 
-	user_id, err := checkSystemUser(c)
+	user_id, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleError(c, "ApproveStore: check system", err, http.StatusBadRequest)
 		return
