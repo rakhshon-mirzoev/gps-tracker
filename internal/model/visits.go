@@ -31,8 +31,8 @@ type UpdateVisit struct {
 	StoreID           *string    `json:"store_id"`
 	CheckInAt         *time.Time `json:"check_in_at"`
 	CheckOutAt        *time.Time `json:"check_out_at"`
-	CheckInLat        *float64   `json:"check_in_lat"`
-	CheckInLon        *float64   `json:"check_in_lon"`
+	CheckInLat        *float64   `json:"lat"`
+	CheckInLon        *float64   `json:"lon"`
 	DistanceDeviation *int       `json:"distance_deviation"`
 	Comment           *string    `json:"comment"`
 	IsOffline         *bool      `json:"is_offline"`
@@ -91,7 +91,7 @@ type VisitExcel struct {
 	Store             Store       `json:"store_id"`
 	Group             Group       `json:"group"`
 	CheckInAt         time.Time   `json:"check_in_at"`
-	CheckOutAt        time.Time   `json:"check_out_at"`
+	CheckOutAt        *time.Time  `json:"check_out_at"`
 	CheckInLat        float64     `json:"check_in_lat"`
 	CheckInLon        float64     `json:"check_in_lon"`
 	DistanceDeviation int         `json:"distance_deviation"`
@@ -104,6 +104,13 @@ type VisitExcel struct {
 }
 
 type VisitWithPhoto struct {
-	Visit Visit         `json:"visit"`
-	Photo []VisitPhotos `json:"photos"`
+	Visit    Visit         `json:"visit"`
+	Photo    []VisitPhotos `json:"photos"`
+	Required Required      `json:"requirement"`
+}
+
+type Required struct {
+	IsPhotoRequired   bool `json:"is_photo_required"`
+	IsCommentRequired bool `json:"is_comment_required"`
+	IsSelfieRequired  bool `json:"is_selfie_required"`
 }

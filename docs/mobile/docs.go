@@ -619,6 +619,37 @@ const docTemplate = `{
             }
         },
         "/mobile/visit/{id}": {
+            "put": {
+                "tags": ["Visits"],
+                "summary": "Обновить визит (доработка)",
+                "description": "Доступно только если review_status = 'pending' или 'revision'. При статусе 'revision' после сохранения визит автоматически переходит обратно в 'pending' для повторной проверки.",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID визита"},
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {"$ref": "#/definitions/UpdateVisit"}
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Обновлено",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {"type": "string"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Ошибка валидации"},
+                    "403": {"description": "Визит нельзя редактировать (статус не pending/revision)"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            },
             "get": {
                 "tags": ["Visits"],
                 "summary": "Получить визит по ID (с фотографиями)",
@@ -933,7 +964,7 @@ const docTemplate = `{
                 "selfie_url": {"type": "string"},
                 "comment": {"type": "string"},
                 "is_offline": {"type": "boolean"},
-                "review_status": {"type": "string", "enum": ["pending", "approved", "rejected"]},
+                "review_status": {"type": "string", "enum": ["new", "pending", "approved", "rejected", "revision"], "description": "new — создан, pending — ожидает проверки, revision — на доработку (можно дополнить), approved/rejected — финальные"},
                 "review_comment": {"type": "string"},
                 "reviewer_id": {"type": "string", "format": "uuid"},
                 "reviewed_at": {"type": "string", "format": "date-time"},

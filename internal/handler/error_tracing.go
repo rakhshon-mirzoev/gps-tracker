@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	"go.uber.org/zap"
 )
 
@@ -56,6 +56,9 @@ func (h *Handler) handleError(c *gin.Context, operation string, err error, defau
 	case errs.ErrorAlreadyReviewed:
 		status = http.StatusBadRequest
 		errorMsg = "already reviewed visit"
+	case errs.ErrorVisitImmutable:
+		status = http.StatusConflict
+		errorMsg = "visit status is final and cannot be changed"
 	case errs.ErrorUserDeactivated:
 		status = http.StatusGone
 		errorMsg = "user is deactivated"
@@ -77,6 +80,9 @@ func (h *Handler) handleError(c *gin.Context, operation string, err error, defau
 	case errs.ErrorInvalidINN:
 		status = http.StatusBadRequest
 		errorMsg = "INN is invalid"
+	case errs.ErrorNotCompletedVisit:
+		status = http.StatusBadRequest
+		errorMsg = "visit is not completed yet"
 	}
 
 	requestID := c.GetString(constants.RequestIDKey)

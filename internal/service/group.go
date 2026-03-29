@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 )
 
 type Group interface {
@@ -37,6 +39,7 @@ func (g *GroupService) Create(ctx context.Context, group *model.Group, user_id u
 		Action:      action,
 		TargetTable: &gr,
 		IPAddress:   &ip,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
 	}); err != nil {
 		return err
 	}
@@ -61,6 +64,7 @@ func (g *GroupService) Delete(ctx context.Context, id uuid.UUID, user_id uuid.UU
 		TargetTable: &gr,
 		TargetID:    &id,
 		IPAddress:   &ip,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
 	}); err != nil {
 		return err
 	}
@@ -88,6 +92,7 @@ func (g *GroupService) Update(ctx context.Context, group model.Group, id uuid.UU
 		TargetTable: &gr,
 		TargetID:    &id,
 		IPAddress:   &ip,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
 	}); err != nil {
 		return err
 	}

@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 )
 
 type StaffStoresMapping interface {
@@ -14,7 +14,7 @@ type StaffStoresMapping interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffStoresMapping, error)
 	// List(ctx context.Context, staffID uuid.UUID) ([]model.StaffStoresMapping, error)
 	Update(ctx context.Context, ssm *model.StaffStoresMapping) error
-	Delete(ctx context.Context, id uuid.UUID) error
+	Delete(ctx context.Context, store_id, staff_id uuid.UUID) error
 	ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]model.Store, int, error)
 }
 
@@ -68,12 +68,9 @@ func (s *staffStoresMappingService) Update(ctx context.Context, ssm *model.Staff
 	return s.r.Update(ctx, ssm)
 }
 
-func (s *staffStoresMappingService) Delete(ctx context.Context, id uuid.UUID) error {
-	if id == uuid.Nil {
-		return errors.New("id is required")
-	}
+func (s *staffStoresMappingService) Delete(ctx context.Context, store_id, staff_id uuid.UUID) error {
 
-	return s.r.Delete(ctx, id)
+	return s.r.Delete(ctx, store_id, staff_id)
 }
 
 func (s *staffStoresMappingService) ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]model.Store, int, error) {

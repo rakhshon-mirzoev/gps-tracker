@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 )
 
 type AuditLogsRepository interface {
@@ -36,15 +36,16 @@ func (r *auditLogs) Create(ctx context.Context, al *model.AuditLogs) error {
             target_id,
             old_value,
             new_value,
-            ip_address
+            ip_address,
+			created_at
         ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8
+            $1, $2, $3, $4, $5, $6, $7, $8, $9
         ) RETURNING id, created_at;
     `
 
 	err := r.DB.Pool.QueryRow(ctx, sql,
 		al.ActorID, al.ActorType, al.Action, al.TargetTable, al.TargetID,
-		al.OldValue, al.NewValue, al.IPAddress,
+		al.OldValue, al.NewValue, al.IPAddress, al.CreatedAt,
 	).Scan(&al.ID, &al.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("insert audit logs: %w", err)

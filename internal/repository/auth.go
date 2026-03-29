@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type Auth interface {
@@ -142,6 +142,9 @@ func (r *authRepository) DeleteRefreshByID(ctx context.Context, id uuid.UUID) er
 }
 
 func (r *authRepository) DeleteRefreshByToken(ctx context.Context, token string) error {
+	sqlUpd := `UPDATE staff_users SET fcm_token = '' WHERE id = (select user_id from refresh_token where token = $1 and user_type = 'staff')`
+
+	r.DB.Pool.Exec(ctx, sqlUpd, token)
 
 	sql := `DELETE FROM refresh_token WHERE token = $1`
 

@@ -1,4 +1,4 @@
-module github.com/rakhshon-mirzoev/gps-tracker
+module github.com/IkbolNazarov/gps-tracker
 
 go 1.25.5
 

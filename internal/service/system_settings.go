@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 )
 
 type SystemSettings interface {
@@ -38,6 +40,7 @@ func (s *systemSettingsService) Create(ctx context.Context, ss *model.SystemSett
 		IPAddress:   &ip,
 		Action:      action,
 		TargetTable: &settings,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
 	}); err != nil {
 		return err
 	}
@@ -68,6 +71,7 @@ func (s *systemSettingsService) Update(ctx context.Context, id uuid.UUID, dto mo
 		IPAddress:   &ip,
 		Action:      action,
 		TargetTable: &settings,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
 	}); err != nil {
 		return err
 	}
@@ -86,6 +90,7 @@ func (s *systemSettingsService) Delete(ctx context.Context, id uuid.UUID, user_i
 		IPAddress:   &ip,
 		Action:      action,
 		TargetTable: &settings,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
 	}); err != nil {
 		return err
 	}

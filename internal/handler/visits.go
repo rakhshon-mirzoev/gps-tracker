@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 )
 
 func (h *Handler) VisitCheckIn(c *gin.Context) {
@@ -88,7 +88,7 @@ func (h *Handler) VisitComplete(c *gin.Context) {
 }
 
 func (h *Handler) ReviewQueue(c *gin.Context) {
-	id, _, err := checkSystemUser(c)
+	id, role, err := checkSystemUser(c)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err})
 		return
@@ -102,7 +102,7 @@ func (h *Handler) ReviewQueue(c *gin.Context) {
 
 	status := c.Query("status")
 
-	visits, total, err := h.s.Visit.ListByReviewStatus(c.Request.Context(), status, lim, off, id)
+	visits, total, err := h.s.Visit.ListByReviewStatus(c.Request.Context(), status, lim, off, id, role)
 	if err != nil {
 		h.handleError(c, "ReviewQueue: list visits", err, http.StatusInternalServerError)
 		return
@@ -139,16 +139,14 @@ func (h *Handler) ReviewVisit(c *gin.Context) {
 		return
 	}
 
-	if reviewDTO.Status != "approved" && reviewDTO.Status != "rejected" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "status must be 'approved' or 'rejected'"})
+	if reviewDTO.Status != "approved" && reviewDTO.Status != "rejected" && reviewDTO.Status != "revision" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status must be 'approved', 'rejected' or 'revision'"})
 		return
 	}
 
-	now := time.Now()
 	dto := model.UpdateVisit{
 		ReviewStatus:  &reviewDTO.Status,
 		ReviewComment: &reviewDTO.ReviewComment,
-		ReviewedAt:    &now,
 	}
 
 	if err := h.s.Visit.UpdateVisit(c.Request.Context(), visitID, dto, reviewerID, role.(string), c.ClientIP(), constants.VisitGroup, "ReviewVisit"); err != nil {
@@ -248,6 +246,7 @@ func (h *Handler) ListVisitsByStaffID(c *gin.Context) {
 		h.handleFieldError(c, "ListVisitsByStaffID: parse end", err)
 		return
 	}
+	end = end.AddDate(0, 0, 1)
 
 	lim, off, err := getLimitOffset(c)
 	if err != nil {
@@ -278,4 +277,26 @@ func (h *Handler) GetVisitByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": visit})
+}
+
+func (h *Handler) UpdateVisit(c *gin.Context) {
+	var dto model.UpdateVisit
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		h.handleFieldError(c, "UpdateVisit: id parse", err)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		h.handleFieldError(c, "UpdateVisit: bind request", err)
+		return
+	}
+
+	if err := h.s.Visit.Update(c.Request.Context(), id, dto); err != nil {
+		h.handleError(c, "UpdateVisit", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }

@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
+	"github.com/IkbolNazarov/gps-tracker/pkg/fcm"
 	"go.uber.org/zap"
 )
 

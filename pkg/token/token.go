@@ -4,11 +4,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	errors "github.com/IkbolNazarov/gps-tracker/pkg/error"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type Claims struct {
@@ -82,8 +83,8 @@ func (s *jwtService) GenerateToken(userID uuid.UUID, group_id *uuid.UUID, role s
 		Role:    role,
 		GroupID: group_id,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.ttl)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().In(timezone.Dushanbe).Add(s.ttl)),
+			IssuedAt:  jwt.NewNumericDate(time.Now().In(timezone.Dushanbe)),
 		},
 	}
 
@@ -97,8 +98,8 @@ func (s *jwtService) GenerateRefreshToken(userID uuid.UUID, user_type string) (*
 		UserID:   userID,
 		UserType: user_type,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour * 30)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().In(timezone.Dushanbe).Add(24 * time.Hour * 30)),
+			IssuedAt:  jwt.NewNumericDate(time.Now().In(timezone.Dushanbe)),
 		},
 	}
 
@@ -113,7 +114,7 @@ func (s *jwtService) GenerateRefreshToken(userID uuid.UUID, user_type string) (*
 		UserID:    userID,
 		UserType:  user_type,
 		Token:     refresh,
-		ExpiresAt: time.Now().Add(time.Hour * 24 * 30),
+		ExpiresAt: time.Now().In(timezone.Dushanbe).Add(time.Hour * 24 * 30),
 	}
 	return r, nil
 }

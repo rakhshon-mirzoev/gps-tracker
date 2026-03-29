@@ -10,21 +10,22 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/config"
+	"github.com/IkbolNazarov/gps-tracker/internal/handler"
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
+	"github.com/IkbolNazarov/gps-tracker/internal/middleware"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
+	"github.com/IkbolNazarov/gps-tracker/internal/service"
+	"github.com/IkbolNazarov/gps-tracker/internal/worker/notifications"
+	"github.com/IkbolNazarov/gps-tracker/pkg/cron"
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
+	"github.com/IkbolNazarov/gps-tracker/pkg/fcm"
+	"github.com/IkbolNazarov/gps-tracker/pkg/kafka"
+	miniohandler "github.com/IkbolNazarov/gps-tracker/pkg/storage/handler"
+	minioservice "github.com/IkbolNazarov/gps-tracker/pkg/storage/service"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
+	"github.com/IkbolNazarov/gps-tracker/pkg/token"
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/config"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/handler"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/middleware"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/worker/notifications"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/cron"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/kafka"
-	miniohandler "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/handler"
-	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 	"go.uber.org/zap"
 )
 
@@ -46,6 +47,10 @@ func main() {
 func run() error {
 	cfg, creds, err := config.LoadConfig("config.json")
 	if err != nil {
+		return err
+	}
+
+	if err := timezone.Init(); err != nil {
 		return err
 	}
 

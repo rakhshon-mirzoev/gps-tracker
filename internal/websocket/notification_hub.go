@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"sync"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 	"go.uber.org/zap"
 )
 

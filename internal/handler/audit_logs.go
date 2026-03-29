@@ -3,8 +3,8 @@ package handler
 import (
 	"net/http"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 )
 
 func (h *Handler) AuditLogs(c *gin.Context) {

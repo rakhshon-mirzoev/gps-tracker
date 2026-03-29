@@ -7,11 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type systemUsers struct {
@@ -23,7 +24,7 @@ type SystemUsersRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error)
 	GetByLogin(ctx context.Context, login string) (*model.SystemUser, error)
 	Update(ctx context.Context, sysUser *model.UpdateSystemUser, id uuid.UUID) error
-	Delete(ctx context.Context, id uuid.UUID) error
+	Delete(ctx context.Context, id, user_id uuid.UUID) error
 	List(ctx context.Context) ([]model.SystemUser, error)
 	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
 	GetGroupList(ctx context.Context, groupId uuid.UUID) ([]model.StaffUser, error)
@@ -152,9 +153,14 @@ func (s *systemUsers) Update(ctx context.Context, dto *model.UpdateSystemUser, i
 	return nil
 }
 
-func (s *systemUsers) Delete(ctx context.Context, id uuid.UUID) error {
-	sql := `DELETE FROM system_users WHERE id = $1`
-	ct, err := s.DB.Pool.Exec(ctx, sql, id)
+func (s *systemUsers) Delete(ctx context.Context, id, user_id uuid.UUID) error {
+	sql := `UPDATE system_users 
+		SET is_active = false,
+			deactivated_at = now(),
+			deactivated_by_id = $1,
+			deactivation_reason = 'deleted'
+		WHERE id = $2`
+	ct, err := s.DB.Pool.Exec(ctx, sql, user_id, id)
 	if err != nil {
 		return fmt.Errorf("delete system user: %w", err)
 	}
@@ -202,7 +208,7 @@ func (s *systemUsers) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason
 		WHERE id = $4
 	`
 
-	ct, err := s.DB.Pool.Exec(ctx, sql, dId, time.Now(), dReason, id)
+	ct, err := s.DB.Pool.Exec(ctx, sql, dId, time.Now().In(timezone.Dushanbe), dReason, id)
 	if err != nil {
 		return fmt.Errorf("deactivate system user: %w", err)
 	}

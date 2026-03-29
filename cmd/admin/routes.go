@@ -1,22 +1,26 @@
 package main
 
 import (
+	"github.com/IkbolNazarov/gps-tracker/internal/handler"
+	"github.com/IkbolNazarov/gps-tracker/internal/middleware"
+	"github.com/IkbolNazarov/gps-tracker/internal/service"
+	"github.com/IkbolNazarov/gps-tracker/internal/websocket"
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
+	miniohandler "github.com/IkbolNazarov/gps-tracker/pkg/storage/handler"
+	"github.com/IkbolNazarov/gps-tracker/pkg/token"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/handler"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/middleware"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/websocket"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
-	miniohandler "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/handler"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"golang.org/x/time/rate"
 
-	_ "github.com/rakhshon-mirzoev/gps-tracker/docs/admin"
+	_ "github.com/IkbolNazarov/gps-tracker/docs/admin"
 )
 
 func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Handler, m *miniohandler.MinioHandler, wsHub *websocket.Hub, nfHub *websocket.NotificationHub, svc *service.Service, tokenSvc token.Token) {
+	r.ForwardedByClientIP = true
+	r.SetTrustedProxies([]string{"127.0.0.1"})
+
 	r.Use(cors.New(cors.Config{
 		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
@@ -24,6 +28,8 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 		AllowWebSockets:  true,
 		AllowCredentials: false,
 	}))
+
+	// limiter := middleware.NewIPRateLimiter(5, 10)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("admin")))
 
@@ -33,6 +39,7 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 		mw.Recovery(),
 		mw.RequestID(),
 		mw.Logger(),
+		// mw.RateLimitMiddleware(limiter),
 	)
 	{
 		api.GET("/ping", h.Ping)
@@ -44,7 +51,10 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 
 	}
 
+	loginLimiter := middleware.NewIPRateLimiter(rate.Limit(1.0/60.0), 5)
+
 	auth := api.Group(constants.AuthGroup + "/" + constants.UserTypeSystem)
+	auth.Use(mw.RateLimitMiddleware(loginLimiter))
 	{
 		auth.POST("/login", h.Login)
 		auth.POST("/register", h.RegisterSystem)
@@ -67,12 +77,14 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			staff.PATCH("/:id/deactivate", h.DeactivateStaffUser)
 			staff.GET("/schedules", h.ListSchedulesAdmin)
 			staff.POST("/schedules/assign", h.AssignSchedule)
+			staff.PUT("/schedules/:id", h.UpdateSchedule)
+			staff.DELETE("/schedules/:id", h.DeleteSchedule)
 			staff.GET("/:id", h.GetStaffUserByID)
 			staff.GET("/online-offline", h.AllStaffOnlineOffline)
 			staff.GET("/workday/:id", h.GetWorkTimeStaff)
 			staff.GET("/day-start/:id", h.DayStartedStaff)
 
-			schedule := staff.Group(constants.Schedule)
+			schedule := staff.Group(constants.TimeSchedule)
 			{
 				schedule.DELETE("/:id", h.DeleteStaffSchedule)
 				schedule.PUT("/:id", h.UpdateStaffSchedule)
@@ -91,6 +103,7 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			store.GET("", h.ListStores)
 			store.GET("/:id", h.GetStoreByID)
 			store.PATCH("/:id/approve", h.ApproveStore)
+			store.DELETE("/:id", h.DeleteStore)
 		}
 
 		group := admin.Group(constants.Group)
@@ -105,6 +118,8 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 		staff_mapping := admin.Group(constants.StaffMapping)
 		{
 			staff_mapping.GET("/:staff_id", h.ListStoresByStaffIdAdmin)
+			staff_mapping.POST("/:staff_id", h.MapStoreStaff)
+			staff_mapping.DELETE("/:staff_id", h.UnMapStoreStaff)
 		}
 
 		visit := admin.Group(constants.VisitGroup)

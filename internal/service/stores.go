@@ -6,13 +6,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
+	minioservice "github.com/IkbolNazarov/gps-tracker/pkg/storage/service"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
+	"github.com/IkbolNazarov/gps-tracker/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
-	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -25,6 +26,7 @@ type Stores interface {
 	Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error
 	IfExists(ctx context.Context, name string) (bool, error)
 	IfExistsTx(ctx context.Context, tx pgx.Tx, name string) (bool, error)
+	Deactivate(ctx context.Context, id, deactivatedBy uuid.UUID, reason string, ip, role, st, action string) error
 }
 
 type storesService struct {
@@ -238,6 +240,7 @@ func (s *storesService) Update(ctx context.Context, store model.UpdateStore, id 
 		TargetID:    &id,
 		TargetTable: &st,
 		Action:      action,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
 	}); err != nil {
 		return err
 	}
@@ -247,7 +250,7 @@ func (s *storesService) Update(ctx context.Context, store model.UpdateStore, id 
 
 func (s *storesService) Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error {
 
-	if err := s.r.Delete(ctx, id); err != nil {
+	if err := s.r.Delete(ctx, id, user_id); err != nil {
 		return err
 	}
 
@@ -258,6 +261,7 @@ func (s *storesService) Delete(ctx context.Context, id uuid.UUID, user_id uuid.U
 		TargetID:    &id,
 		TargetTable: &st,
 		Action:      action,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
 	}); err != nil {
 		return err
 	}
@@ -271,4 +275,24 @@ func (s *storesService) IfExists(ctx context.Context, name string) (bool, error)
 
 func (s *storesService) IfExistsTx(ctx context.Context, tx pgx.Tx, name string) (bool, error) {
 	return s.r.IfExistsTx(ctx, tx, name)
+}
+
+func (s *storesService) Deactivate(ctx context.Context, id, deactivatedBy uuid.UUID, reason string, ip, role, st, action string) error {
+	if err := s.r.Deactivate(ctx, id, deactivatedBy, reason); err != nil {
+		return err
+	}
+
+	if err := s.audit.Create(ctx, &model.AuditLogs{
+		ActorID:     deactivatedBy,
+		ActorType:   role,
+		IPAddress:   &ip,
+		TargetID:    &id,
+		TargetTable: &st,
+		Action:      action,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }

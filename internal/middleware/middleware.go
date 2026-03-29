@@ -1,8 +1,8 @@
 package middleware
 
 import (
+	"github.com/IkbolNazarov/gps-tracker/pkg/token"
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 )
 
 type Middleware interface {
@@ -14,6 +14,7 @@ type Middleware interface {
 	Admin() gin.HandlerFunc
 	Mobile() gin.HandlerFunc
 	System() gin.HandlerFunc
+	RateLimitMiddleware(limiter *IPRateLimiter) gin.HandlerFunc
 }
 
 type MiddlewareService struct {

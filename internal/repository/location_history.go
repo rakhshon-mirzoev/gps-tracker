@@ -6,10 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 )
 
 type LocationHistoryRepository interface {
@@ -83,7 +84,7 @@ func (r *locationHistory) CreateBatch(ctx context.Context, locations []model.Loc
 
 	for _, loc := range locations {
 
-		if loc.Status == "online" {
+		if *loc.Status == "online" {
 			batch.Queue(
 				sqlUpdate,
 				loc.CapturedAt,
@@ -243,13 +244,22 @@ func (r *locationHistory) Delete(ctx context.Context, id uuid.UUID) error {
 func (r *locationHistory) LatestByGroupID(ctx context.Context, groupID uuid.UUID) ([]model.LocationHistoryWithStaff, error) {
 	sql := `
 		SELECT DISTINCT ON (s.id)
-			s.id, s.group_id, s.full_name,
+			s.id,
+			s.group_id,
+			s.full_name,
 			s.phone_number,
-			l.latitude, l.longitude, l.battery_level, l.captured_at, l.status
+			l.latitude,
+			l.longitude,
+			l.battery_level,
+			l.captured_at,
+			CASE 
+				WHEN l.captured_at >= NOW() - INTERVAL '5 minutes' THEN 'online'
+				ELSE 'offline'
+			END AS status
 		FROM staff_users s
-		JOIN location_history l ON l.staff_id = s.id
-		WHERE s.group_id = $1 AND s.is_active = true
-		ORDER BY s.id, l.captured_at DESC
+		LEFT JOIN location_history l ON l.staff_id = s.id
+		WHERE s.is_active = true
+		ORDER BY s.id, l.captured_at DESC NULLS LAST
 	`
 
 	rows, err := r.DB.Pool.Query(ctx, sql, groupID)
@@ -259,15 +269,25 @@ func (r *locationHistory) LatestByGroupID(ctx context.Context, groupID uuid.UUID
 	defer rows.Close()
 
 	var result []model.LocationHistoryWithStaff
+
 	for rows.Next() {
 		var loc model.LocationHistoryWithStaff
-		if err := rows.Scan(
-			&loc.StaffID, &loc.GroupID, &loc.FullName,
+
+		err := rows.Scan(
+			&loc.StaffID,
+			&loc.GroupID,
+			&loc.FullName,
 			&loc.PhoneNumber,
-			&loc.Latitude, &loc.Longitude, &loc.BatteryLevel, &loc.CapturedAt, &loc.Status,
-		); err != nil {
+			&loc.Latitude,
+			&loc.Longitude,
+			&loc.BatteryLevel,
+			&loc.CapturedAt,
+			&loc.Status,
+		)
+		if err != nil {
 			return nil, fmt.Errorf("scan latest by group: %w", err)
 		}
+
 		result = append(result, loc)
 	}
 
@@ -277,13 +297,22 @@ func (r *locationHistory) LatestByGroupID(ctx context.Context, groupID uuid.UUID
 func (r *locationHistory) LatestAll(ctx context.Context) ([]model.LocationHistoryWithStaff, error) {
 	sql := `
 		SELECT DISTINCT ON (s.id)
-			s.id, s.group_id, s.full_name,
+			s.id,
+			s.group_id,
+			s.full_name,
 			s.phone_number,
-			l.latitude, l.longitude, l.battery_level, l.captured_at, l.status
+			l.latitude,
+			l.longitude,
+			l.battery_level,
+			l.captured_at,
+			CASE 
+				WHEN l.captured_at >= NOW() - INTERVAL '5 minutes' THEN 'online'
+				ELSE 'offline'
+			END AS status
 		FROM staff_users s
-		JOIN location_history l ON l.staff_id = s.id
+		LEFT JOIN location_history l ON l.staff_id = s.id
 		WHERE s.is_active = true
-		ORDER BY s.id, l.captured_at DESC
+		ORDER BY s.id, l.captured_at DESC NULLS LAST
 	`
 
 	rows, err := r.DB.Pool.Query(ctx, sql)
@@ -293,15 +322,25 @@ func (r *locationHistory) LatestAll(ctx context.Context) ([]model.LocationHistor
 	defer rows.Close()
 
 	var result []model.LocationHistoryWithStaff
+
 	for rows.Next() {
 		var loc model.LocationHistoryWithStaff
-		if err := rows.Scan(
-			&loc.StaffID, &loc.GroupID, &loc.FullName,
+
+		err := rows.Scan(
+			&loc.StaffID,
+			&loc.GroupID,
+			&loc.FullName,
 			&loc.PhoneNumber,
-			&loc.Latitude, &loc.Longitude, &loc.BatteryLevel, &loc.CapturedAt, &loc.Status,
-		); err != nil {
+			&loc.Latitude,
+			&loc.Longitude,
+			&loc.BatteryLevel,
+			&loc.CapturedAt,
+			&loc.Status,
+		)
+		if err != nil {
 			return nil, fmt.Errorf("scan latest all: %w", err)
 		}
+
 		result = append(result, loc)
 	}
 
@@ -386,7 +425,7 @@ func (r *locationHistory) GetStaffMissingGPS(ctx context.Context, threshold time
 	}
 	defer rows.Close()
 
-	cutoff := time.Now().Add(-threshold)
+	cutoff := time.Now().In(timezone.Dushanbe).Local().Add(-threshold)
 
 	var result []model.LocationHistoryWithStaff
 	for rows.Next() {

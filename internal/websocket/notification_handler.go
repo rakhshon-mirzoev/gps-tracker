@@ -3,8 +3,8 @@ package websocket
 import (
 	"net/http"
 
+	"github.com/IkbolNazarov/gps-tracker/pkg/token"
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 )
 
 // NotificationHandler возвращает gin.HandlerFunc для WS-канала уведомлений.

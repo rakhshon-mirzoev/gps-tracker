@@ -3,11 +3,11 @@ package handler
 import (
 	"net/http"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 func (h *Handler) CreateGroup(c *gin.Context) {
@@ -39,26 +39,20 @@ func (h *Handler) CreateGroup(c *gin.Context) {
 }
 
 func (h *Handler) DeleteGroup(c *gin.Context) {
-	user_id, _, err := checkSystemUser(c)
+	user_id, role, err := checkSystemUser(c)
 	if err != nil {
-		h.handleFieldError(c, "DeleteGroup: CheckSystemUser", err)
-		return
-	}
-
-	role, ok := c.Get("role")
-	if !ok {
-		h.handleFieldError(c, "DeleteGroup: GetRole", errs.ErrorRoleEmpty)
+		h.handleFieldError(c, "DeactivateGroup: CheckSystemUser", err)
 		return
 	}
 
 	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		h.handleFieldError(c, "DeleteGroup: parse id", err)
+		h.handleFieldError(c, "DeactivateGroup: parse id", err)
 		return
 	}
 
-	if err := h.s.Group.Delete(c.Request.Context(), uid, user_id, c.ClientIP(), constants.Group, role.(string), "DeleteGroup"); err != nil {
-		h.handleError(c, "DeleteGroup", err, http.StatusInternalServerError)
+	if err := h.s.Group.Delete(c.Request.Context(), uid, user_id, c.ClientIP(), constants.Group, role, "DeleteGroup"); err != nil {
+		h.handleError(c, "DeactivateGroup", err, http.StatusInternalServerError)
 		return
 	}
 

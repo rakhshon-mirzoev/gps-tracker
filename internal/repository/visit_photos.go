@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 )
 
 type VisitPhotosRepository interface {
@@ -17,6 +17,7 @@ type VisitPhotosRepository interface {
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisitPhotos) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.VisitPhotos, error)
+	GetByVisitIDs(ctx context.Context, ids []uuid.UUID) ([]model.VisitPhotos, error)
 }
 
 type visitPhotos struct {
@@ -191,4 +192,37 @@ func (r *visitPhotos) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (r *visitPhotos) GetByVisitIDs(ctx context.Context, ids []uuid.UUID) ([]model.VisitPhotos, error) {
+	query := `
+		SELECT id, visit_id, photo_key, captured_at, original_name
+		FROM visit_photos
+		WHERE visit_id = ANY($1)
+	`
+
+	rows, err := r.DB.Pool.Query(ctx, query, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	photos := make([]model.VisitPhotos, 0)
+
+	for rows.Next() {
+		var p model.VisitPhotos
+		if err := rows.Scan(
+			&p.ID,
+			&p.VisitID,
+			&p.PhotoKey,
+			&p.CapturedAt,
+			&p.OriginalName,
+		); err != nil {
+			return nil, err
+		}
+
+		photos = append(photos, p)
+	}
+
+	return photos, rows.Err()
 }

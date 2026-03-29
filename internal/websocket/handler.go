@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/events"
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/events"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"go.uber.org/zap"
 )
 

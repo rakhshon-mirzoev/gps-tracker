@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strconv"
 
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -77,6 +77,7 @@ func (s *excelService) ExportReports(visits []model.VisitExcel) ([]byte, error) 
 		"Статус проверки",
 		"Комментарий",
 		"Проверил",
+		"Дата проверки",
 	}
 
 	for i, h := range headers {
@@ -99,13 +100,26 @@ func (s *excelService) ExportReports(visits []model.VisitExcel) ([]byte, error) 
 		f.SetCellValue(sheet, "F"+strconv.Itoa(row), v.CheckInAt)
 		f.SetCellStyle(sheet, "F"+strconv.Itoa(row), "F"+strconv.Itoa(row), dateTimeStyle)
 
-		f.SetCellValue(sheet, "G"+strconv.Itoa(row), v.CheckOutAt)
-		f.SetCellStyle(sheet, "G"+strconv.Itoa(row), "G"+strconv.Itoa(row), dateTimeStyle)
+		if v.CheckOutAt != nil {
+			f.SetCellValue(sheet, "G"+strconv.Itoa(row), *v.CheckOutAt)
+			f.SetCellStyle(sheet, "G"+strconv.Itoa(row), "G"+strconv.Itoa(row), dateTimeStyle)
+		}
 
 		f.SetCellValue(sheet, "H"+strconv.Itoa(row), v.DistanceDeviation)
-		f.SetCellValue(sheet, "I"+strconv.Itoa(row), v.ReviewStatus)
-		f.SetCellValue(sheet, "J"+strconv.Itoa(row), v.ReviewComment)
-		f.SetCellValue(sheet, "K"+strconv.Itoa(row), v.Reviewer.FullName)
+
+		if v.ReviewStatus != nil {
+			f.SetCellValue(sheet, "I"+strconv.Itoa(row), *v.ReviewStatus)
+		}
+		if v.ReviewComment != nil {
+			f.SetCellValue(sheet, "J"+strconv.Itoa(row), *v.ReviewComment)
+		}
+		if v.Reviewer != nil {
+			f.SetCellValue(sheet, "K"+strconv.Itoa(row), v.Reviewer.FullName)
+		}
+		if v.ReviewedAt != nil {
+			f.SetCellValue(sheet, "L"+strconv.Itoa(row), *v.ReviewedAt)
+			f.SetCellStyle(sheet, "L"+strconv.Itoa(row), "L"+strconv.Itoa(row), dateTimeStyle)
+		}
 	}
 
 	for col := 1; col <= len(headers); col++ {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 )
 
 // GpsAlertStatesRepository управляет состоянием "активного GPS-алерта" на сотрудника.

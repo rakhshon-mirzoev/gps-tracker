@@ -7,19 +7,23 @@ import (
 )
 
 type Schedule struct {
-	ID                uuid.UUID `json:"id" db:"id"`
-	StaffID           uuid.UUID `json:"staff_id" db:"staff_id"`
-	StoreID           uuid.UUID `json:"store_id" db:"store_id"`
-	StoreName         string    `json:"store_name"`
-	PlannedDate       time.Time `json:"planned_date" db:"planned_date"`
-	Description       string    `json:"description" db:"description"`
-	WindowOpen        time.Time `json:"window_open" db:"window_open"`
-	WindowClose       time.Time `json:"window_close" db:"window_close"`
-	IsPhotoRequired   bool      `json:"is_photo_required" db:"is_photo_required"`
-	IsSelfieRequired  bool      `json:"is_selfie_required" db:"is_selfie_required"`
-	IsCommentRequired bool      `json:"is_comment_required" db:"is_comment_required"`
-	Status            string    `json:"status" db:"status"`
-	CreatedByAdminID  uuid.UUID `json:"created_by_admin_id" db:"created_by_admin_id"`
+	ID                uuid.UUID  `json:"id" db:"id"`
+	StaffID           uuid.UUID  `json:"staff_id" db:"staff_id"`
+	StoreID           uuid.UUID  `json:"store_id" db:"store_id"`
+	StoreName         string     `json:"store_name"`
+	PlannedDate       time.Time  `json:"planned_date" db:"planned_date"`
+	Description       string     `json:"description" db:"description"`
+	WindowOpen        time.Time  `json:"window_open" db:"window_open"`
+	WindowClose       time.Time  `json:"window_close" db:"window_close"`
+	IsPhotoRequired   bool       `json:"is_photo_required" db:"is_photo_required"`
+	IsSelfieRequired  bool       `json:"is_selfie_required" db:"is_selfie_required"`
+	IsCommentRequired bool       `json:"is_comment_required" db:"is_comment_required"`
+	Status            string     `json:"status" db:"status"`
+	CreatedByAdminID  uuid.UUID  `json:"created_by_admin_id" db:"created_by_admin_id"`
+	ReviewComment     *string    `json:"review_comment" db:"review_comment"`
+	IsDeleted         bool       `json:"is_deleted" db:"is_deleted"`
+	DeletedAt         *time.Time `json:"deleted_at" db:"deleted_at"`
+	VisitId           *uuid.UUID `json:"visit_id"`
 }
 
 type CreateSchedule struct {
@@ -45,4 +49,5 @@ type UpdateSchedule struct {
 	IsSelfieRequired  *bool      `json:"is_selfie_required"`
 	IsCommentRequired *bool      `json:"is_comment_required"`
 	Status            *string    `json:"status"`
+	ReviewComment     *string    `json:"review_comment"`
 }

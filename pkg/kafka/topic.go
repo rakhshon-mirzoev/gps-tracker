@@ -4,7 +4,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
 	kafkago "github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 )

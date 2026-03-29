@@ -4,13 +4,14 @@ import (
 	"log"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 )
 
 func (s *MiddlewareService) Logger() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		start := time.Now()
+		start := time.Now().In(timezone.Dushanbe)
 
 		c.Next()
 

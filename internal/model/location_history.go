@@ -7,13 +7,13 @@ import (
 )
 
 type LocationHistory struct {
-	ID           uuid.UUID `json:"id" db:"id"`
-	StaffID      uuid.UUID `json:"staff_id" db:"staff_id"`
-	Latitude     float64   `json:"latitude" db:"latitude"`
-	Longitude    float64   `json:"longitude" db:"longitude"`
-	BatteryLevel int       `json:"battery_level" db:"battery_level"`
-	CapturedAt   time.Time `json:"captured_at" db:"captured_at"`
-	Status       string    `json:"status" db:"status"`
+	ID           uuid.UUID  `json:"id" db:"id"`
+	StaffID      uuid.UUID  `json:"staff_id" db:"staff_id"`
+	Latitude     *float64   `json:"latitude" db:"latitude"`
+	Longitude    *float64   `json:"longitude" db:"longitude"`
+	BatteryLevel *int       `json:"battery_level" db:"battery_level"`
+	CapturedAt   *time.Time `json:"captured_at" db:"captured_at"`
+	Status       *string    `json:"status" db:"status"`
 }
 
 type UpdateLocationHistory struct {
@@ -25,13 +25,14 @@ type UpdateLocationHistory struct {
 }
 
 type LocationHistoryWithStaff struct {
-	StaffID      uuid.UUID `json:"staff_id" db:"staff_id"`
-	FullName     string    `json:"full_name" db:"full_name"`
-	GroupID      uuid.UUID `json:"group_id" db:"group_id"`
-	PhoneNumber  string    `json:"phone_number,omitempty" db:"phone_number"`
-	Latitude     float64   `json:"latitude" db:"latitude"`
-	Longitude    float64   `json:"longitude" db:"longitude"`
-	BatteryLevel int       `json:"battery_level" db:"battery_level"`
-	CapturedAt   time.Time `json:"captured_at" db:"captured_at"`
-	Status       string    `json:"status" db:"status"`
+	StaffID     uuid.UUID
+	GroupID     uuid.UUID
+	FullName    string
+	PhoneNumber string
+
+	Latitude     *float64
+	Longitude    *float64
+	BatteryLevel *int
+	CapturedAt   *time.Time
+	Status       *string
 }

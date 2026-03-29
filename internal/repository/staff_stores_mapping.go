@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 )
 
 type StaffStoresMappingRepository interface {
@@ -14,7 +15,7 @@ type StaffStoresMappingRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffStoresMapping, error)
 	List(ctx context.Context, staffID uuid.UUID) ([]model.StaffStoresMapping, error)
 	Update(ctx context.Context, ssm *model.StaffStoresMapping) error
-	Delete(ctx context.Context, id uuid.UUID) error
+	Delete(ctx context.Context, store_id, staff_id uuid.UUID) error
 	ListByStaffID(ctx context.Context, id uuid.UUID, lim, off int) ([]model.Store, int, error)
 }
 
@@ -112,14 +113,18 @@ func (r *staffStoresMapping) Update(ctx context.Context, ssm *model.StaffStoresM
 	return nil
 }
 
-func (r *staffStoresMapping) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *staffStoresMapping) Delete(ctx context.Context, store_id, staff_id uuid.UUID) error {
 	sql := `
-        DELETE FROM staff_stores_mapping WHERE id = $1
+        DELETE FROM staff_stores_mapping WHERE store_id = $1 AND staff_id = $2
     `
 
-	_, err := r.DB.Pool.Exec(ctx, sql, id)
+	ct, err := r.DB.Pool.Exec(ctx, sql, store_id, staff_id)
 	if err != nil {
 		return fmt.Errorf("delete staff stores mapping: %w", err)
+	}
+
+	if ct.RowsAffected() == 0 {
+		return errs.ErrorNotFound
 	}
 
 	return nil
@@ -134,17 +139,22 @@ func (r *staffStoresMapping) ListByStaffID(ctx context.Context, id uuid.UUID, li
 	}
 
 	var total int
-	countSQL := `SELECT COUNT(*) FROM stores s WHERE s.created_by_staff_id = $1`
+	countSQL := `
+		SELECT COUNT(*)
+		FROM stores s
+		JOIN staff_stores_mapping ssm ON ssm.store_id = s.id
+		WHERE ssm.staff_id = $1`
 	if err := r.DB.Pool.QueryRow(ctx, countSQL, id).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count stores by staff id: %w", err)
 	}
 
 	sqlStores := `
-		SELECT s.id, s.name, s.address, s.latitude, s.longitude, s.owner_full_name, s.owner_inn, 
-		       s.owner_passport, s.status, s.rejection_comment, s.created_by_staff_id, s.is_active, 
+		SELECT s.id, s.name, s.address, s.latitude, s.longitude, s.owner_full_name, s.owner_inn,
+		       s.owner_passport, s.status, s.rejection_comment, s.created_by_staff_id, s.is_active,
 			   s.is_frozen, s.deactivated_at, s.deactivated_by_id, s.deactivation_reason, s.created_at
 		FROM stores s
-		WHERE s.created_by_staff_id = $1
+		JOIN staff_stores_mapping ssm ON ssm.store_id = s.id
+		WHERE ssm.staff_id = $1
 		ORDER BY s.created_at DESC
 		LIMIT $2 OFFSET $3
 	`

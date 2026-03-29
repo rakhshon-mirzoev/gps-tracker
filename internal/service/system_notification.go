@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/events"
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/events"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	"go.uber.org/zap"
 )
 

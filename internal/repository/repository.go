@@ -3,9 +3,9 @@ package repository
 import (
 	"context"
 
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
 )
 
 type Tx interface {

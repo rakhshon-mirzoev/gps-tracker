@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
 )
 
 func (w *Worker) Run() {

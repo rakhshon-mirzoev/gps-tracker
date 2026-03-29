@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type schedules struct {
@@ -23,9 +23,6 @@ type ScheduleRepository interface {
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateSchedule) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListByStaffID(ctx context.Context, staffID uuid.UUID, limit, offset int) ([]model.Schedule, int, error)
-	ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]model.Schedule, int, error)
-	ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]model.Schedule, int, error)
-	ListByStatus(ctx context.Context, status string, limit, offset int) ([]model.Schedule, int, error)
 	ListAll(ctx context.Context, staffID, storeID *uuid.UUID, dateFrom, dateTo string, limit, offset int) ([]model.Schedule, int, error)
 }
 
@@ -80,9 +77,9 @@ func (r *schedules) GetByID(ctx context.Context, id uuid.UUID) (*model.Schedule,
 			id, staff_id, store_id, planned_date, description,
 			window_open, window_close,
 			is_photo_required, is_selfie_required, is_comment_required,
-			status, created_by_admin_id
+			status, created_by_admin_id, review_comment
 		FROM schedules 
-		WHERE id = $1`
+		WHERE id = $1 AND is_deleted = false`
 
 	err := r.DB.Pool.QueryRow(ctx, sql, id).Scan(
 		&schedule.ID,
@@ -97,6 +94,7 @@ func (r *schedules) GetByID(ctx context.Context, id uuid.UUID) (*model.Schedule,
 		&schedule.IsCommentRequired,
 		&schedule.Status,
 		&schedule.CreatedByAdminID,
+		&schedule.ReviewComment,
 	)
 
 	if err != nil {
@@ -174,6 +172,12 @@ func (r *schedules) Update(ctx context.Context, id uuid.UUID, dto model.UpdateSc
 		n++
 	}
 
+	if dto.ReviewComment != nil {
+		sql += fmt.Sprintf("review_comment = $%d, ", n)
+		args = append(args, *dto.ReviewComment)
+		n++
+	}
+
 	if len(args) == 0 {
 		return nil
 	}
@@ -195,7 +199,7 @@ func (r *schedules) Update(ctx context.Context, id uuid.UUID, dto model.UpdateSc
 }
 
 func (r *schedules) Delete(ctx context.Context, id uuid.UUID) error {
-	sql := `DELETE FROM schedules WHERE id = $1`
+	sql := `UPDATE schedules SET is_deleted = true, deleted_at = now() WHERE id = $1 AND is_deleted = false`
 
 	ct, err := r.DB.Pool.Exec(ctx, sql, id)
 	if err != nil {
@@ -204,6 +208,13 @@ func (r *schedules) Delete(ctx context.Context, id uuid.UUID) error {
 
 	if ct.RowsAffected() == 0 {
 		return errs.ErrorNotFound
+	}
+
+	sqlVis := `UPDATE visits set review_status = 'schedule_deleted' WHERE schedule_id = $1`
+
+	_, err = r.DB.Pool.Exec(ctx, sqlVis, id)
+	if err != nil {
+		return fmt.Errorf("delete schedule: %w", err)
 	}
 
 	return nil
@@ -231,12 +242,21 @@ func (r *schedules) ListByStaffID(ctx context.Context, staffID uuid.UUID, limit,
 			s.id, s.staff_id, s.store_id, st.name, s.planned_date, s.description,
 			s.window_open, s.window_close,
 			s.is_photo_required, s.is_selfie_required, s.is_comment_required,
-			s.status, s.created_by_admin_id
+			s.status, s.created_by_admin_id, s.review_comment,
+			v.id
 		FROM schedules s
 		JOIN stores st ON st.id = s.store_id
-		WHERE staff_id = $1
-		ORDER BY planned_date DESC
-		LIMIT $2 OFFSET $3`
+		LEFT JOIN LATERAL (
+			SELECT id
+			FROM visits
+			WHERE schedule_id = s.id
+			ORDER BY created_at DESC
+			LIMIT 1
+		) v ON true
+		WHERE s.staff_id = $1 AND s.is_deleted = false
+		ORDER BY s.planned_date DESC
+		LIMIT $2 OFFSET $3
+	`
 
 	rows, err := r.DB.Pool.Query(ctx, sql, staffID, limit, offset)
 	if err != nil {
@@ -251,172 +271,7 @@ func (r *schedules) ListByStaffID(ctx context.Context, staffID uuid.UUID, limit,
 			&s.ID, &s.StaffID, &s.StoreID, &s.StoreName, &s.PlannedDate, &s.Description,
 			&s.WindowOpen, &s.WindowClose,
 			&s.IsPhotoRequired, &s.IsSelfieRequired, &s.IsCommentRequired,
-			&s.Status, &s.CreatedByAdminID,
-		); err != nil {
-			return nil, 0, fmt.Errorf("scan schedule: %w", err)
-		}
-		schedulesList = append(schedulesList, s)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("rows error: %w", err)
-	}
-
-	return schedulesList, total, nil
-}
-
-func (r *schedules) ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]model.Schedule, int, error) {
-	const defaultLimit = 20
-
-	if limit <= 0 {
-		limit = defaultLimit
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
-	var total int
-	countSQL := `SELECT COUNT(*) FROM schedules WHERE store_id = $1`
-	err := r.DB.Pool.QueryRow(ctx, countSQL, storeID).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count schedules: %w", err)
-	}
-
-	sql := `
-		SELECT 
-			id, staff_id, store_id, planned_date, description,
-			window_open, window_close,
-			is_photo_required, is_selfie_required, is_comment_required,
-			status, created_by_admin_id
-		FROM schedules 
-		WHERE store_id = $1
-		ORDER BY planned_date DESC
-		LIMIT $2 OFFSET $3`
-
-	rows, err := r.DB.Pool.Query(ctx, sql, storeID, limit, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("list schedules by store: %w", err)
-	}
-	defer rows.Close()
-
-	var schedulesList = make([]model.Schedule, 0)
-	for rows.Next() {
-		s := model.Schedule{}
-		if err := rows.Scan(
-			&s.ID, &s.StaffID, &s.StoreID, &s.PlannedDate, &s.Description,
-			&s.WindowOpen, &s.WindowClose,
-			&s.IsPhotoRequired, &s.IsSelfieRequired, &s.IsCommentRequired,
-			&s.Status, &s.CreatedByAdminID,
-		); err != nil {
-			return nil, 0, fmt.Errorf("scan schedule: %w", err)
-		}
-		schedulesList = append(schedulesList, s)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("rows error: %w", err)
-	}
-
-	return schedulesList, total, nil
-}
-
-func (r *schedules) ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]model.Schedule, int, error) {
-	const defaultLimit = 20
-
-	if limit <= 0 {
-		limit = defaultLimit
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
-	var total int
-	countSQL := `SELECT COUNT(*) FROM schedules WHERE DATE(planned_date) = $1`
-	err := r.DB.Pool.QueryRow(ctx, countSQL, plannedDate).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count schedules: %w", err)
-	}
-
-	sql := `
-		SELECT 
-			id, staff_id, store_id, planned_date, description,
-			window_open, window_close,
-			is_photo_required, is_selfie_required, is_comment_required,
-			status, created_by_admin_id
-		FROM schedules 
-		WHERE DATE(planned_date) = $1
-		ORDER BY planned_date DESC
-		LIMIT $2 OFFSET $3`
-
-	rows, err := r.DB.Pool.Query(ctx, sql, plannedDate, limit, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("list schedules by date: %w", err)
-	}
-	defer rows.Close()
-
-	var schedulesList = make([]model.Schedule, 0)
-	for rows.Next() {
-		s := model.Schedule{}
-		if err := rows.Scan(
-			&s.ID, &s.StaffID, &s.StoreID, &s.PlannedDate, &s.Description,
-			&s.WindowOpen, &s.WindowClose,
-			&s.IsPhotoRequired, &s.IsSelfieRequired, &s.IsCommentRequired,
-			&s.Status, &s.CreatedByAdminID,
-		); err != nil {
-			return nil, 0, fmt.Errorf("scan schedule: %w", err)
-		}
-		schedulesList = append(schedulesList, s)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("rows error: %w", err)
-	}
-
-	return schedulesList, total, nil
-}
-
-func (r *schedules) ListByStatus(ctx context.Context, status string, limit, offset int) ([]model.Schedule, int, error) {
-	const defaultLimit = 20
-
-	if limit <= 0 {
-		limit = defaultLimit
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
-	var total int
-	countSQL := `SELECT COUNT(*) FROM schedules WHERE status = $1`
-	err := r.DB.Pool.QueryRow(ctx, countSQL, status).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count schedules: %w", err)
-	}
-
-	sql := `
-		SELECT 
-			id, staff_id, store_id, planned_date, description,
-			window_open, window_close,
-			is_photo_required, is_selfie_required, is_comment_required,
-			status, created_by_admin_id
-		FROM schedules 
-		WHERE status = $1
-		ORDER BY planned_date DESC
-		LIMIT $2 OFFSET $3`
-
-	rows, err := r.DB.Pool.Query(ctx, sql, status, limit, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("list schedules by status: %w", err)
-	}
-	defer rows.Close()
-
-	var schedulesList = make([]model.Schedule, 0)
-	for rows.Next() {
-		s := model.Schedule{}
-		if err := rows.Scan(
-			&s.ID, &s.StaffID, &s.StoreID, &s.PlannedDate, &s.Description,
-			&s.WindowOpen, &s.WindowClose,
-			&s.IsPhotoRequired, &s.IsSelfieRequired, &s.IsCommentRequired,
-			&s.Status, &s.CreatedByAdminID,
+			&s.Status, &s.CreatedByAdminID, &s.ReviewComment, &s.VisitId,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan schedule: %w", err)
 		}
@@ -466,6 +321,8 @@ func (r *schedules) ListAll(ctx context.Context, staffID, storeID *uuid.UUID, da
 		argNum++
 	}
 
+	conditions = append(conditions, "is_deleted = false")
+
 	whereClause := ""
 	if len(conditions) > 0 {
 		whereClause = "WHERE " + strings.Join(conditions, " AND ")
@@ -482,9 +339,17 @@ func (r *schedules) ListAll(ctx context.Context, staffID, storeID *uuid.UUID, da
 			s.id, s.staff_id, s.store_id, st.name, s.planned_date, s.description,
 			s.window_open, s.window_close,
 			s.is_photo_required, s.is_selfie_required, s.is_comment_required,
-			s.status, s.created_by_admin_id
+			s.status, s.created_by_admin_id, s.review_comment, s.is_deleted, s.deleted_at,
+			v.id
 		FROM schedules s
 		JOIN stores st ON st.id = s.store_id
+		LEFT JOIN LATERAL (
+			SELECT id
+			FROM visits
+			WHERE schedule_id = s.id
+			ORDER BY created_at DESC
+			LIMIT 1
+		) v ON true
 		%s
 		ORDER BY planned_date DESC
 		LIMIT $%d OFFSET $%d`, whereClause, argNum, argNum+1)
@@ -504,7 +369,7 @@ func (r *schedules) ListAll(ctx context.Context, staffID, storeID *uuid.UUID, da
 			&s.ID, &s.StaffID, &s.StoreID, &s.StoreName, &s.PlannedDate, &s.Description,
 			&s.WindowOpen, &s.WindowClose,
 			&s.IsPhotoRequired, &s.IsSelfieRequired, &s.IsCommentRequired,
-			&s.Status, &s.CreatedByAdminID,
+			&s.Status, &s.CreatedByAdminID, &s.ReviewComment, &s.IsDeleted, &s.DeletedAt, &s.VisitId,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan schedule: %w", err)
 		}

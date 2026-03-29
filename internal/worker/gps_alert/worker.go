@@ -6,15 +6,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/events"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
+	"github.com/IkbolNazarov/gps-tracker/internal/events"
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
 	"go.uber.org/zap"
 )
 
 const (
 	// GPSMissingThreshold — сотрудник считается "пропавшим" если не слал GPS дольше этого времени.
-	GPSMissingThreshold = 10 * time.Minute
+	GPSMissingThreshold = 5 * time.Minute
 )
 
 // Worker проверяет каждые `interval` сотрудников, не отправлявших GPS
@@ -74,13 +75,14 @@ func (w *Worker) Stop() {
 }
 
 func (w *Worker) process(ctx context.Context) {
+
 	missing, err := w.locationRepo.GetStaffMissingGPS(ctx, GPSMissingThreshold)
 	if err != nil {
 		logger.Log.Error("gps alert worker: get missing gps staff", zap.Error(err))
 		return
 	}
 
-	now := time.Now()
+	now := time.Now().In(timezone.Dushanbe)
 
 	for _, staff := range missing {
 		// Проверяем в БД — уже ли отправляли алерт для этого сотрудника.
@@ -93,11 +95,12 @@ func (w *Worker) process(ctx context.Context) {
 			)
 			continue
 		}
+
 		if alerted {
-			continue // уже уведомили, ждём пока сотрудник «вернётся»
+			continue
 		}
 
-		since := now.Sub(staff.CapturedAt).Round(time.Minute)
+		since := now.Sub(*staff.CapturedAt).Round(time.Minute)
 
 		event := events.NotificationEvent{
 			StaffID:   staff.StaffID,

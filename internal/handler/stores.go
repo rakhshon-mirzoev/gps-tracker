@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
+	"github.com/IkbolNazarov/gps-tracker/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
 func (h *Handler) GetStoreByID(c *gin.Context) {
@@ -148,19 +148,13 @@ func (h *Handler) DeleteStore(c *gin.Context) {
 		return
 	}
 
-	user_id, _, err := checkSystemUser(c)
+	user_id, role, err := checkSystemUser(c)
 	if err != nil {
 		h.handleError(c, "ApproveStore: check system", err, http.StatusBadRequest)
 		return
 	}
 
-	role, ok := c.Get("role")
-	if !ok {
-		h.handleFieldError(c, "ApproveStore: get role", errs.ErrorRoleEmpty)
-		return
-	}
-
-	err = h.s.Store.Delete(c.Request.Context(), uID, user_id, c.ClientIP(), role.(string), constants.Stores, "DeleteStore")
+	err = h.s.Store.Delete(c.Request.Context(), uID, user_id, c.ClientIP(), role, constants.Stores, "DeleteStore")
 	if err != nil {
 		h.handleError(c, "ApproveStore: update store", err, http.StatusInternalServerError)
 		return

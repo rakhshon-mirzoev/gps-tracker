@@ -422,9 +422,26 @@ const docTemplate = `{
             }
         },
         "/admin/staff/schedules/{id}": {
+            "delete": {
+                "tags": ["Staff Users"],
+                "summary": "Удалить назначение расписания (schedule) сотруднику",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID расписания"}
+                ],
+                "responses": {
+                    "200": {"description": "Удалено"},
+                    "400": {"description": "Невалидный ID"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/admin/staff/time-schedule/{id}": {
             "get": {
                 "tags": ["Staff Users"],
-                "summary": "Получить расписания сотрудника по ID",
+                "summary": "Получить time-schedule записи сотрудника",
+                "description": "Возвращает список временны́х расписаний (рабочие дни/часы) для указанного сотрудника.",
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/json"],
                 "parameters": [
@@ -449,12 +466,13 @@ const docTemplate = `{
             },
             "put": {
                 "tags": ["Staff Users"],
-                "summary": "Обновить расписание сотрудника",
+                "summary": "Обновить time-schedule запись сотрудника",
+                "description": "Частичное обновление временного расписания (рабочий день, начало/конец смены).",
                 "security": [{"BearerAuth": []}],
                 "consumes": ["application/json"],
                 "produces": ["application/json"],
                 "parameters": [
-                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID расписания"},
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID time-schedule записи"},
                     {
                         "name": "body",
                         "in": "body",
@@ -470,11 +488,11 @@ const docTemplate = `{
             },
             "delete": {
                 "tags": ["Staff Users"],
-                "summary": "Удалить расписание сотрудника",
+                "summary": "Удалить time-schedule запись сотрудника",
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/json"],
                 "parameters": [
-                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID расписания"}
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID time-schedule записи"}
                 ],
                 "responses": {
                     "200": {"description": "Удалено"},
@@ -670,6 +688,20 @@ const docTemplate = `{
                     "404": {"description": "Магазин не найден"},
                     "500": {"description": "Internal Server Error"}
                 }
+            },
+            "delete": {
+                "tags": ["Stores"],
+                "summary": "Удалить магазин",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID магазина"}
+                ],
+                "responses": {
+                    "200": {"description": "Магазин удалён"},
+                    "400": {"description": "Невалидный ID"},
+                    "500": {"description": "Internal Server Error"}
+                }
             }
         },
         "/admin/stores/{id}/approve": {
@@ -806,13 +838,14 @@ const docTemplate = `{
         "/admin/staff-mapping/{staff_id}": {
             "get": {
                 "tags": ["Staff Mapping"],
-                "summary": "Список магазинов, привязанных к сотруднику",
+                "summary": "Список магазинов, назначенных сотруднику через маппинг",
+                "description": "Возвращает магазины, привязанные к сотруднику через таблицу staff_stores_mapping.",
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/json"],
                 "parameters": [
-                    {"name": "staff_id", "in": "path", "required": true, "type": "string", "format": "uuid"},
-                    {"name": "limit", "in": "query", "required": true, "type": "integer"},
-                    {"name": "offset", "in": "query", "required": true, "type": "integer"}
+                    {"name": "staff_id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID сотрудника"},
+                    {"name": "limit", "in": "query", "required": true, "type": "integer", "description": "Количество записей"},
+                    {"name": "offset", "in": "query", "required": true, "type": "integer", "description": "Смещение"}
                 ],
                 "responses": {
                     "200": {
@@ -820,13 +853,77 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "stores": {
+                                "data": {
                                     "type": "array",
                                     "items": {"$ref": "#/definitions/Store"}
-                                }
+                                },
+                                "total": {"type": "integer"},
+                                "limit": {"type": "integer"},
+                                "offset": {"type": "integer"}
                             }
                         }
                     },
+                    "400": {"description": "Неверный staff_id"},
+                    "403": {"description": "Нет доступа"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            },
+            "post": {
+                "tags": ["Staff Mapping"],
+                "summary": "Привязать магазин к сотруднику",
+                "description": "Создаёт запись в staff_stores_mapping — назначает магазин сотруднику.",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "staff_id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID сотрудника"},
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "required": ["store_id"],
+                            "properties": {
+                                "store_id": {"type": "string", "format": "uuid", "description": "ID магазина"}
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {"description": "Привязка создана"},
+                    "400": {"description": "Неверные параметры"},
+                    "403": {"description": "Нет доступа"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            },
+            "delete": {
+                "tags": ["Staff Mapping"],
+                "summary": "Отвязать магазин от сотрудника",
+                "description": "Удаляет запись из staff_stores_mapping по store_id и staff_id.",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "staff_id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID сотрудника"},
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "required": ["store_id"],
+                            "properties": {
+                                "store_id": {"type": "string", "format": "uuid", "description": "ID магазина"}
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {"description": "Привязка удалена"},
+                    "400": {"description": "Неверные параметры"},
+                    "403": {"description": "Нет доступа"},
+                    "404": {"description": "Привязка не найдена"},
                     "500": {"description": "Internal Server Error"}
                 }
             }
@@ -840,7 +937,7 @@ const docTemplate = `{
                 "parameters": [
                     {"name": "limit", "in": "query", "required": true, "type": "integer"},
                     {"name": "offset", "in": "query", "required": true, "type": "integer"},
-                    {"name": "status", "in": "query", "type": "string", "enum": ["pending", "approved", "rejected"], "description": "Фильтр по статусу проверки"}
+                    {"name": "status", "in": "query", "type": "string", "enum": ["pending", "approved", "rejected", "revision"], "description": "Фильтр по статусу проверки"}
                 ],
                 "responses": {
                     "200": {
@@ -888,7 +985,8 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "400": {"description": "status must be 'approved' or 'rejected'"},
+                    "400": {"description": "status must be 'approved', 'rejected' or 'revision'"},
+                    "409": {"description": "Визит уже имеет финальный статус (approved/rejected) и не может быть изменён"},
                     "403": {"description": "Нет доступа"},
                     "404": {"description": "Визит не найден"},
                     "500": {"description": "Internal Server Error"}
@@ -1405,7 +1503,7 @@ const docTemplate = `{
                 "selfie_url": {"type": "string"},
                 "comment": {"type": "string"},
                 "is_offline": {"type": "boolean"},
-                "review_status": {"type": "string", "enum": ["pending", "approved", "rejected"]},
+                "review_status": {"type": "string", "enum": ["new", "pending", "approved", "rejected", "revision"]},
                 "review_comment": {"type": "string"},
                 "reviewer_id": {"type": "string", "format": "uuid"},
                 "reviewed_at": {"type": "string", "format": "date-time"},
@@ -1416,7 +1514,7 @@ const docTemplate = `{
             "type": "object",
             "required": ["status"],
             "properties": {
-                "status": {"type": "string", "enum": ["approved", "rejected"]},
+                "status": {"type": "string", "enum": ["approved", "rejected", "revision"], "description": "approved и rejected — финальные (неизменяемые). revision — на доработку, сотрудник может дополнить визит."},
                 "review_comment": {"type": "string"}
             }
         },

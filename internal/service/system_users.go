@@ -2,23 +2,25 @@ package service
 
 import (
 	"context"
+	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
+	errors "github.com/IkbolNazarov/gps-tracker/pkg/error"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
+	"github.com/IkbolNazarov/gps-tracker/pkg/utils"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
-	errors "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
 type SystemUsers interface {
 	Create(ctx context.Context, sysUser *model.CreateSystemUser, user_id uuid.UUID, ip, role string) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.SystemUser, error)
-	Delete(ctx context.Context, id uuid.UUID) error
+	Delete(ctx context.Context, id, user_id uuid.UUID, role, ip, tt, action string) error
 	Update(ctx context.Context, u *model.UpdateSystemUser, id, user_id uuid.UUID, ip, role string) error
 	List(ctx context.Context) ([]model.SystemUser, error)
 	GetByLogin(ctx context.Context, login string) (*model.SystemUser, error)
-	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error
+	Deactivate(ctx context.Context, id, dId uuid.UUID, dReason, role, ip, tt, action string) error
 }
 
 type systemUserService struct {
@@ -61,6 +63,7 @@ func (s *systemUserService) Create(ctx context.Context, sysUser *model.CreateSys
 			TargetTable: &system,
 			Action:      "CreateSystemUser",
 			IPAddress:   &ip,
+			CreatedAt:   time.Now().In(timezone.Dushanbe),
 		}); err != nil {
 			return err
 		}
@@ -95,6 +98,7 @@ func (s *systemUserService) Update(ctx context.Context, u *model.UpdateSystemUse
 		TargetTable: &system,
 		TargetID:    &id,
 		IPAddress:   &ip,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
 	}); err != nil {
 		return err
 	}
@@ -102,10 +106,42 @@ func (s *systemUserService) Update(ctx context.Context, u *model.UpdateSystemUse
 	return nil
 }
 
-func (s *systemUserService) Delete(ctx context.Context, id uuid.UUID) error {
-	return s.r.Delete(ctx, id)
+func (s *systemUserService) Delete(ctx context.Context, id, user_id uuid.UUID, role, ip, tt, action string) error {
+	if err := s.r.Delete(ctx, id, user_id); err != nil {
+		return err
+	}
+
+	if err := s.audit.Create(ctx, &model.AuditLogs{
+		ActorID:     user_id,
+		ActorType:   role,
+		IPAddress:   &ip,
+		TargetID:    &id,
+		TargetTable: &tt,
+		Action:      action,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (s *systemUserService) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason string) error {
-	return s.r.Deactivate(ctx, id, dId, dReason)
+func (s *systemUserService) Deactivate(ctx context.Context, id, dId uuid.UUID, dReason, role, ip, tt, action string) error {
+	if err := s.r.Deactivate(ctx, id, dId, dReason); err != nil {
+		return err
+	}
+
+	if err := s.audit.Create(ctx, &model.AuditLogs{
+		ActorID:     dId,
+		ActorType:   role,
+		IPAddress:   &ip,
+		TargetID:    &id,
+		TargetTable: &tt,
+		Action:      action,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }

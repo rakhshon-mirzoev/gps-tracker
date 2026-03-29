@@ -1,9 +1,9 @@
 package middleware
 
 import (
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
 )
 
 func (s *MiddlewareService) RequestID() gin.HandlerFunc {

@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type groupsRepository struct {
@@ -59,6 +59,8 @@ func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID, li
 	var conditions []string
 	var args []any
 
+	conditions = append(conditions, "g.is_deleted = false")
+
 	if supervisorID != nil {
 		conditions = append(conditions, fmt.Sprintf("g.supervisor_id = $%d", len(args)+1))
 		args = append(args, *supervisorID)
@@ -85,7 +87,9 @@ func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID, li
 			u.full_name as sup_full_name,
 			u.login as sup_login,
 			u.role as sup_role,
-			g.created_at 
+			g.created_at,
+			g.is_deleted,
+			g.deleted_at
 		FROM groups g
 		LEFT JOIN system_users u ON g.supervisor_id = u.id
 		%s
@@ -117,6 +121,8 @@ func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID, li
 			&supLogin,
 			&supRole,
 			&g.CreatedAt,
+			&g.IsDeleted,
+			&g.DeletedAt,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("scan group: %w", err)
@@ -152,7 +158,9 @@ func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Gr
 			s.full_name as sup_full_name,
 			s.login as sup_login,
 			s.role as sup_role,
-			g.created_at
+			g.created_at,
+			g.is_deleted,
+			g.deleted_at
 		FROM groups g
 		LEFT JOIN system_users s ON g.supervisor_id = s.id
 		WHERE g.id = $1
@@ -172,6 +180,8 @@ func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Gr
 		&supLogin,
 		&supRole,
 		&gr.CreatedAt,
+		&gr.IsDeleted,
+		&gr.DeletedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -242,7 +252,10 @@ func (g *groupsRepository) GetGroupIDForSupervisor(ctx context.Context, userID u
 }
 
 func (g *groupsRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	sql := `DELETE FROM groups WHERE id = $1`
+	sql := `UPDATE groups 
+		SET is_deleted = true,
+			deleted_at = now()
+		WHERE id = $1`
 
 	ct, err := g.DB.Pool.Exec(ctx, sql, id)
 	if err != nil {

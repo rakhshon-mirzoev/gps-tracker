@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/websocket"
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/websocket"
 )
 
 type App struct {

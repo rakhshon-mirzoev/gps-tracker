@@ -3,6 +3,7 @@ package websocket
 import (
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
@@ -22,9 +23,9 @@ func (c *NotificationClient) ReadPumpNotif() {
 	}()
 
 	c.Conn.SetReadLimit(1024)
-	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.Conn.SetReadDeadline(time.Now().In(timezone.Dushanbe).Add(pongWait))
 	c.Conn.SetPongHandler(func(string) error {
-		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+		c.Conn.SetReadDeadline(time.Now().In(timezone.Dushanbe).Add(pongWait))
 		return nil
 	})
 
@@ -47,7 +48,7 @@ func (c *NotificationClient) WritePumpNotif() {
 	for {
 		select {
 		case message, ok := <-c.Send:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			c.Conn.SetWriteDeadline(time.Now().In(timezone.Dushanbe).Add(writeWait))
 			if !ok {
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
@@ -62,7 +63,7 @@ func (c *NotificationClient) WritePumpNotif() {
 			}
 
 		case <-ticker.C:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			c.Conn.SetWriteDeadline(time.Now().In(timezone.Dushanbe).Add(writeWait))
 			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}

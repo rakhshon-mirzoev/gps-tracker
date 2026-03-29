@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 )
 
 type Schedule interface {
@@ -14,19 +17,19 @@ type Schedule interface {
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateSchedule) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListByStaffID(ctx context.Context, staffID uuid.UUID, limit, offset int) ([]model.Schedule, int, error)
-	ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]model.Schedule, int, error)
-	ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]model.Schedule, int, error)
-	ListByStatus(ctx context.Context, status string, limit, offset int) ([]model.Schedule, int, error)
 	ListAll(ctx context.Context, staffIDStr, storeIDStr, dateFrom, dateTo string, limit, offset int) ([]model.Schedule, int, error)
 }
 
 type scheduleService struct {
-	r     repository.ScheduleRepository
-	audit AuditLogs
+	r            repository.ScheduleRepository
+	audit        AuditLogs
+	notification Notification
+	staff        repository.StaffUsersRepository
+	store        Stores
 }
 
-func NewScheduleService(r repository.ScheduleRepository, audit AuditLogs) Schedule {
-	return &scheduleService{r: r, audit: audit}
+func NewScheduleService(r repository.ScheduleRepository, audit AuditLogs, notification Notification, staff repository.StaffUsersRepository, store Stores) Schedule {
+	return &scheduleService{r: r, audit: audit, notification: notification, staff: staff, store: store}
 }
 
 func (s *scheduleService) Create(ctx context.Context, dto *model.CreateSchedule, adminID uuid.UUID, ip, scheduleConst, role, action string) error {
@@ -57,12 +60,42 @@ func (s *scheduleService) Create(ctx context.Context, dto *model.CreateSchedule,
 		return err
 	}
 
+	staff, err := s.staff.GetByID(ctx, staffID)
+	if err != nil {
+		return err
+	}
+
+	store, err := s.store.GetByID(ctx, storeID)
+	if err != nil {
+		return err
+	}
+
+	if staff.FcmToken != nil {
+		plannedDate := dto.PlannedDate.Format("02.01.2006, 15:04")
+
+		open := dto.WindowOpen.Format("02.01.2006, 15:04")
+		close := dto.WindowClose.Format("02.01.2006, 15:04")
+
+		body := fmt.Sprintf(
+			"Магазин: %s\nПлановая дата: %s\nОписание: %s\nОкно визита: %s-%s",
+			store.Name,
+			plannedDate,
+			dto.Description,
+			open,
+			close,
+		)
+		if err := s.notification.CreateAndPushToUser(ctx, staff.ID, "Назначена новая задача", body, "schedule_assign", map[string]any{"type": "schedule_assign"}, staff.FcmToken); err != nil {
+			return err
+		}
+	}
+
 	if err := s.audit.Create(ctx, &model.AuditLogs{
 		ActorID:     adminID,
 		ActorType:   role,
 		Action:      "AssignSchedule",
 		TargetTable: &scheduleConst,
 		IPAddress:   &ip,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
 	}); err != nil {
 		return err
 	}
@@ -107,18 +140,6 @@ func (s *scheduleService) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (s *scheduleService) ListByStaffID(ctx context.Context, staffID uuid.UUID, limit, offset int) ([]model.Schedule, int, error) {
 	return s.r.ListByStaffID(ctx, staffID, limit, offset)
-}
-
-func (s *scheduleService) ListByStoreID(ctx context.Context, storeID uuid.UUID, limit, offset int) ([]model.Schedule, int, error) {
-	return s.r.ListByStoreID(ctx, storeID, limit, offset)
-}
-
-func (s *scheduleService) ListByDate(ctx context.Context, plannedDate string, limit, offset int) ([]model.Schedule, int, error) {
-	return s.r.ListByDate(ctx, plannedDate, limit, offset)
-}
-
-func (s *scheduleService) ListByStatus(ctx context.Context, status string, limit, offset int) ([]model.Schedule, int, error) {
-	return s.r.ListByStatus(ctx, status, limit, offset)
 }
 
 func (s *scheduleService) ListAll(ctx context.Context, staffIDStr, storeIDStr, dateFrom, dateTo string, limit, offset int) ([]model.Schedule, int, error) {

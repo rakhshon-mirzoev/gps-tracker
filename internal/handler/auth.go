@@ -3,9 +3,9 @@ package handler
 import (
 	"net/http"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 func (h *Handler) Login(c *gin.Context) {
@@ -139,10 +139,6 @@ func (h *Handler) Logout(c *gin.Context) {
 	}
 
 	if err := h.s.Authorize.Logout(c.Request.Context(), req.RefreshToken); err != nil {
-		if err == errs.ErrorNotFound {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "no found refresh"})
-			return
-		}
 		h.handleError(c, "Logout", err, http.StatusInternalServerError)
 		return
 	}

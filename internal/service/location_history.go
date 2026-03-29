@@ -5,11 +5,11 @@ import (
 	"errors"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/events"
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/events"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
 	"go.uber.org/zap"
 )
 
@@ -53,7 +53,7 @@ func (s *locationHistoryService) CreateBatch(ctx context.Context, locations []mo
 
 	var latest *model.LocationHistory
 	for i := len(locations) - 1; i >= 0; i-- {
-		if locations[i].Status == "online" {
+		if *locations[i].Status == "online" {
 			latest = &locations[i]
 			break
 		}
@@ -82,7 +82,7 @@ func (s *locationHistoryService) CreateBatch(ctx context.Context, locations []mo
 			Longitude:    latest.Longitude,
 			BatteryLevel: latest.BatteryLevel,
 			CapturedAt:   latest.CapturedAt,
-			Status:       "online",
+			Status:       latest.Status,
 		}
 
 		_ = s.publisher.PublishOnlineLocation(ctx, update)
@@ -140,6 +140,7 @@ func toLocationUpdates(rows []model.LocationHistoryWithStaff) []events.LocationU
 			StaffID:      r.StaffID,
 			GroupID:      r.GroupID,
 			FullName:     r.FullName,
+			PhoneNumber:  r.PhoneNumber,
 			Latitude:     r.Latitude,
 			Longitude:    r.Longitude,
 			BatteryLevel: r.BatteryLevel,

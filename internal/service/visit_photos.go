@@ -5,10 +5,10 @@ import (
 	"errors"
 	"log"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
+	minioservice "github.com/IkbolNazarov/gps-tracker/pkg/storage/service"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 )
 
 type VisitPhotos interface {
@@ -17,6 +17,7 @@ type VisitPhotos interface {
 	List(ctx context.Context, visitID uuid.UUID) ([]model.VisitPhotos, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisitPhotos) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	GetByVisitIDs(ctx context.Context, ids []uuid.UUID) ([]model.VisitPhotos, error)
 }
 
 type visitPhotosService struct {
@@ -70,4 +71,8 @@ func (s *visitPhotosService) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (s *visitPhotosService) GetByVisitIDs(ctx context.Context, ids []uuid.UUID) ([]model.VisitPhotos, error) {
+	return s.repo.GetByVisitIDs(ctx, ids)
 }

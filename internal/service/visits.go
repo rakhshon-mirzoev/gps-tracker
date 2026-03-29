@@ -9,15 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
+	minioservice "github.com/IkbolNazarov/gps-tracker/pkg/storage/service"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
+	"github.com/IkbolNazarov/gps-tracker/pkg/utils"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
-	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
-	"go.uber.org/zap"
 )
 
 type Visits interface {
@@ -28,10 +27,11 @@ type Visits interface {
 	VisitComplete(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, staff_id uuid.UUID) error
 	VisitPhoto(ctx context.Context, id uuid.UUID, file *multipart.Form) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error)
+	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID, role string) ([]model.VisitResponse, int, error)
 	UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, user_id uuid.UUID, role, ip, settings, action string) error
 	GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UUID, begin, end *time.Time) ([]model.VisitExcel, error)
 	GetByIDPhoto(ctx context.Context, id uuid.UUID) (*model.VisitWithPhoto, error)
+	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
 }
 type visitsService struct {
 	repo          repository.VisitRepository
@@ -70,7 +70,7 @@ func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, u
 		return nil, err
 	}
 
-	if v != nil && v.CheckOutAt != nil {
+	if v != nil && v.CheckOutAt != nil && v.ReviewStatus != "rejected" && v.ReviewStatus != "revision" {
 		return nil, errs.ErrorAlreadyReviewed
 	}
 
@@ -95,7 +95,8 @@ func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, u
 	}
 	defer tx.Rollback(ctx)
 
-	now := time.Now()
+	now := time.Now().In(timezone.Dushanbe)
+	formatted := now.Format("2006-01-02 15:04:05")
 
 	visit := model.Visit{
 		StaffID:           user_id,
@@ -122,7 +123,7 @@ func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, u
 	n := &model.Notification{
 		UserID:   &user_id,
 		Title:    "Задание принято в работу",
-		Body:     fmt.Sprintf("Магазин %s, время начала %s.", store.Name, now),
+		Body:     fmt.Sprintf("Магазин %s, время начала %s.", store.Name, formatted),
 		Type:     "visit_check_in",
 		Meta:     b,
 		IsRead:   false,
@@ -169,9 +170,21 @@ func (s *visitsService) GetByIDPhoto(ctx context.Context, id uuid.UUID) (*model.
 		return nil, err
 	}
 
+	sch, err := s.schedule.GetByID(ctx, *visit.ScheduleID)
+	if err != nil {
+		return nil, err
+	}
+
+	requirement := model.Required{
+		IsPhotoRequired:   sch.IsPhotoRequired,
+		IsSelfieRequired:  sch.IsSelfieRequired,
+		IsCommentRequired: sch.IsCommentRequired,
+	}
+
 	return &model.VisitWithPhoto{
-		Visit: *visit,
-		Photo: photos,
+		Visit:    *visit,
+		Photo:    photos,
+		Required: requirement,
 	}, nil
 }
 
@@ -185,7 +198,6 @@ func (s *visitsService) List(ctx context.Context, scheduleID uuid.UUID) ([]model
 
 func (s *visitsService) VisitComplete(ctx context.Context, uid uuid.UUID, dto model.UpdateVisit, staff_id uuid.UUID) error {
 	pending := "pending"
-	now := time.Now()
 	dto.ReviewStatus = &pending
 	if err := s.repo.Update(ctx, uid, dto); err != nil {
 		return err
@@ -196,25 +208,10 @@ func (s *visitsService) VisitComplete(ctx context.Context, uid uuid.UUID, dto mo
 		return err
 	}
 
-	err = s.schedule.Update(ctx, *vSt.ScheduleID, model.UpdateSchedule{
+	if err := s.schedule.Update(ctx, *vSt.ScheduleID, model.UpdateSchedule{
 		Status: &pending,
-	})
-
-	user, err := s.staff.GetByID(ctx, staff_id)
-	if err != nil {
+	}); err != nil {
 		return err
-	}
-
-	store, err := s.store.GetByID(ctx, vSt.StoreID)
-	if err != nil {
-		return err
-	}
-
-	if err := s.notifications.CreateAndPushToUser(ctx, staff_id, "Задание отправлено", fmt.Sprintf("Магазин %s, время окончания %s.", store.Name, now), "visit_complete", map[string]any{"type": "visit_complete"}, user.FcmToken); err != nil {
-		logger.Log.Error(
-			fmt.Sprintf("%s: failed operation", "CreateAndPushToUser in visit complete"),
-			zap.Error(err),
-		)
 	}
 
 	return nil
@@ -222,7 +219,13 @@ func (s *visitsService) VisitComplete(ctx context.Context, uid uuid.UUID, dto mo
 
 func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, file *multipart.Form) error {
 
+	now := time.Now().In(timezone.Dushanbe)
+
 	if file == nil || file.File == nil {
+		return errs.ErrorInvalidFileFormat
+	}
+
+	if len(file.File) == 0 {
 		return errs.ErrorInvalidFileFormat
 	}
 
@@ -248,7 +251,7 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, file *mult
 		if ext == "" {
 			return errs.ErrorFileExt
 		}
-		timestamp := time.Now().Unix()
+		timestamp := time.Now().In(timezone.Dushanbe).Unix()
 		filename := fmt.Sprintf("%s_%d%s", uuid.New(), timestamp, ext)
 		objectName := fmt.Sprintf(constants.VisitDir+"/"+constants.SelfieDir+"/%s/%s", id, filename)
 
@@ -261,6 +264,7 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, file *mult
 			VisitID:      id,
 			PhotoKey:     selfieKey,
 			OriginalName: selfie[0].Filename,
+			CapturedAt:   now,
 		}
 
 		err = s.photo.Create(ctx, vp)
@@ -284,7 +288,7 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, file *mult
 			if ext == "" {
 				return errs.ErrorFileExt
 			}
-			timestamp := time.Now().Unix()
+			timestamp := now.Unix()
 			filename := fmt.Sprintf("%s_%d%s", uuid.New(), timestamp, ext)
 			objectName := fmt.Sprintf(constants.VisitDir+"/"+constants.ShelfDir+"/%s/%s", id, filename)
 
@@ -297,7 +301,7 @@ func (s *visitsService) VisitPhoto(ctx context.Context, id uuid.UUID, file *mult
 				PhotoKey:     photoKey,
 				VisitID:      id,
 				OriginalName: f.Filename,
-				CapturedAt:   time.Now(),
+				CapturedAt:   now,
 			}
 
 			err = s.photo.Create(ctx, vp)
@@ -318,26 +322,93 @@ func (s *visitsService) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *visitsService) ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error) {
-	return s.repo.ListByReviewStatus(ctx, status, limit, offset, id)
+func (s *visitsService) ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID, role string) ([]model.VisitResponse, int, error) {
+	isAdmin := false
+	if role == "admin" {
+		isAdmin = true
+		id = uuid.Nil
+	}
+
+	visits, total, err := s.repo.ListByReviewStatus(ctx, status, limit, offset, id, isAdmin)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if len(visits) == 0 {
+		return visits, total, nil
+	}
+
+	ids := make([]uuid.UUID, 0, len(visits))
+	for _, v := range visits {
+		ids = append(ids, v.ID)
+	}
+
+	photos, err := s.photo.GetByVisitIDs(ctx, ids)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	photoMap := make(map[uuid.UUID][]string)
+
+	for _, p := range photos {
+
+		url, err := s.minio.PresignedDownload(ctx, p.PhotoKey, time.Minute*15)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if strings.Contains(p.PhotoKey, "shelf") {
+			photoMap[p.VisitID] = append(photoMap[p.VisitID], url)
+		}
+	}
+
+	for i := range visits {
+		visits[i].ShelfPhotos = photoMap[visits[i].ID]
+	}
+
+	return visits, total, nil
 }
 
 func (s *visitsService) UpdateVisit(ctx context.Context, id uuid.UUID, dto model.UpdateVisit, user_id uuid.UUID, role, ip, settings, action string) error {
-	if err := s.repo.Update(ctx, id, dto); err != nil {
-		return err
-	}
+	now := time.Now().In(timezone.Dushanbe)
 
-	v, err := s.GetByID(ctx, id)
+	dto.ReviewedAt = &now
+
+	v, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	if v.CheckOutAt == nil {
-		return errs.ErrorNotCompletedVisit
+	schedule, err := s.schedule.GetByID(ctx, *v.ScheduleID)
+	if err != nil {
+		return err
+	}
+
+	if schedule.IsDeleted == true {
+		scheduleDeleted := "schedule_deleted"
+		if err := s.repo.Update(ctx, id, model.UpdateVisit{
+			ReviewStatus: &scheduleDeleted,
+			ReviewedAt:   schedule.DeletedAt,
+		}); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if err := s.repo.Update(ctx, id, dto); err != nil {
+		return err
+	}
+
+	scheduleStatus := dto.ReviewStatus
+	if scheduleStatus != nil && *scheduleStatus == "revision" {
+		pending := "pending"
+		scheduleStatus = &pending
 	}
 
 	if err := s.schedule.Update(ctx, *v.ScheduleID, model.UpdateSchedule{
-		Status: dto.ReviewStatus,
+		Status:        scheduleStatus,
+		ReviewComment: dto.ReviewComment,
 	}); err != nil {
 		return err
 	}
@@ -348,9 +419,39 @@ func (s *visitsService) UpdateVisit(ctx context.Context, id uuid.UUID, dto model
 	}
 
 	if u.FcmToken != nil {
-		if err := s.notifications.CreateAndPushToUser(ctx, u.ID, "visit review result",
-			fmt.Sprintf("visit in store result: %s; review comment: %s; reviewed at: %v", v.ReviewStatus, *v.ReviewComment, v.ReviewedAt), "review_result",
-			map[string]any{"type": "review_result"}, u.FcmToken); err != nil {
+		body := ""
+		status := ""
+
+		reviewedAt := ""
+		if v.ReviewedAt != nil {
+			reviewedAt = v.ReviewedAt.Format("02.01.2006, 15:04")
+		}
+
+		switch *dto.ReviewStatus {
+		case "approved":
+			status = "Одобрено"
+		case "revision":
+			status = "Требуется исправление"
+		case "rejected":
+			status = "Отклонено"
+		}
+
+		if dto.ReviewComment != nil && status != "Одобрено" {
+			body = fmt.Sprintf(
+				"Результат проверки визита: %s\nКомментарий: %s\nПроверено: %s",
+				status,
+				*dto.ReviewComment,
+				reviewedAt,
+			)
+		} else {
+			body = fmt.Sprintf(
+				"Результат проверки визита: %s\nПроверено: %s",
+				status,
+				reviewedAt,
+			)
+		}
+
+		if err := s.notifications.CreateAndPushToUser(ctx, u.ID, "Результаты проверки визита", body, "review_result", map[string]any{"type": "review_result"}, u.FcmToken); err != nil {
 			return err
 		}
 	}
@@ -362,6 +463,7 @@ func (s *visitsService) UpdateVisit(ctx context.Context, id uuid.UUID, dto model
 		TargetTable: &settings,
 		TargetID:    &id,
 		Action:      action,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
 	}); err != nil {
 		return err
 	}
@@ -375,4 +477,37 @@ func (s *visitsService) GetDataForExcel(ctx context.Context, staff_id, store_id 
 
 func (s *visitsService) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int, begin, end time.Time) ([]model.Visit, int, error) {
 	return s.repo.ListByStaffID(ctx, staff_id, lim, off, begin, end)
+}
+
+func (s *visitsService) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error {
+	v, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if v.ReviewStatus == "rejected" {
+		return errs.ErrorAlreadyReviewed
+	}
+
+	store, err := s.store.GetByID(ctx, v.StoreID)
+	if err != nil {
+		return err
+	}
+
+	distance := utils.Distance(store.Latitude, store.Longitude, *dto.CheckInLat, *dto.CheckInLon)
+	if distance > constants.MaxDistanceMeters {
+		return errs.ErrorUnprocessable
+	}
+
+	if v.ReviewStatus != "pending" && v.ReviewStatus != "revision" {
+		return errs.ErrorAlreadyReviewed
+	}
+
+	// Если визит был на доработке — при сохранении сотрудником автоматически возвращаем в pending
+	if v.ReviewStatus == "revision" {
+		pending := "pending"
+		dto.ReviewStatus = &pending
+	}
+
+	return s.repo.Update(ctx, id, dto)
 }

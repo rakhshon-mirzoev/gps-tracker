@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
 	"github.com/google/uuid"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	"golang.org/x/crypto/bcrypt"
 )
 

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/config"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rakhshon-mirzoev/gps-tracker/config"
 )
 
 type DB struct {

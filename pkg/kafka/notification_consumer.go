@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/events"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/websocket"
+	"github.com/IkbolNazarov/gps-tracker/internal/events"
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
+	"github.com/IkbolNazarov/gps-tracker/internal/service"
+	"github.com/IkbolNazarov/gps-tracker/internal/websocket"
 	kafkago "github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 )

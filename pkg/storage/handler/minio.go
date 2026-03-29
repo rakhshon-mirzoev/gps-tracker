@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
+	minioservice "github.com/IkbolNazarov/gps-tracker/pkg/storage/service"
 	"github.com/gin-gonic/gin"
-	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
 )
 
 type MinioHandler struct {

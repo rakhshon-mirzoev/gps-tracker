@@ -1,11 +1,11 @@
 package service
 
 import (
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/events"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
-	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
+	"github.com/IkbolNazarov/gps-tracker/internal/events"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
+	"github.com/IkbolNazarov/gps-tracker/pkg/fcm"
+	minioservice "github.com/IkbolNazarov/gps-tracker/pkg/storage/service"
+	"github.com/IkbolNazarov/gps-tracker/pkg/token"
 )
 
 type Service struct {
@@ -31,16 +31,16 @@ type Service struct {
 func New(r *repository.Repository, t token.Token, minio minioservice.Minio, sender fcm.PushSender, publisher events.LocationPublisher) *Service {
 	audit := NewAuditLogsService(r.Audit)
 	storePhotos := NewStorePhotosService(r.StorePhotos)
-	sch := NewScheduleService(r.Schedules, audit)
 	sys := NewSystemUsersService(r.SystemUsers, audit)
+	store := NewStoresService(r.Store, audit, minio, storePhotos)
 	group := NewGroupService(r.Groups, audit)
 	ssch := NewStaffScheduleService(r.StaffSchedule)
 	notifSvc := NewNotificationService(r.Notifications, r.StaffUsers, sender)
+	sch := NewScheduleService(r.Schedules, audit, notifSvc, r.StaffUsers, store)
 	sysNotifSvc := NewSystemNotificationService(r.SystemNotifications, r.SystemUsers)
 	staff := NewStaffUserService(r.StaffUsers, r.Visit, sch, sender, notifSvc, audit, minio, ssch, r.GpsAlertStates)
 	authorize := NewAuthorizeService(t, r.Auth, sys, staff)
 	visitPhotos := NewVisitPhotosService(r.VisitPhotos, minio)
-	store := NewStoresService(r.Store, audit, minio, storePhotos)
 	visit := NewVisitsService(r.Visit, minio, store, visitPhotos, staff, notifSvc, audit, sch, group)
 	location := NewLocationHistoryService(r.Location, r.GpsAlertStates, staff, publisher)
 	ss := NewSystemSettingsService(r.SystemSettings, audit)

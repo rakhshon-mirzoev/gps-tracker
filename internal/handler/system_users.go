@@ -3,10 +3,11 @@ package handler
 import (
 	"net/http"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 func (h *Handler) ListSystemUsers(c *gin.Context) {
@@ -26,7 +27,13 @@ func (h *Handler) DeleteSystemUser(c *gin.Context) {
 		return
 	}
 
-	if err := h.s.SystemUsers.Delete(c.Request.Context(), uid); err != nil {
+	user_id, role, err := checkSystemUser(c)
+	if err != nil {
+		h.handleFieldError(c, "DeleteSystemUser: check system user", err)
+		return
+	}
+
+	if err := h.s.SystemUsers.Delete(c.Request.Context(), uid, user_id, role, c.ClientIP(), constants.UserTypeSystem, "DeleteSystemUser"); err != nil {
 		h.handleError(c, "DeleteSystemUser: delete user", err, http.StatusInternalServerError)
 		return
 	}

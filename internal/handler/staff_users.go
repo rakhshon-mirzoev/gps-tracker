@@ -4,12 +4,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
+	"github.com/IkbolNazarov/gps-tracker/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
 func (h *Handler) Profile(c *gin.Context) {
@@ -120,7 +121,23 @@ func (h *Handler) ListStaffUsers(c *gin.Context) {
 		return
 	}
 
-	staff, total, err := h.s.StaffUser.List(c.Request.Context(), lim, off)
+	var groupID *uuid.UUID
+	if groupIDStr := c.Query("group_id"); groupIDStr != "" {
+		id, err := uuid.Parse(groupIDStr)
+		if err != nil {
+			h.handleFieldError(c, "ListStaffUsers: parse group_id", err)
+			return
+		}
+		groupID = &id
+	}
+
+	status := c.Query("status")
+	if status != "" && status != "online" && status != "offline" {
+		h.handleFieldError(c, "ListStaffUsers: invalid status", errs.ErrorInvalidStatus)
+		return
+	}
+
+	staff, total, err := h.s.StaffUser.List(c.Request.Context(), lim, off, groupID, status)
 	if err != nil {
 		h.handleError(c, "ListStaffUsers", err, http.StatusInternalServerError)
 		return
@@ -322,7 +339,7 @@ func (h *Handler) StartWork(c *gin.Context) {
 		return
 	}
 
-	now := time.Now()
+	now := time.Now().In(timezone.Dushanbe)
 
 	if err := h.s.StaffUser.Update(c.Request.Context(), user_id, model.UpdateStaffUser{
 		StartAt: &now,
@@ -341,7 +358,7 @@ func (h *Handler) EndWork(c *gin.Context) {
 		return
 	}
 
-	now := time.Now()
+	now := time.Now().In(timezone.Dushanbe)
 
 	if err := h.s.StaffUser.Update(c.Request.Context(), user_id, model.UpdateStaffUser{
 		EndAt: &now,

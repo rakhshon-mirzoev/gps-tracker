@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/events"
+	"github.com/IkbolNazarov/gps-tracker/internal/events"
 	kafkago "github.com/segmentio/kafka-go"
 )
 

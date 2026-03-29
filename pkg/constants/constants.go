@@ -17,6 +17,7 @@ const (
 	Monitoring        = "monitoring"
 	Settings          = "settings"
 	Schedule          = "schedules"
+	TimeSchedule      = "time-schedule"
 	Notifications     = "notifications"
 	MaxDistanceMeters = 150
 	Top               = "tope"

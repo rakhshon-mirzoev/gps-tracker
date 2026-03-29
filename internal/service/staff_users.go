@@ -6,15 +6,16 @@ import (
 	"mime/multipart"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
+	"github.com/IkbolNazarov/gps-tracker/internal/validator"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
+	"github.com/IkbolNazarov/gps-tracker/pkg/fcm"
+	minioservice "github.com/IkbolNazarov/gps-tracker/pkg/storage/service"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
+	"github.com/IkbolNazarov/gps-tracker/pkg/utils"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/validator"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/fcm"
-	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -23,7 +24,7 @@ type StaffUsers interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error)
 	Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser, user_id uuid.UUID, ip, role, st, action string) error
-	List(ctx context.Context, limit, offset int) ([]model.StaffUser, int, error)
+	List(ctx context.Context, limit, offset int, groupID *uuid.UUID, status string) ([]model.StaffUser, int, error)
 	Deactivate(ctx context.Context, id uuid.UUID, d model.DeactivateStaffUser, user_id uuid.UUID, ip, role, st, action string) error
 	GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error)
 	ListByGroupID(ctx context.Context, user_id *uuid.UUID) (staff []model.StaffUserLocation, err error)
@@ -101,12 +102,12 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 		user.AvatarUrl = &url
 	}
 
-	visits, total, err := s.visitRepo.ListByStaffID(ctx, id, lim, off, time.Now().AddDate(0, -1, 0), time.Now())
+	visits, total, err := s.visitRepo.ListByStaffID(ctx, id, lim, off, time.Now().In(timezone.Dushanbe).AddDate(0, -1, 0), time.Now().In(timezone.Dushanbe))
 	if err != nil {
 		return nil, err
 	}
 
-	/* now := time.Now()
+	/* now := time.Now().In(timezone.Dushanbe)
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()) - если календарный месяц*/
 
 	/* weekday := int(now.Weekday())
@@ -115,12 +116,12 @@ func (s *staffUserService) GetProfile(ctx context.Context, id uuid.UUID, lim, of
 	}
 	weekStart := time.Date(now.Year(), now.Month(), now.Day()-weekday+1, 0, 0, 0, 0, now.Location())  - неделя с понедельника*/
 
-	doneMonth, totalMonth, err := s.visitRepo.CountVisit(ctx, id, time.Now().AddDate(0, -1, 0), time.Now())
+	doneMonth, totalMonth, err := s.visitRepo.CountVisit(ctx, id, time.Now().In(timezone.Dushanbe).AddDate(0, -1, 0), time.Now().In(timezone.Dushanbe))
 	if err != nil {
 		return nil, err
 	}
 
-	doneWeek, totalWeek, err := s.visitRepo.CountVisit(ctx, id, time.Now().AddDate(0, 0, -7), time.Now())
+	doneWeek, totalWeek, err := s.visitRepo.CountVisit(ctx, id, time.Now().In(timezone.Dushanbe).AddDate(0, 0, -7), time.Now().In(timezone.Dushanbe))
 	if err != nil {
 		return nil, err
 	}
@@ -220,8 +221,8 @@ func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser
 		defaultSchedule := make([]model.ScheduleDTO, 0, 5)
 
 		for i := int16(1); i <= 5; i++ {
-			start := time.Date(0, 0, 0, 9, 0, 0, 0, time.UTC)
-			end := time.Date(0, 0, 0, 18, 0, 0, 0, time.UTC)
+			start := time.Date(0, 0, 0, 9, 0, 0, 0, timezone.Dushanbe)
+			end := time.Date(0, 0, 0, 18, 0, 0, 0, timezone.Dushanbe)
 
 			defaultSchedule = append(defaultSchedule, model.ScheduleDTO{
 				Weekday:   i,
@@ -242,6 +243,7 @@ func (s *staffUserService) Create(ctx context.Context, dto model.CreateStaffUser
 			TargetTable: &st,
 			IPAddress:   &ip,
 			Action:      action,
+			CreatedAt:   time.Now().In(timezone.Dushanbe),
 		}); err != nil {
 			return err
 		}
@@ -264,12 +266,12 @@ func (s *staffUserService) GetByID(ctx context.Context, id uuid.UUID) (*model.St
 	return user, nil
 }
 
-func (s *staffUserService) List(ctx context.Context, limit, offset int) ([]model.StaffUser, int, error) {
-
-	users, total, err := s.r.List(ctx, limit, offset)
+func (s *staffUserService) List(ctx context.Context, limit, offset int, groupID *uuid.UUID, status string) ([]model.StaffUser, int, error) {
+	users, total, err := s.r.List(ctx, limit, offset, groupID, status)
 	if err != nil {
 		return nil, 0, err
 	}
+
 	for i := range users {
 		if users[i].AvatarKey != nil {
 			url, err := s.minio.PresignedDownload(ctx, *users[i].AvatarKey, time.Minute*15)
@@ -317,6 +319,7 @@ func (s *staffUserService) Update(ctx context.Context, id uuid.UUID, dto model.U
 			TargetTable: &st,
 			Action:      action,
 			IPAddress:   &ip,
+			CreatedAt:   time.Now().In(timezone.Dushanbe),
 		}); err != nil {
 			return err
 		}
@@ -337,6 +340,7 @@ func (s *staffUserService) Delete(ctx context.Context, id uuid.UUID, user_id uui
 		TargetTable: &st,
 		Action:      action,
 		IPAddress:   &ip,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
 	}); err != nil {
 		return err
 	}
@@ -370,6 +374,7 @@ func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model
 		TargetTable: &st,
 		Action:      action,
 		IPAddress:   &ip,
+		CreatedAt:   time.Now().In(timezone.Dushanbe),
 	}); err != nil {
 		return err
 	}

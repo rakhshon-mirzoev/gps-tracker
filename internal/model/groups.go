@@ -13,6 +13,8 @@ type Group struct {
 	SupervisorName *string          `db:"supervisor_name" json:"supervisor_name,omitempty"`
 	Supervisor     *GroupSupervisor `json:"supervisor,omitempty"`
 	CreatedAt      time.Time        `db:"created_at" json:"created_at"`
+	IsDeleted      bool             `json:"is_deleted" db:"is_deleted"`
+	DeletedAt      *time.Time       `json:"deleted_at" db:"deleted_at"`
 }
 
 type GroupSupervisor struct {

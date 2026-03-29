@@ -1,22 +1,28 @@
 package main
 
 import (
+	"github.com/IkbolNazarov/gps-tracker/internal/handler"
+	"github.com/IkbolNazarov/gps-tracker/internal/middleware"
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
+	miniohandler "github.com/IkbolNazarov/gps-tracker/pkg/storage/handler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/handler"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/middleware"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
-	miniohandler "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/handler"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"golang.org/x/time/rate"
 
-	_ "github.com/rakhshon-mirzoev/gps-tracker/docs/mobile"
+	_ "github.com/IkbolNazarov/gps-tracker/docs/mobile"
 )
 
 func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Handler, m *miniohandler.MinioHandler) {
+	r.ForwardedByClientIP = true
+	r.SetTrustedProxies([]string{"127.0.0.1"})
+
 	r.Use(cors.Default())
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("mobile")))
+
+	limiter := middleware.NewIPRateLimiter(5, 10)
 
 	api := r.Group("/api/v1")
 
@@ -24,6 +30,7 @@ func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Ha
 		mw.Recovery(),
 		mw.RequestID(),
 		mw.Logger(),
+		mw.RateLimitMiddleware(limiter),
 	)
 	{
 		api.GET("/ping", h.Ping)
@@ -35,7 +42,11 @@ func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Ha
 		storage.GET("upload-url", m.GetUploadURL)
 
 	}
+
+	loginLimiter := middleware.NewIPRateLimiter(rate.Limit(1.0/60.0), 5)
+
 	auth := api.Group(constants.AuthGroup + "/" + constants.UserTypeStaff)
+	auth.Use(mw.RateLimitMiddleware(loginLimiter))
 	{
 		auth.POST("/login", h.Login)
 		auth.POST("/register", h.RegisterStaff)
@@ -70,5 +81,6 @@ func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Ha
 		visit.GET("", h.ListVisitsByStaffID)
 		visit.GET("/:id", h.GetVisitByID)
 		visit.DELETE("/:id/photo", h.DeleteVisitPhoto)
+		visit.PUT("/:id", h.UpdateVisit)
 	}
 }

@@ -4,12 +4,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/service"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
+	minioservice "github.com/IkbolNazarov/gps-tracker/pkg/storage/service"
+	"github.com/IkbolNazarov/gps-tracker/pkg/token"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/service"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
-	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 )
 
 type Handler struct {

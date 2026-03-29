@@ -27,6 +27,8 @@ type Store struct {
 	DeactivatedByID    *uuid.UUID `json:"deactivated_by_id,omitempty" db:"deactivated_by_id"`
 	DeactivationReason *string    `json:"deactivation_reason,omitempty" db:"deactivation_reason"`
 	CreatedAt          time.Time  `json:"created_at" db:"created_at"`
+	StaffFullName      string     `json:"staff_name"`
+	StaffPhoneNumber   string     `json:"staff_phone"`
 }
 
 type CreateStore struct {

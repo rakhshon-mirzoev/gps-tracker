@@ -3,9 +3,9 @@ package handler
 import (
 	"net/http"
 
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 // GetSystemNotifications возвращает список уведомлений для авторизованного admin/supervisor.

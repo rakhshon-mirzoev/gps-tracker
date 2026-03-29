@@ -6,12 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type VisitRepository interface {
@@ -19,11 +17,12 @@ type VisitRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 	List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error)
 	ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off int, begin, end time.Time) ([]model.Visit, int, error)
-	ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error)
+	ListByReviewStatus(ctx context.Context, status string, limit, offset int, reviewerID uuid.UUID, isAdmin bool) ([]model.VisitResponse, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UUID, begin, end *time.Time) ([]model.VisitExcel, error)
 	GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, staffID uuid.UUID) (*model.Visit, error)
+	HasActiveVisit(ctx context.Context, staffID uuid.UUID) (bool, error)
 	CreateTx(ctx context.Context, tx pgx.Tx, v *model.Visit) error
 	BeginTx(ctx context.Context) (pgx.Tx, error)
 	CountVisit(ctx context.Context, staff_id uuid.UUID, begin, end time.Time) (int, int, error)
@@ -77,11 +76,6 @@ func (r *visit) CreateTx(ctx context.Context, tx pgx.Tx, v *model.Visit) error {
 	).Scan(&v.ID, &v.CreatedAt)
 
 	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			if pgErr.Code == "23505" {
-				return errs.ErrroActiveVisitExists
-			}
-		}
 		return fmt.Errorf("create visit tx: %w", err)
 	}
 
@@ -115,11 +109,13 @@ func (r *visit) Create(ctx context.Context, v model.Visit) error {
 
 func (r *visit) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error) {
 	sql := `
-        SELECT id, schedule_id, staff_id, store_id, check_in_at, check_out_at, 
-			   check_in_lat, check_in_lon, distance_deviation, comment,
-               is_offline, review_status, review_comment, reviewer_id,
-               reviewed_at, created_at
-        FROM visits WHERE id = $1
+        SELECT v.id, v.schedule_id, v.staff_id, v.store_id, v.check_in_at, v.check_out_at, 
+			   v.check_in_lat, v.check_in_lon, v.distance_deviation, v.comment,
+               v.is_offline, v.review_status, v.review_comment, v.reviewer_id,
+               v.reviewed_at, v.created_at, s.name
+        FROM visits v 
+		JOIN stores s ON s.id = v.store_id
+		WHERE v.id = $1
     `
 
 	var v model.Visit
@@ -127,7 +123,7 @@ func (r *visit) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 		&v.ID, &v.ScheduleID, &v.StaffID, &v.StoreID, &v.CheckInAt, &v.CheckOutAt,
 		&v.CheckInLat, &v.CheckInLon, &v.DistanceDeviation, &v.Comment,
 		&v.IsOffline, &v.ReviewStatus, &v.ReviewComment, &v.ReviewerID,
-		&v.ReviewedAt, &v.CreatedAt,
+		&v.ReviewedAt, &v.CreatedAt, &v.StoreName,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get by id visit: %w", err)
@@ -273,7 +269,8 @@ func (r *visit) Update(ctx context.Context, id uuid.UUID, dto model.UpdateVisit)
 	return nil
 }
 
-func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, offset int, id uuid.UUID) ([]model.VisitResponse, int, error) {
+func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, offset int, reviewerID uuid.UUID, isAdmin bool) ([]model.VisitResponse, int, error) {
+
 	const defaultLimit = 20
 
 	if limit <= 0 {
@@ -283,24 +280,41 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 		offset = 0
 	}
 
-	var total int
-	var countSQL string
-	var countArgs []any
+	var conditions []string
+	var args []any
+	argPos := 1
+
 	if status != "" {
-		countSQL = `SELECT COUNT(*) FROM visits WHERE review_status = $1 AND reviewer_id = $2`
-		countArgs = []any{status, id}
-	} else {
-		countSQL = `SELECT COUNT(*) FROM visits WHERE reviewer_id = $1`
-		countArgs = []any{id}
+		conditions = append(conditions, fmt.Sprintf("v.review_status = $%d", argPos))
+		args = append(args, status)
+		argPos++
 	}
-	if err := r.DB.Pool.QueryRow(ctx, countSQL, countArgs...).Scan(&total); err != nil {
+
+	if !isAdmin {
+		conditions = append(conditions, fmt.Sprintf("v.reviewer_id = $%d", argPos))
+		args = append(args, reviewerID)
+		argPos++
+	}
+
+	where := ""
+	if len(conditions) > 0 {
+		where = "WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	// COUNT
+	countSQL := fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM visits v
+		%s
+	`, where)
+
+	var total int
+	if err := r.DB.Pool.QueryRow(ctx, countSQL, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count visits: %w", err)
 	}
 
-	var sql string
-	var args []any
-	if status != "" {
-		sql = `
+	// SELECT
+	sql := fmt.Sprintf(`
 		SELECT v.id, v.schedule_id, v.staff_id, v.store_id, v.check_in_at, v.check_out_at,
 			   v.check_in_lat, v.check_in_lon, v.distance_deviation, v.comment,
 			   v.is_offline, v.review_status, v.review_comment, v.reviewer_id,
@@ -310,28 +324,12 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 		FROM visits v
 		LEFT JOIN staff_users su ON v.staff_id = su.id
 		LEFT JOIN stores st ON v.store_id = st.id
-		WHERE v.review_status = $1 AND v.reviewer_id = $2
+		%s
 		ORDER BY v.created_at DESC
-		LIMIT $3 OFFSET $4
-	`
-		args = []any{status, id, limit, offset}
-	} else {
-		sql = `
-		SELECT v.id, v.schedule_id, v.staff_id, v.store_id, v.check_in_at, v.check_out_at,
-			   v.check_in_lat, v.check_in_lon, v.distance_deviation, v.comment,
-			   v.is_offline, v.review_status, v.review_comment, v.reviewer_id,
-			   v.reviewed_at, v.created_at,
-			   su.id, su.full_name, su.phone_number,
-			   st.id, st.name, st.address, st.latitude, st.longitude
-		FROM visits v
-		LEFT JOIN staff_users su ON v.staff_id = su.id
-		LEFT JOIN stores st ON v.store_id = st.id
-		WHERE v.reviewer_id = $1
-		ORDER BY v.created_at DESC
-		LIMIT $2 OFFSET $3
-	`
-		args = []any{id, limit, offset}
-	}
+		LIMIT $%d OFFSET $%d
+	`, where, argPos, argPos+1)
+
+	args = append(args, limit, offset)
 
 	rows, err := r.DB.Pool.Query(ctx, sql, args...)
 	if err != nil {
@@ -339,11 +337,13 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 	}
 	defer rows.Close()
 
-	var visits = make([]model.VisitResponse, 0)
+	visits := make([]model.VisitResponse, 0)
+
 	for rows.Next() {
 		var v model.VisitResponse
 		var staff model.VisitStaffBrief
 		var store model.VisitStoreBrief
+
 		if err := rows.Scan(
 			&v.ID, &v.ScheduleID, &v.StaffID, &v.StoreID, &v.CheckInAt, &v.CheckOutAt,
 			&v.CheckInLat, &v.CheckInLon, &v.DistanceDeviation, &v.Comment,
@@ -354,9 +354,11 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan visit review status: %w", err)
 		}
+
 		v.Staff = &staff
 		v.Store = &store
 		v.ShelfPhotos = make([]string, 0)
+
 		visits = append(visits, v)
 	}
 
@@ -494,6 +496,22 @@ func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UU
 	return visits, nil
 }
 
+func (s *visit) HasActiveVisit(ctx context.Context, staffID uuid.UUID) (bool, error) {
+	var exists bool
+	sql := `
+		SELECT EXISTS (
+			SELECT 1 FROM visits
+			WHERE staff_id = $1
+			  AND check_out_at IS NULL
+			  AND review_status NOT IN ('approved', 'rejected')
+		)
+	`
+	if err := s.DB.Pool.QueryRow(ctx, sql, staffID).Scan(&exists); err != nil {
+		return false, fmt.Errorf("has active visit: %w", err)
+	}
+	return exists, nil
+}
+
 func (s *visit) GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, staffID uuid.UUID) (*model.Visit, error) {
 	sql := `
 		SELECT id, check_in_at, check_out_at,
@@ -549,7 +567,7 @@ func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off 
 			   v.reviewed_at, v.created_at
 		FROM visits v
 		JOIN stores s ON s.id = v.store_id
-		WHERE staff_id = $1 AND check_in_at >= $2 AND check_in_at < $3
+		WHERE staff_id = $1 AND check_in_at >= $2 AND check_in_at < $3 ORDER BY v.check_in_at DESC
 	`
 
 	rows, err := s.DB.Pool.Query(ctx, sql, staff_id, begin, end)

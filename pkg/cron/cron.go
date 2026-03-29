@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
-	minioservice "github.com/rakhshon-mirzoev/gps-tracker/pkg/storage/service"
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
+	minioservice "github.com/IkbolNazarov/gps-tracker/pkg/storage/service"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 )

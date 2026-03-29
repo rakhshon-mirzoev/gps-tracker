@@ -3,10 +3,10 @@ package handler
 import (
 	"net/http"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 func (h *Handler) ListNotifications(c *gin.Context) {

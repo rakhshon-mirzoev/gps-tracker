@@ -4,12 +4,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/internal/repository"
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
+	"github.com/IkbolNazarov/gps-tracker/pkg/token"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/repository"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -133,7 +134,7 @@ func (s *authorizeService) UpsertRefreshToken(ctx context.Context, id uuid.UUID,
 		UserID:    id,
 		UserType:  user_type,
 		Token:     token,
-		ExpiresAt: time.Now().Add(time.Hour * 24 * 30),
+		ExpiresAt: time.Now().In(timezone.Dushanbe).Add(time.Hour * 24 * 30),
 	}
 
 	return s.r.UpsertRefreshToken(ctx, refresh)
@@ -152,7 +153,7 @@ func (s *authorizeService) Refresh(ctx context.Context, oldRefreshToken string) 
 		return "", "", err
 	}
 
-	if time.Now().After(ref.ExpiresAt) {
+	if time.Now().In(timezone.Dushanbe).After(ref.ExpiresAt) {
 		_ = s.r.DeleteRefreshByID(ctx, ref.ID)
 		return "", "", errs.ErrorInvalidToken
 	}

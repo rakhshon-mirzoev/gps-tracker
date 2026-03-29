@@ -7,18 +7,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
+	"github.com/IkbolNazarov/gps-tracker/pkg/timezone"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 )
 
 type StaffUsersRepository interface {
 	Create(ctx context.Context, user *model.StaffUser) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUser, error)
-	List(ctx context.Context, limit, offset int) ([]model.StaffUser, int, error)
+	List(ctx context.Context, limit, offset int, groupID *uuid.UUID, status string) ([]model.StaffUser, int, error)
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Deactivate(ctx context.Context, id uuid.UUID, dReason model.DeactivateStaffUser) error
@@ -132,7 +133,7 @@ func (r *staffUsers) GetByID(ctx context.Context, id uuid.UUID) (*model.StaffUse
 	return &u, nil
 }
 
-func (r *staffUsers) List(ctx context.Context, limit, offset int) ([]model.StaffUser, int, error) {
+func (r *staffUsers) List(ctx context.Context, limit, offset int, groupID *uuid.UUID, status string) ([]model.StaffUser, int, error) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -140,13 +141,54 @@ func (r *staffUsers) List(ctx context.Context, limit, offset int) ([]model.Staff
 		offset = 0
 	}
 
+	var whereConditions []string
+	var args []any
+	argNumber := 1
+
+	if groupID != nil {
+		whereConditions = append(whereConditions, fmt.Sprintf("s.group_id = $%d", argNumber))
+		args = append(args, *groupID)
+		argNumber++
+	}
+
+	if status != "" {
+		statusCondition := fmt.Sprintf(`
+			CASE
+				WHEN l.captured_at IS NULL THEN 'offline'
+				WHEN l.captured_at < NOW() - INTERVAL '5 minutes' THEN 'offline'
+				ELSE 'online'
+			END = $%d
+		`, argNumber)
+		whereConditions = append(whereConditions, statusCondition)
+		args = append(args, status)
+		argNumber++
+	}
+
+	whereClause := ""
+	if len(whereConditions) > 0 {
+		whereClause = " WHERE " + strings.Join(whereConditions, " AND ")
+	}
+
+	countSQL := fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM staff_users s
+		JOIN groups g ON g.id = s.group_id
+		LEFT JOIN LATERAL (
+			SELECT captured_at
+			FROM location_history
+			WHERE staff_id = s.id
+			ORDER BY captured_at DESC
+			LIMIT 1
+		) l ON true
+		%s
+	`, whereClause)
+
 	var total int
-	countSQL := `SELECT COUNT(*) FROM staff_users`
-	if err := r.DB.Pool.QueryRow(ctx, countSQL).Scan(&total); err != nil {
+	if err := r.DB.Pool.QueryRow(ctx, countSQL, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count staff users: %w", err)
 	}
 
-	query := `
+	query := fmt.Sprintf(`
 		SELECT s.id, s.full_name, s.role, s.login, s.is_active, s.created_at, s.inn, s.birthday, s.is_temporary_password, s.group_id, s.phone_number,
 			   s.password_updated_at, s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at, s.deactivated_at,
 			   s.deactivated_by_id, s.deactivation_reason, s.avatar_key, s.start_at, s.end_at, s.day_started, g.name,
@@ -164,11 +206,14 @@ func (r *staffUsers) List(ctx context.Context, limit, offset int) ([]model.Staff
 			ORDER BY captured_at DESC
 			LIMIT 1
 		) l ON true
+		%s
 		ORDER BY s.created_at DESC
-		LIMIT $1 OFFSET $2
-	`
+		LIMIT $%d OFFSET $%d
+	`, whereClause, argNumber, argNumber+1)
 
-	rows, err := r.DB.Pool.Query(ctx, query, limit, offset)
+	args = append(args, limit, offset)
+
+	rows, err := r.DB.Pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list staff users: %w", err)
 	}
@@ -346,7 +391,7 @@ func (s *staffUsers) Deactivate(ctx context.Context, id uuid.UUID, deactivate mo
 		WHERE id = $4
 	`
 
-	ct, err := s.DB.Pool.Exec(ctx, sql, deactivate.DeactivatedByID, time.Now(), deactivate.DeactivationReason, id)
+	ct, err := s.DB.Pool.Exec(ctx, sql, deactivate.DeactivatedByID, time.Now().In(timezone.Dushanbe), deactivate.DeactivationReason, id)
 	if err != nil {
 		return fmt.Errorf("deactivate staff user: %w", err)
 	}
@@ -371,16 +416,32 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, supervisorID *uuid.UUID)
 	}
 
 	sql := fmt.Sprintf(`
-		SELECT DISTINCT ON (s.id)
+		SELECT
 			s.id, s.full_name, s.login, s.inn, s.birthday, s.group_id, s.phone_number,
 			s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at,
 			s.start_at, s.end_at, s.day_started, s.avatar_key, g.name,
-			l.id, l.latitude, l.longitude, l.battery_level, l.captured_at, l.status
+
+			l.id, l.staff_id, l.latitude, l.longitude, l.battery_level, l.captured_at,
+
+			CASE
+				WHEN l.captured_at IS NOT NULL
+				     AND l.captured_at > NOW() - INTERVAL '2 minutes'
+				THEN 'online'
+				ELSE 'offline'
+			END as status
+
 		FROM staff_users s
 		JOIN groups g ON g.id = s.group_id
-		JOIN location_history l ON l.staff_id = s.id
+
+		LEFT JOIN LATERAL (
+			SELECT *
+			FROM location_history l
+			WHERE l.staff_id = s.id
+			ORDER BY l.captured_at DESC
+			LIMIT 1
+		) l ON true
+
 		%s
-		ORDER BY s.id, l.captured_at DESC
 	`, where)
 
 	rows, err := s.DB.Pool.Query(ctx, sql, args...)
@@ -389,12 +450,20 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, supervisorID *uuid.UUID)
 	}
 	defer rows.Close()
 
-	var staff = make([]model.StaffUserLocation, 0)
+	staff := make([]model.StaffUserLocation, 0)
 
 	for rows.Next() {
 		var st model.StaffUserLocation
-		st.Location = &model.LocationHistory{}
-		if err := rows.Scan(
+
+		var locID *uuid.UUID
+		var staffID *uuid.UUID
+		var lat *float64
+		var lon *float64
+		var battery *int
+		var capturedAt *time.Time
+		var status *string
+
+		err := rows.Scan(
 			&st.ID,
 			&st.FullName,
 			&st.Login,
@@ -412,15 +481,33 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, supervisorID *uuid.UUID)
 			&st.DayStarted,
 			&st.AvatarKey,
 			&st.GroupName,
-			&st.Location.ID,
-			&st.Location.Latitude,
-			&st.Location.Longitude,
-			&st.Location.BatteryLevel,
-			&st.Location.CapturedAt,
-			&st.Location.Status,
-		); err != nil {
+
+			&locID,
+			&staffID,
+			&lat,
+			&lon,
+			&battery,
+			&capturedAt,
+			&status,
+		)
+		if err != nil {
 			return nil, fmt.Errorf("scan staff user location: %w", err)
 		}
+
+		if locID != nil {
+			st.Location = &model.LocationHistory{
+				ID:           *locID,
+				StaffID:      derefUUID(staffID),
+				Latitude:     derefFloat(lat),
+				Longitude:    derefFloat(lon),
+				BatteryLevel: derefInt32(battery),
+				CapturedAt:   derefTime(capturedAt),
+				Status:       derefString(status),
+			}
+		} else {
+			st.Location = nil
+		}
+
 		staff = append(staff, st)
 	}
 
@@ -551,4 +638,39 @@ func (s *staffUsers) GetByGroupID(ctx context.Context, group_id uuid.UUID) ([]mo
 
 	return users, nil
 
+}
+
+func derefFloat(v *float64) *float64 {
+	if v == nil {
+		return nil
+	}
+	return v
+}
+
+func derefInt32(v *int) *int {
+	if v == nil {
+		return nil
+	}
+	return v
+}
+
+func derefTime(v *time.Time) *time.Time {
+	if v == nil {
+		return nil
+	}
+	return v
+}
+
+func derefString(v *string) *string {
+	if v == nil {
+		return nil
+	}
+	return v
+}
+
+func derefUUID(v *uuid.UUID) uuid.UUID {
+	if v == nil {
+		return uuid.Nil
+	}
+	return *v
 }

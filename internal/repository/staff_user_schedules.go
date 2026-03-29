@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
+	"github.com/IkbolNazarov/gps-tracker/pkg/utils"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
 type StaffScheduleRepository interface {
@@ -58,7 +58,7 @@ func (r *staffScheduleRepo) CreateBatch(ctx context.Context, staffID uuid.UUID, 
 
 func (r *staffScheduleRepo) List(ctx context.Context, staffID uuid.UUID) ([]model.StaffUserSchedule, error) {
 	sql := `
-		SELECT id, weekday, start_time, end_time, created_at
+		SELECT id, weekday, start_time, end_time, created_at, is_deleted, deleted_at
 		FROM staff_user_schedules
 		WHERE staff_id = $1 ORDER BY weekday
 	`
@@ -80,6 +80,8 @@ func (r *staffScheduleRepo) List(ctx context.Context, staffID uuid.UUID) ([]mode
 			&sch.StartTime,
 			&sch.EndTime,
 			&sch.CreatedAt,
+			&sch.IsDeleted,
+			&sch.DeletedAt,
 		); err != nil {
 			return nil, fmt.Errorf("rows scan: %w", err)
 		}
@@ -96,7 +98,7 @@ func (r *staffScheduleRepo) List(ctx context.Context, staffID uuid.UUID) ([]mode
 
 func (r *staffScheduleRepo) Delete(ctx context.Context, schID uuid.UUID) error {
 	sql := `
-		DELETE FROM staff_user_schedules WHERE id = $1
+		UPDATE staff_user_schedules SET is_deleted = true, deleted_at = now() WHERE id = $1 AND is_deleted = false
 	`
 
 	ct, err := r.DB.Pool.Exec(ctx, sql, schID)

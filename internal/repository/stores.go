@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/db"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
+	"github.com/IkbolNazarov/gps-tracker/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/db"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/utils"
 )
 
 type stores struct {
@@ -21,7 +21,7 @@ type StoreRepository interface {
 	Create(ctx context.Context, store *model.Store) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error)
 	Update(ctx context.Context, store model.UpdateStore, id uuid.UUID) error
-	Delete(ctx context.Context, id uuid.UUID) error
+	Delete(ctx context.Context, id, user_id uuid.UUID) error
 	List(ctx context.Context, isActive, status, sortBy, sortOrder string, lim, off int) ([]model.Store, int, error)
 	Deactivate(ctx context.Context, id, deactivatedBy uuid.UUID, reason string) error
 	IfExists(ctx context.Context, name string) (bool, error)
@@ -324,10 +324,15 @@ func (r *stores) Update(ctx context.Context, store model.UpdateStore, id uuid.UU
 	return nil
 }
 
-func (r *stores) Delete(ctx context.Context, id uuid.UUID) error {
-	sql := `DELETE FROM stores WHERE id = $1`
+func (r *stores) Delete(ctx context.Context, id, user_id uuid.UUID) error {
+	sql := `UPDATE stores 
+		SET is_active = false, 
+			deactivated_at = now(), 
+			deactivated_by_id = $1,
+			deactivation_reason = 'deleted'
+		WHERE id = $2`
 
-	ct, err := r.DB.Pool.Exec(ctx, sql, id)
+	ct, err := r.DB.Pool.Exec(ctx, sql, user_id, id)
 	if err != nil {
 		return fmt.Errorf("delete store: %w", err)
 	}
@@ -367,13 +372,13 @@ func (r *stores) List(ctx context.Context, isActive, status, sortBy, sortOrder s
 	argNum := 1
 
 	if status != "" {
-		conditions = append(conditions, fmt.Sprintf("status = $%d", argNum))
+		conditions = append(conditions, fmt.Sprintf("s.status = $%d", argNum))
 		args = append(args, status)
 		argNum++
 	}
 
 	if isActive != "" {
-		conditions = append(conditions, fmt.Sprintf("is_active = $%d", argNum))
+		conditions = append(conditions, fmt.Sprintf("s.is_active = $%d", argNum))
 		args = append(args, isActive)
 		argNum++
 	}
@@ -403,19 +408,22 @@ func (r *stores) List(ctx context.Context, isActive, status, sortBy, sortOrder s
 	}
 
 	baseSQL := `
-		SELECT 
-			id, name, address, latitude, longitude,
-			owner_full_name, owner_inn, owner_passport,
-			owner_phone, additional_phone, comment,
-			status, rejection_comment,
-			created_by_staff_id,
-			is_active, is_frozen,
-			created_at
-		FROM stores %s
-		ORDER BY %s
-		LIMIT $%d OFFSET $%d`
+	SELECT 
+		s.id, s.name, s.address, s.latitude, s.longitude,
+		s.owner_full_name, s.owner_inn, s.owner_passport,
+		s.owner_phone, s.additional_phone, s.comment,
+		s.status, s.rejection_comment,
+		s.created_by_staff_id,
+		s.is_active, s.is_frozen,
+		s.created_at, s.deactivated_at, s.deactivated_by_id, s.deactivation_reason,
+		su.full_name, su.phone_number
+	FROM stores s
+	JOIN staff_users su ON su.id = s.created_by_staff_id
+	%s
+	ORDER BY %s
+	LIMIT $%d OFFSET $%d`
 
-	countSQL := `SELECT COUNT(*) FROM stores ` + whereClause
+	countSQL := `SELECT COUNT(*) FROM stores s ` + whereClause
 
 	var total int
 	err := r.DB.Pool.QueryRow(ctx, countSQL, args...).Scan(&total)
@@ -444,7 +452,8 @@ func (r *stores) List(ctx context.Context, isActive, status, sortBy, sortOrder s
 			&s.Status, &s.RejectionComment,
 			&s.CreatedByStaffID,
 			&s.IsActive, &s.IsFrozen,
-			&s.CreatedAt,
+			&s.CreatedAt, &s.DeactivatedAt, &s.DeactivatedByID, &s.DeactivationReason,
+			&s.StaffFullName, &s.StaffPhoneNumber,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan store: %w", err)
 		}

@@ -3,8 +3,8 @@ package middleware
 import (
 	"strings"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
 	"go.uber.org/zap"
 )
 

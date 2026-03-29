@@ -3,10 +3,10 @@ package handler
 import (
 	"net/http"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
+	"github.com/IkbolNazarov/gps-tracker/pkg/constants"
 	"github.com/gin-gonic/gin"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/constants"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
+	"github.com/google/uuid"
 )
 
 // ListSchedulesAdmin handles GET /admin/staff/schedules for admin panel
@@ -63,15 +63,9 @@ func (h *Handler) ListShedules(c *gin.Context) {
 func (h *Handler) AssignSchedule(c *gin.Context) {
 	var dto *model.CreateSchedule
 
-	adminID, _, err := checkSystemUser(c)
+	adminID, role, err := checkSystemUser(c)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err})
-		return
-	}
-
-	role, ok := c.Get("role")
-	if !ok {
-		h.handleFieldError(c, "AssignSchedule: get role", errs.ErrorRoleEmpty)
 		return
 	}
 
@@ -80,13 +74,47 @@ func (h *Handler) AssignSchedule(c *gin.Context) {
 		return
 	}
 
-	ip := c.ClientIP()
-	schedule := constants.Schedule
-
-	if err := h.s.Schedule.Create(c.Request.Context(), dto, adminID, ip, schedule, role.(string), "AssignSchedule"); err != nil {
+	if err := h.s.Schedule.Create(c.Request.Context(), dto, adminID, c.ClientIP(), constants.Schedule, role, "AssignSchedule"); err != nil {
 		h.handleError(c, "AssignSchedule: create schedule", err, http.StatusInternalServerError)
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"schedule": dto})
+}
+
+func (h *Handler) DeleteSchedule(c *gin.Context) {
+	uid, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		h.handleFieldError(c, "DeleteSchedule: id parse", err)
+		return
+	}
+
+	if err := h.s.Schedule.Delete(c.Request.Context(), uid); err != nil {
+		h.handleError(c, "DeleteSchedule: delete schedule", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (h *Handler) UpdateSchedule(c *gin.Context) {
+	uid, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		h.handleFieldError(c, "UpdateSchedule: id parse", err)
+		return
+	}
+
+	var dto model.UpdateSchedule
+
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		h.handleFieldError(c, "UpdateSchedule: bind dto", err)
+		return
+	}
+
+	if err := h.s.Schedule.Update(c.Request.Context(), uid, dto); err != nil {
+		h.handleError(c, "UpdateStaffSchedule: update schedule", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }

@@ -3,9 +3,9 @@ package handler
 import (
 	"net/http"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/model"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/model"
 )
 
 func (h *Handler) ListStoresByStaffIdAdmin(c *gin.Context) {
@@ -40,4 +40,50 @@ func (h *Handler) listStoresByStaffId(c *gin.Context, id uuid.UUID) {
 	}
 
 	c.JSON(http.StatusOK, model.NewPaginatedResponse(stores, lim, off, total))
+}
+
+func (h *Handler) MapStoreStaff(c *gin.Context) {
+	var ssm model.StaffStoresMapping
+	if err := c.ShouldBindJSON(&ssm); err != nil {
+		h.handleFieldError(c, "MapStoreStaff: bind body", err)
+		return
+	}
+
+	staff_id, err := uuid.Parse(c.Param("staff_id"))
+	if err != nil {
+		h.handleFieldError(c, "MapStoreStaff: parse id", err)
+		return
+	}
+
+	ssm.StaffID = staff_id
+
+	if err := h.s.StaffStoresMapping.Create(c.Request.Context(), &ssm); err != nil {
+		h.handleError(c, "MapStoreStaff", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (h *Handler) UnMapStoreStaff(c *gin.Context) {
+	var ssm model.StaffStoresMapping
+	if err := c.ShouldBindJSON(&ssm); err != nil {
+		h.handleFieldError(c, "UnMapStoreStaff: bind body", err)
+		return
+	}
+
+	staff_id, err := uuid.Parse(c.Param("staff_id"))
+	if err != nil {
+		h.handleFieldError(c, "UnMapStoreStaff: parse id", err)
+		return
+	}
+
+	ssm.StaffID = staff_id
+
+	if err := h.s.StaffStoresMapping.Delete(c.Request.Context(), ssm.StoreID, ssm.StaffID); err != nil {
+		h.handleError(c, "UnMapStoreStaff", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusCreated)
 }

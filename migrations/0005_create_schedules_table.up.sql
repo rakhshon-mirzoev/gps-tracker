@@ -18,6 +18,7 @@ CREATE TABLE schedules (
     is_selfie_required BOOLEAN,
     is_comment_required BOOLEAN,
     status varchar(30) NOT NULL DEFAULT 'new',
+    review_comment varchar(50)
 
     created_by_admin_id UUID
         REFERENCES system_users(id)

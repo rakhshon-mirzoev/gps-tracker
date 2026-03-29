@@ -3,9 +3,9 @@ package websocket
 import (
 	"context"
 
+	"github.com/IkbolNazarov/gps-tracker/internal/events"
+	"github.com/IkbolNazarov/gps-tracker/pkg/token"
 	"github.com/google/uuid"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/events"
-	"github.com/rakhshon-mirzoev/gps-tracker/pkg/token"
 )
 
 type LocationProvider interface {

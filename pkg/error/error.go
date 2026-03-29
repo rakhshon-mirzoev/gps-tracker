@@ -33,6 +33,7 @@ var (
 	ErrorInvalidGroup        = errors.New("invalid group_id format")
 	ErrorRoleEmpty           = errors.New("role empty")
 	ErrorAlreadyReviewed     = errors.New("already reviewed")
+	ErrorVisitImmutable      = errors.New("visit status is final and cannot be changed")
 	ErrroActiveVisitExists   = errors.New("active visit already exists")
 	ErrorInvalidStatus       = errors.New("invalid status")
 	ErrorGroupIDRequired     = errors.New("group id required for staff user")

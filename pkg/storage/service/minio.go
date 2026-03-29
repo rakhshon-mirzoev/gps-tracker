@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/IkbolNazarov/gps-tracker/config"
+	"github.com/IkbolNazarov/gps-tracker/internal/logger"
+	errs "github.com/IkbolNazarov/gps-tracker/pkg/error"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"github.com/rakhshon-mirzoev/gps-tracker/config"
-	"github.com/rakhshon-mirzoev/gps-tracker/internal/logger"
-	errs "github.com/rakhshon-mirzoev/gps-tracker/pkg/error"
 	"go.uber.org/zap"
 )
 
