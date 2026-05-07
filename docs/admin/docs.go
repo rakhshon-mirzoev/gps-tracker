@@ -116,7 +116,7 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "Успешная авторизация",
-                        "schema": {"$ref": "#/definitions/TokenPair"}
+                        "schema": {"$ref": "#/definitions/LoginResponse"}
                     },
                     "401": {"description": "Неверные учётные данные"},
                     "500": {"description": "Internal Server Error"}
@@ -134,7 +134,7 @@ const docTemplate = `{
                         "name": "body",
                         "in": "body",
                         "required": true,
-                        "schema": {"$ref": "#/definitions/CreateUser"}
+                        "schema": {"$ref": "#/definitions/CreateSystemUser"}
                     }
                 ],
                 "responses": {
@@ -143,7 +143,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "ok": {"type": "string", "example": "created user"}
+                                "ok": {"type": "string", "example": "created system user"}
                             }
                         }
                     },
@@ -208,7 +208,7 @@ const docTemplate = `{
                     {"name": "end", "in": "query", "type": "string", "format": "date", "description": "Дата окончания (YYYY-MM-DD, опционально)"}
                 ],
                 "responses": {
-                    "200": {"description": "Excel-файл с отчётом"},
+                    "200": {"description": "Excel-файл с отчётом (visits_report.xlsx)"},
                     "400": {"description": "Невалидные параметры"},
                     "500": {"description": "Internal Server Error"}
                 }
@@ -220,16 +220,27 @@ const docTemplate = `{
                 "summary": "Получить журнал аудита",
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/json"],
+                "parameters": [
+                    {"name": "limit", "in": "query", "type": "integer", "default": 20, "description": "Количество записей"},
+                    {"name": "offset", "in": "query", "type": "integer", "default": 0, "description": "Смещение"},
+                    {"name": "action", "in": "query", "type": "string", "description": "Фильтр по действию (CreateGroup, DeleteStore и т.д.)"},
+                    {"name": "target_table", "in": "query", "type": "string", "description": "Фильтр по таблице (staff, stores, groups и т.д.)"},
+                    {"name": "date_from", "in": "query", "type": "string", "format": "date", "description": "Дата начала (YYYY-MM-DD)"},
+                    {"name": "date_to", "in": "query", "type": "string", "format": "date", "description": "Дата окончания (YYYY-MM-DD)"}
+                ],
                 "responses": {
                     "200": {
                         "description": "Список записей аудита",
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "audit_logs": {
+                                "data": {
                                     "type": "array",
                                     "items": {"$ref": "#/definitions/AuditLog"}
-                                }
+                                },
+                                "total":  {"type": "integer"},
+                                "limit":  {"type": "integer"},
+                                "offset": {"type": "integer"}
                             }
                         }
                     },
@@ -243,16 +254,25 @@ const docTemplate = `{
                 "summary": "Список всех сотрудников",
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/json"],
+                "parameters": [
+                    {"name": "limit", "in": "query", "type": "integer", "default": 20, "description": "Количество записей"},
+                    {"name": "offset", "in": "query", "type": "integer", "default": 0, "description": "Смещение"},
+                    {"name": "group_id", "in": "query", "type": "string", "format": "uuid", "description": "Фильтр по группе"},
+                    {"name": "status", "in": "query", "type": "string", "enum": ["online", "offline"], "description": "Фильтр по статусу"}
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "staff_users": {
+                                "data": {
                                     "type": "array",
                                     "items": {"$ref": "#/definitions/StaffUser"}
-                                }
+                                },
+                                "total":  {"type": "integer"},
+                                "limit":  {"type": "integer"},
+                                "offset": {"type": "integer"}
                             }
                         }
                     },
@@ -359,6 +379,22 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/staff/end-work/{staff_id}": {
+            "patch": {
+                "tags": ["Staff Users"],
+                "summary": "Принудительно завершить рабочий день сотрудника (admin)",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "staff_id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID сотрудника"}
+                ],
+                "responses": {
+                    "200": {"description": "Рабочий день завершён"},
+                    "400": {"description": "Невалидный ID"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
         "/admin/staff/schedules": {
             "get": {
                 "tags": ["Staff Users"],
@@ -383,7 +419,9 @@ const docTemplate = `{
                                     "type": "array",
                                     "items": {"$ref": "#/definitions/Schedule"}
                                 },
-                                "pagination": {"$ref": "#/definitions/Pagination"}
+                                "total":  {"type": "integer"},
+                                "limit":  {"type": "integer"},
+                                "offset": {"type": "integer"}
                             }
                         }
                     },
@@ -421,10 +459,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/staff/schedule/assign-many": {
+            "post": {
+                "tags": ["Staff Users"],
+                "summary": "Массовое назначение расписания сотруднику",
+                "description": "Создаёт расписание сразу для нескольких магазинов. Можно указать group_id для автоматического выбора магазинов группы.",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {"$ref": "#/definitions/CreateSchedulesBulk"}
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Расписания созданы",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "status": {"type": "string", "example": "success"},
+                                "count":  {"type": "integer", "description": "Количество созданных записей"}
+                            }
+                        }
+                    },
+                    "403": {"description": "Нет доступа"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
         "/admin/staff/schedules/{id}": {
+            "put": {
+                "tags": ["Staff Users"],
+                "summary": "Обновить расписание",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID расписания"},
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {"$ref": "#/definitions/UpdateSchedule"}
+                    }
+                ],
+                "responses": {
+                    "200": {"description": "Обновлено"},
+                    "400": {"description": "Ошибка валидации"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            },
             "delete": {
                 "tags": ["Staff Users"],
-                "summary": "Удалить назначение расписания (schedule) сотруднику",
+                "summary": "Удалить расписание",
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/json"],
                 "parameters": [
@@ -467,7 +558,6 @@ const docTemplate = `{
             "put": {
                 "tags": ["Staff Users"],
                 "summary": "Обновить time-schedule запись сотрудника",
-                "description": "Частичное обновление временного расписания (рабочий день, начало/конец смены).",
                 "security": [{"BearerAuth": []}],
                 "consumes": ["application/json"],
                 "produces": ["application/json"],
@@ -523,8 +613,8 @@ const docTemplate = `{
                                         "type": "object",
                                         "properties": {
                                             "staff_id": {"type": "string", "format": "uuid"},
-                                            "online": {"type": "number", "description": "Минуты онлайн"},
-                                            "offline": {"type": "number", "description": "Минуты оффлайн"}
+                                            "online":   {"type": "number", "description": "Минуты онлайн"},
+                                            "offline":  {"type": "number", "description": "Минуты оффлайн"}
                                         }
                                     }
                                 }
@@ -583,12 +673,15 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/staff/monitoring/real-time": {
+        "/admin/staff/monitoring/real-time/{group_id}": {
             "get": {
                 "tags": ["Monitoring"],
                 "summary": "Текущее местоположение сотрудников группы",
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/json"],
+                "parameters": [
+                    {"name": "group_id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID группы"}
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -602,7 +695,7 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "400": {"description": "Ошибка"},
+                    "400": {"description": "Невалидный group_id"},
                     "500": {"description": "Internal Server Error"}
                 }
             }
@@ -637,15 +730,14 @@ const docTemplate = `{
                 "tags": ["Stores"],
                 "summary": "Список магазинов с фильтрацией",
                 "security": [{"BearerAuth": []}],
-                "consumes": ["application/json"],
                 "produces": ["application/json"],
                 "parameters": [
-                    {
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {"$ref": "#/definitions/StoreListFilter"}
-                    }
+                    {"name": "limit",      "in": "query", "type": "integer", "default": 20, "description": "Количество записей"},
+                    {"name": "offset",     "in": "query", "type": "integer", "default": 0,  "description": "Смещение"},
+                    {"name": "is_active",  "in": "query", "type": "string",  "description": "Фильтр по активности (true/false)"},
+                    {"name": "status",     "in": "query", "type": "string",  "enum": ["pending", "approved", "rejected"], "description": "Фильтр по статусу"},
+                    {"name": "sort_by",    "in": "query", "type": "string",  "description": "Поле сортировки"},
+                    {"name": "sort_order", "in": "query", "type": "string",  "enum": ["asc", "desc"], "description": "Направление сортировки"}
                 ],
                 "responses": {
                     "200": {
@@ -653,11 +745,13 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "stores": {
+                                "data": {
                                     "type": "array",
                                     "items": {"$ref": "#/definitions/Store"}
                                 },
-                                "total": {"type": "integer"}
+                                "total":  {"type": "integer"},
+                                "limit":  {"type": "integer"},
+                                "offset": {"type": "integer"}
                             }
                         }
                     },
@@ -680,7 +774,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "store": {"$ref": "#/definitions/Store"}
+                                "store": {"$ref": "#/definitions/StoreWithPhoto"}
                             }
                         }
                     },
@@ -707,7 +801,7 @@ const docTemplate = `{
         "/admin/stores/{id}/approve": {
             "patch": {
                 "tags": ["Stores"],
-                "summary": "Подтвердить / обновить магазин",
+                "summary": "Подтвердить / обновить статус магазина",
                 "security": [{"BearerAuth": []}],
                 "consumes": ["application/json"],
                 "produces": ["application/json"],
@@ -727,22 +821,116 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/groups": {
-            "get": {
-                "tags": ["Groups"],
-                "summary": "Список групп",
+        "/admin/stores/{id}/group": {
+            "patch": {
+                "tags": ["Stores"],
+                "summary": "Привязать магазин к группе",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID магазина"},
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "required": ["group_id"],
+                            "properties": {
+                                "group_id": {"type": "string", "format": "uuid", "description": "ID группы"}
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Группа назначена",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {"type": "string", "example": "store group assigned"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Невалидные параметры"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            },
+            "delete": {
+                "tags": ["Stores"],
+                "summary": "Отвязать магазин от группы",
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/json"],
+                "parameters": [
+                    {"name": "id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID магазина"}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Группа убрана",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {"type": "string", "example": "store group removed"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Невалидный ID"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/admin/stores/by-group/{group_id}": {
+            "get": {
+                "tags": ["Stores"],
+                "summary": "Список магазинов группы",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "group_id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID группы"}
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "groups": {
+                                "stores": {
+                                    "type": "array",
+                                    "items": {"$ref": "#/definitions/Store"}
+                                }
+                            }
+                        }
+                    },
+                    "400": {"description": "Невалидный group_id"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/admin/groups": {
+            "get": {
+                "tags": ["Groups"],
+                "summary": "Список групп",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "limit",  "in": "query", "type": "integer", "default": 20, "description": "Количество записей"},
+                    {"name": "offset", "in": "query", "type": "integer", "default": 0,  "description": "Смещение"},
+                    {"name": "type",   "in": "query", "type": "string",  "default": "staff", "enum": ["staff", "store"], "description": "Тип группы (по умолчанию staff)"}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
                                     "type": "array",
                                     "items": {"$ref": "#/definitions/Group"}
-                                }
+                                },
+                                "total":  {"type": "integer"},
+                                "limit":  {"type": "integer"},
+                                "offset": {"type": "integer"}
                             }
                         }
                     },
@@ -773,6 +961,7 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "400": {"description": "Ошибка валидации"},
                     "500": {"description": "Internal Server Error"}
                 }
             }
@@ -796,7 +985,8 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "400": {"description": "Группа не найдена"}
+                    "400": {"description": "Невалидный ID"},
+                    "404": {"description": "Группа не найдена"}
                 }
             },
             "put": {
@@ -816,13 +1006,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {"description": "Обновлено"},
-                    "400": {"description": "Группа не найдена"},
+                    "400": {"description": "Невалидный ID или ошибка валидации"},
                     "500": {"description": "Internal Server Error"}
                 }
             },
             "delete": {
                 "tags": ["Groups"],
-                "summary": "Удалить группу",
+                "summary": "Удалить группу (soft delete)",
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/json"],
                 "parameters": [
@@ -830,7 +1020,35 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {"description": "Удалено"},
-                    "400": {"description": "Группа не найдена"},
+                    "400": {"description": "Невалидный ID"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/admin/groups/hierarchy/{type}": {
+            "get": {
+                "tags": ["Groups"],
+                "summary": "Иерархическое дерево групп",
+                "description": "Возвращает дерево групп с вложенными подгруппами (поле groups). Тип определяет тип группы: staff или store.",
+                "security": [{"BearerAuth": []}],
+                "produces": ["application/json"],
+                "parameters": [
+                    {"name": "type", "in": "path", "required": true, "type": "string", "enum": ["staff", "store"], "description": "Тип группы"}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "groups": {
+                                    "type": "array",
+                                    "items": {"$ref": "#/definitions/Group"}
+                                }
+                            }
+                        }
+                    },
+                    "400": {"description": "Тип не указан"},
                     "500": {"description": "Internal Server Error"}
                 }
             }
@@ -844,8 +1062,8 @@ const docTemplate = `{
                 "produces": ["application/json"],
                 "parameters": [
                     {"name": "staff_id", "in": "path", "required": true, "type": "string", "format": "uuid", "description": "ID сотрудника"},
-                    {"name": "limit", "in": "query", "required": true, "type": "integer", "description": "Количество записей"},
-                    {"name": "offset", "in": "query", "required": true, "type": "integer", "description": "Смещение"}
+                    {"name": "limit",    "in": "query", "type": "integer", "default": 20,  "description": "Количество записей"},
+                    {"name": "offset",   "in": "query", "type": "integer", "default": 0,   "description": "Смещение"}
                 ],
                 "responses": {
                     "200": {
@@ -857,8 +1075,8 @@ const docTemplate = `{
                                     "type": "array",
                                     "items": {"$ref": "#/definitions/Store"}
                                 },
-                                "total": {"type": "integer"},
-                                "limit": {"type": "integer"},
+                                "total":  {"type": "integer"},
+                                "limit":  {"type": "integer"},
                                 "offset": {"type": "integer"}
                             }
                         }
@@ -871,7 +1089,7 @@ const docTemplate = `{
             "post": {
                 "tags": ["Staff Mapping"],
                 "summary": "Привязать магазин к сотруднику",
-                "description": "Создаёт запись в staff_stores_mapping — назначает магазин сотруднику.",
+                "description": "Создаёт запись в staff_stores_mapping.",
                 "security": [{"BearerAuth": []}],
                 "consumes": ["application/json"],
                 "produces": ["application/json"],
@@ -923,7 +1141,39 @@ const docTemplate = `{
                     "201": {"description": "Привязка удалена"},
                     "400": {"description": "Неверные параметры"},
                     "403": {"description": "Нет доступа"},
-                    "404": {"description": "Привязка не найдена"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            }
+        },
+        "/admin/visit/bulk": {
+            "post": {
+                "tags": ["Visits"],
+                "summary": "Массовое создание визитов",
+                "description": "Создаёт по одному визиту на каждый магазин. Можно передать список магазинов (store_ids) или указать группу (group_id) — тогда все магазины группы подтягиваются автоматически. Поддерживается частичное исключение через exclude_store_ids.",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {"$ref": "#/definitions/CreateVisitsBulk"}
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Визиты созданы",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "status": {"type": "string", "example": "success"},
+                                "count":  {"type": "integer", "example": 8}
+                            }
+                        }
+                    },
+                    "400": {"description": "Невалидные параметры запроса"},
+                    "403": {"description": "Нет доступа"},
                     "500": {"description": "Internal Server Error"}
                 }
             }
@@ -935,8 +1185,8 @@ const docTemplate = `{
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/json"],
                 "parameters": [
-                    {"name": "limit", "in": "query", "required": true, "type": "integer"},
-                    {"name": "offset", "in": "query", "required": true, "type": "integer"},
+                    {"name": "limit",  "in": "query", "type": "integer", "default": 20},
+                    {"name": "offset", "in": "query", "type": "integer", "default": 0},
                     {"name": "status", "in": "query", "type": "string", "enum": ["pending", "approved", "rejected", "revision"], "description": "Фильтр по статусу проверки"}
                 ],
                 "responses": {
@@ -945,11 +1195,13 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "visits": {
+                                "data": {
                                     "type": "array",
-                                    "items": {"$ref": "#/definitions/Visit"}
+                                    "items": {"$ref": "#/definitions/VisitResponse"}
                                 },
-                                "total": {"type": "integer"}
+                                "total":  {"type": "integer"},
+                                "limit":  {"type": "integer"},
+                                "offset": {"type": "integer"}
                             }
                         }
                     },
@@ -961,7 +1213,7 @@ const docTemplate = `{
         "/admin/visit/{id}/review": {
             "patch": {
                 "tags": ["Visits"],
-                "summary": "Рассмотреть визит (approve / reject)",
+                "summary": "Рассмотреть визит (approve / reject / revision)",
                 "security": [{"BearerAuth": []}],
                 "consumes": ["application/json"],
                 "produces": ["application/json"],
@@ -981,12 +1233,11 @@ const docTemplate = `{
                             "type": "object",
                             "properties": {
                                 "message": {"type": "string"},
-                                "status": {"type": "string"}
+                                "status":  {"type": "string"}
                             }
                         }
                     },
                     "400": {"description": "status must be 'approved', 'rejected' or 'revision'"},
-                    "409": {"description": "Визит уже имеет финальный статус (approved/rejected) и не может быть изменён"},
                     "403": {"description": "Нет доступа"},
                     "404": {"description": "Визит не найден"},
                     "500": {"description": "Internal Server Error"}
@@ -999,16 +1250,23 @@ const docTemplate = `{
                 "summary": "Список системных настроек",
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/json"],
+                "parameters": [
+                    {"name": "limit",  "in": "query", "type": "integer", "default": 20},
+                    {"name": "offset", "in": "query", "type": "integer", "default": 0}
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "system_settings": {
+                                "data": {
                                     "type": "array",
                                     "items": {"$ref": "#/definitions/SystemSettings"}
-                                }
+                                },
+                                "total":  {"type": "integer"},
+                                "limit":  {"type": "integer"},
+                                "offset": {"type": "integer"}
                             }
                         }
                     },
@@ -1228,7 +1486,7 @@ const docTemplate = `{
             "post": {
                 "tags": ["Notifications"],
                 "summary": "Отправить push-уведомление сотруднику или группе",
-                "description": "Создаёт FCM push-уведомление для конкретного сотрудника или всей группы. Нужно указать ровно одно из полей: user_id или group_id.",
+                "description": "Создаёт FCM push-уведомление. Нужно указать ровно одно из полей: user_id или group_id.",
                 "security": [{"BearerAuth": []}],
                 "consumes": ["application/json"],
                 "produces": ["application/json"],
@@ -1274,30 +1532,33 @@ const docTemplate = `{
             "type": "object",
             "required": ["login", "password"],
             "properties": {
-                "login": {"type": "string", "example": "admin"},
+                "login":    {"type": "string", "example": "admin"},
                 "password": {"type": "string", "example": "password123"}
-            }
-        },
-        "CreateUser": {
-            "type": "object",
-            "required": ["full_name", "login", "password", "confirm_password"],
-            "properties": {
-                "full_name": {"type": "string"},
-                "login": {"type": "string"},
-                "password": {"type": "string", "minLength": 8, "maxLength": 20},
-                "confirm_password": {"type": "string", "minLength": 8, "maxLength": 20},
-                "role": {"type": "string"},
-                "group_id": {"type": "string", "format": "uuid"},
-                "phone_number": {"type": "string"},
-                "inn": {"type": "string"},
-                "birthday": {"type": "string", "format": "date-time"}
             }
         },
         "TokenPair": {
             "type": "object",
             "properties": {
-                "access_token": {"type": "string"},
+                "access_token":  {"type": "string"},
                 "refresh_token": {"type": "string"}
+            }
+        },
+        "LoginResponse": {
+            "type": "object",
+            "properties": {
+                "access_token":  {"type": "string"},
+                "refresh_token": {"type": "string"},
+                "user": {
+                    "type": "object",
+                    "properties": {
+                        "id":           {"type": "string", "format": "uuid"},
+                        "full_name":    {"type": "string"},
+                        "login":        {"type": "string"},
+                        "role":         {"type": "string"},
+                        "phone_number": {"type": "string"},
+                        "created_at":   {"type": "string", "format": "date-time"}
+                    }
+                }
             }
         },
         "RefreshRequest": {
@@ -1310,97 +1571,116 @@ const docTemplate = `{
         "StaffUser": {
             "type": "object",
             "properties": {
-                "id": {"type": "string", "format": "uuid"},
-                "group_id": {"type": "string", "format": "uuid"},
-                "full_name": {"type": "string"},
-                "login": {"type": "string"},
-                "phone_number": {"type": "string"},
-                "role": {"type": "string"},
-                "inn": {"type": "string"},
-                "birthday": {"type": "string", "format": "date-time"},
+                "id":                    {"type": "string", "format": "uuid"},
+                "group_id":              {"type": "string", "format": "uuid"},
+                "group_name":            {"type": "string"},
+                "full_name":             {"type": "string"},
+                "login":                 {"type": "string"},
+                "phone_number":          {"type": "string"},
+                "role":                  {"type": "string"},
+                "inn":                   {"type": "string"},
+                "birthday":              {"type": "string", "format": "date-time"},
                 "is_temporary_password": {"type": "boolean"},
-                "password_updated_at": {"type": "string", "format": "date-time"},
-                "device_id": {"type": "string"},
-                "fcm_token": {"type": "string"},
-                "app_version": {"type": "string"},
-                "last_battery_level": {"type": "integer"},
-                "last_seen_at": {"type": "string", "format": "date-time"},
-                "is_active": {"type": "boolean"},
-                "deactivated_at": {"type": "string", "format": "date-time"},
-                "deactivated_by_id": {"type": "string", "format": "uuid"},
-                "deactivation_reason": {"type": "string"},
-                "created_at": {"type": "string", "format": "date-time"}
+                "password_updated_at":   {"type": "string", "format": "date-time"},
+                "device_id":             {"type": "string"},
+                "fcm_token":             {"type": "string"},
+                "app_version":           {"type": "string"},
+                "last_battery_level":    {"type": "integer"},
+                "last_seen_at":          {"type": "string", "format": "date-time"},
+                "is_active":             {"type": "boolean"},
+                "deactivated_at":        {"type": "string", "format": "date-time"},
+                "deactivated_by_id":     {"type": "string", "format": "uuid"},
+                "deactivation_reason":   {"type": "string"},
+                "avatar_url":            {"type": "string"},
+                "start_at":              {"type": "string", "format": "date-time"},
+                "end_at":                {"type": "string", "format": "date-time"},
+                "day_started":           {"type": "boolean"},
+                "status":                {"type": "string", "enum": ["online", "offline"]},
+                "created_at":            {"type": "string", "format": "date-time"}
             }
         },
         "CreateStaffUser": {
             "type": "object",
-            "required": ["group_id", "full_name", "login", "password", "confirm_password"],
+            "required": ["full_name", "login", "phone_number", "inn", "password", "confirm_password"],
             "properties": {
-                "group_id": {"type": "string", "format": "uuid"},
-                "full_name": {"type": "string"},
-                "login": {"type": "string"},
-                "phone_number": {"type": "string"},
-                "inn": {"type": "string"},
-                "birthday": {"type": "string", "format": "date-time"},
-                "password": {"type": "string"},
-                "confirm_password": {"type": "string"}
+                "group_id":         {"type": "string", "format": "uuid"},
+                "full_name":        {"type": "string"},
+                "login":            {"type": "string"},
+                "phone_number":     {"type": "string"},
+                "inn":              {"type": "string"},
+                "birthday":         {"type": "string", "format": "date-time"},
+                "password":         {"type": "string"},
+                "confirm_password": {"type": "string"},
+                "schedule": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/ScheduleDTO"}
+                }
             }
         },
         "UpdateStaffUser": {
             "type": "object",
             "properties": {
-                "full_name": {"type": "string"},
-                "phone_number": {"type": "string"},
-                "is_active": {"type": "boolean"},
-                "group_id": {"type": "string", "format": "uuid"},
-                "fcm_token": {"type": "string"},
-                "device_id": {"type": "string"},
-                "deactivated_at": {"type": "string", "format": "date-time"},
-                "deactivated_by_id": {"type": "string", "format": "uuid"},
-                "deactivation_reason": {"type": "string"}
+                "full_name":            {"type": "string"},
+                "phone_number":         {"type": "string"},
+                "is_active":            {"type": "boolean"},
+                "group_id":             {"type": "string", "format": "uuid"},
+                "fcm_token":            {"type": "string"},
+                "device_id":            {"type": "string"},
+                "deactivated_at":       {"type": "string", "format": "date-time"},
+                "deactivated_by_id":    {"type": "string", "format": "uuid"},
+                "deactivation_reason":  {"type": "string"}
             }
         },
         "DeactivateStaffUser": {
             "type": "object",
             "properties": {
-                "deactivated_at": {"type": "string", "format": "date-time"},
-                "deactivated_by_id": {"type": "string", "format": "uuid"},
+                "deactivated_at":      {"type": "string", "format": "date-time"},
+                "deactivated_by_id":   {"type": "string", "format": "uuid"},
                 "deactivation_reason": {"type": "string"}
             }
         },
         "StaffUserLocation": {
             "type": "object",
             "properties": {
-                "id": {"type": "string", "format": "uuid"},
-                "group_id": {"type": "string", "format": "uuid"},
-                "full_name": {"type": "string"},
-                "login": {"type": "string"},
-                "phone_number": {"type": "string"},
-                "inn": {"type": "string"},
-                "birthday": {"type": "string", "format": "date-time"},
-                "device_id": {"type": "string"},
-                "fcm_token": {"type": "string"},
-                "app_version": {"type": "string"},
+                "id":                 {"type": "string", "format": "uuid"},
+                "group_id":           {"type": "string", "format": "uuid"},
+                "group_name":         {"type": "string"},
+                "full_name":          {"type": "string"},
+                "login":              {"type": "string"},
+                "phone_number":       {"type": "string"},
+                "inn":                {"type": "string"},
+                "birthday":           {"type": "string", "format": "date-time"},
+                "device_id":          {"type": "string"},
+                "fcm_token":          {"type": "string"},
+                "app_version":        {"type": "string"},
                 "last_battery_level": {"type": "integer"},
-                "last_seen_at": {"type": "string", "format": "date-time"},
-                "location": {"$ref": "#/definitions/LocationHistory"}
+                "last_seen_at":       {"type": "string", "format": "date-time"},
+                "start_at":           {"type": "string", "format": "date-time"},
+                "end_at":             {"type": "string", "format": "date-time"},
+                "day_started":        {"type": "boolean"},
+                "avatar_url":         {"type": "string"},
+                "location":           {"$ref": "#/definitions/LocationHistory"}
             }
         },
         "StaffUserLocationHistory": {
             "type": "object",
             "properties": {
-                "id": {"type": "string", "format": "uuid"},
-                "group_id": {"type": "string", "format": "uuid"},
-                "full_name": {"type": "string"},
-                "login": {"type": "string"},
-                "phone_number": {"type": "string"},
-                "inn": {"type": "string"},
-                "birthday": {"type": "string", "format": "date-time"},
-                "device_id": {"type": "string"},
-                "fcm_token": {"type": "string"},
-                "app_version": {"type": "string"},
+                "id":                 {"type": "string", "format": "uuid"},
+                "group_id":           {"type": "string", "format": "uuid"},
+                "group_name":         {"type": "string"},
+                "full_name":          {"type": "string"},
+                "login":              {"type": "string"},
+                "phone_number":       {"type": "string"},
+                "inn":                {"type": "string"},
+                "birthday":           {"type": "string", "format": "date-time"},
+                "device_id":          {"type": "string"},
+                "fcm_token":          {"type": "string"},
+                "app_version":        {"type": "string"},
                 "last_battery_level": {"type": "integer"},
-                "last_seen_at": {"type": "string", "format": "date-time"},
+                "last_seen_at":       {"type": "string", "format": "date-time"},
+                "start_at":           {"type": "string", "format": "date-time"},
+                "end_at":             {"type": "string", "format": "date-time"},
+                "day_started":        {"type": "boolean"},
                 "location": {
                     "type": "array",
                     "items": {"$ref": "#/definitions/LocationHistory"}
@@ -1410,268 +1690,346 @@ const docTemplate = `{
         "LocationHistory": {
             "type": "object",
             "properties": {
-                "id": {"type": "string", "format": "uuid"},
-                "staff_id": {"type": "string", "format": "uuid"},
-                "latitude": {"type": "number", "format": "double"},
-                "longitude": {"type": "number", "format": "double"},
+                "id":            {"type": "string", "format": "uuid"},
+                "staff_id":      {"type": "string", "format": "uuid"},
+                "latitude":      {"type": "number", "format": "double"},
+                "longitude":     {"type": "number", "format": "double"},
                 "battery_level": {"type": "integer"},
-                "captured_at": {"type": "string", "format": "date-time"},
-                "status": {"type": "string"}
+                "captured_at":   {"type": "string", "format": "date-time"},
+                "status":        {"type": "string"}
             }
         },
         "Store": {
             "type": "object",
             "properties": {
-                "id": {"type": "string", "format": "uuid"},
-                "name": {"type": "string"},
-                "address": {"type": "string"},
-                "latitude": {"type": "number", "format": "double"},
-                "longitude": {"type": "number", "format": "double"},
-                "owner_full_name": {"type": "string"},
-                "owner_inn": {"type": "string"},
-                "owner_passport": {"type": "string"},
-                "owner_phone": {"type": "string"},
-                "additional_phone": {"type": "string"},
-                "interior_photo": {"type": "string"},
-                "exterior_photo": {"type": "string"},
-                "comment": {"type": "string"},
-                "status": {"type": "string", "enum": ["pending", "approved", "rejected"]},
-                "rejection_comment": {"type": "string"},
+                "id":                  {"type": "string", "format": "uuid"},
+                "name":                {"type": "string"},
+                "address":             {"type": "string"},
+                "latitude":            {"type": "number", "format": "double"},
+                "longitude":           {"type": "number", "format": "double"},
+                "owner_full_name":     {"type": "string"},
+                "owner_inn":           {"type": "string"},
+                "owner_passport":      {"type": "string"},
+                "owner_phone":         {"type": "string"},
+                "additional_phone":    {"type": "string"},
+                "comment":             {"type": "string"},
+                "group_id":            {"type": "string", "format": "uuid"},
+                "group_name":          {"type": "string"},
+                "status":              {"type": "string", "enum": ["pending", "approved", "rejected"]},
+                "rejection_comment":   {"type": "string"},
                 "created_by_staff_id": {"type": "string", "format": "uuid"},
-                "is_active": {"type": "boolean"},
-                "is_frozen": {"type": "boolean"},
-                "deactivated_at": {"type": "string", "format": "date-time"},
-                "deactivated_by_id": {"type": "string", "format": "uuid"},
+                "staff_name":          {"type": "string"},
+                "staff_phone":         {"type": "string"},
+                "is_active":           {"type": "boolean"},
+                "is_frozen":           {"type": "boolean"},
+                "deactivated_at":      {"type": "string", "format": "date-time"},
+                "deactivated_by_id":   {"type": "string", "format": "uuid"},
                 "deactivation_reason": {"type": "string"},
-                "created_at": {"type": "string", "format": "date-time"}
+                "created_at":          {"type": "string", "format": "date-time"}
+            }
+        },
+        "StoreWithPhoto": {
+            "type": "object",
+            "properties": {
+                "store":  {"$ref": "#/definitions/Store"},
+                "photos": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/StorePhotos"}
+                }
+            }
+        },
+        "StorePhotos": {
+            "type": "object",
+            "properties": {
+                "id":           {"type": "string", "format": "uuid"},
+                "store_id":     {"type": "string", "format": "uuid"},
+                "photo_url":    {"type": "string"},
+                "photo_type":   {"type": "string", "enum": ["interior", "exterior"]},
+                "original_name":{"type": "string"},
+                "created_at":   {"type": "string", "format": "date-time"}
             }
         },
         "UpdateStore": {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
-                "address": {"type": "string"},
-                "latitude": {"type": "number", "format": "double"},
-                "longitude": {"type": "number", "format": "double"},
-                "owner_full_name": {"type": "string"},
-                "owner_inn": {"type": "string"},
-                "owner_passport": {"type": "string"},
-                "owner_phone": {"type": "string"},
-                "additional_phone": {"type": "string"},
-                "interior_photo": {"type": "string"},
-                "exterior_photo": {"type": "string"},
-                "comment": {"type": "string"},
-                "status": {"type": "string", "enum": ["approved", "rejected"]},
-                "rejection_comment": {"type": "string"},
-                "is_active": {"type": "boolean"},
-                "is_frozen": {"type": "boolean"}
-            }
-        },
-        "StoreListFilter": {
-            "type": "object",
-            "properties": {
-                "status": {"type": "string"},
-                "is_active": {"type": "boolean"},
-                "limit": {"type": "integer"},
-                "offset": {"type": "integer"},
-                "sort_by": {"type": "string"},
-                "sort_order": {"type": "string", "enum": ["asc", "desc"]}
+                "name":                {"type": "string"},
+                "address":             {"type": "string"},
+                "latitude":            {"type": "number", "format": "double"},
+                "longitude":           {"type": "number", "format": "double"},
+                "owner_full_name":     {"type": "string"},
+                "owner_inn":           {"type": "string"},
+                "owner_passport":      {"type": "string"},
+                "owner_phone":         {"type": "string"},
+                "additional_phone":    {"type": "string"},
+                "comment":             {"type": "string"},
+                "group_id":            {"type": "string", "format": "uuid"},
+                "status":              {"type": "string", "enum": ["approved", "rejected"]},
+                "rejection_comment":   {"type": "string"},
+                "is_active":           {"type": "boolean"},
+                "is_frozen":           {"type": "boolean"},
+                "deactivation_reason": {"type": "string"}
             }
         },
         "Group": {
             "type": "object",
             "properties": {
-                "id": {"type": "string", "format": "uuid"},
-                "name": {"type": "string"},
-                "supervisor_id": {"type": "string", "format": "uuid"},
+                "id":              {"type": "string", "format": "uuid"},
+                "name":            {"type": "string"},
+                "type":            {"type": "string", "enum": ["staff", "store"], "description": "Тип группы"},
+                "parent_id":       {"type": "string", "format": "uuid", "description": "ID родительской группы"},
+                "parent_name":     {"type": "string", "description": "Название родительской группы"},
+                "supervisor_id":   {"type": "string", "format": "uuid"},
                 "supervisor_name": {"type": "string"},
-                "created_at": {"type": "string", "format": "date-time"}
+                "supervisor":      {"$ref": "#/definitions/GroupSupervisor"},
+                "color":           {"type": "string", "example": "#FF5733", "description": "Hex-цвет для отображения на карте"},
+                "layer":           {"type": "integer", "description": "Порядок слоя при отображении на карте"},
+                "cluster":         {"type": "string", "description": "Название кластера для группировки на карте"},
+                "is_deleted":      {"type": "boolean"},
+                "deleted_at":      {"type": "string", "format": "date-time"},
+                "created_at":      {"type": "string", "format": "date-time"},
+                "groups": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/Group"},
+                    "description": "Вложенные подгруппы (для иерархического ответа)"
+                }
             }
         },
-        "Visit": {
+        "GroupSupervisor": {
             "type": "object",
             "properties": {
-                "id": {"type": "string", "format": "uuid"},
-                "schedule_id": {"type": "string", "format": "uuid"},
-                "staff_id": {"type": "string", "format": "uuid"},
-                "store_id": {"type": "string", "format": "uuid"},
-                "check_in_at": {"type": "string", "format": "date-time"},
-                "check_out_at": {"type": "string", "format": "date-time"},
-                "check_in_lat": {"type": "number", "format": "double"},
-                "check_in_lon": {"type": "number", "format": "double"},
+                "id":        {"type": "string", "format": "uuid"},
+                "full_name": {"type": "string"},
+                "login":     {"type": "string"},
+                "role":      {"type": "string"}
+            }
+        },
+        "VisitResponse": {
+            "type": "object",
+            "properties": {
+                "id":                 {"type": "string", "format": "uuid"},
+                "schedule_id":        {"type": "string", "format": "uuid"},
+                "staff_id":           {"type": "string", "format": "uuid"},
+                "store_id":           {"type": "string", "format": "uuid"},
+                "check_in_at":        {"type": "string", "format": "date-time"},
+                "check_out_at":       {"type": "string", "format": "date-time"},
+                "check_in_lat":       {"type": "number", "format": "double"},
+                "check_in_lon":       {"type": "number", "format": "double"},
                 "distance_deviation": {"type": "integer"},
-                "selfie_url": {"type": "string"},
-                "comment": {"type": "string"},
-                "is_offline": {"type": "boolean"},
-                "review_status": {"type": "string", "enum": ["new", "pending", "approved", "rejected", "revision"]},
-                "review_comment": {"type": "string"},
-                "reviewer_id": {"type": "string", "format": "uuid"},
-                "reviewed_at": {"type": "string", "format": "date-time"},
-                "created_at": {"type": "string", "format": "date-time"}
+                "shelf_photos":       {"type": "array", "items": {"type": "string"}},
+                "comment":            {"type": "string"},
+                "is_offline":         {"type": "boolean"},
+                "review_status":      {"type": "string", "enum": ["new", "pending", "approved", "rejected", "revision"]},
+                "review_comment":     {"type": "string"},
+                "reviewer_id":        {"type": "string", "format": "uuid"},
+                "reviewed_at":        {"type": "string", "format": "date-time"},
+                "created_at":         {"type": "string", "format": "date-time"},
+                "duration":           {"type": "integer", "description": "Продолжительность в секундах"},
+                "staff": {
+                    "type": "object",
+                    "properties": {
+                        "id":           {"type": "string", "format": "uuid"},
+                        "full_name":    {"type": "string"},
+                        "phone_number": {"type": "string"}
+                    }
+                },
+                "store": {
+                    "type": "object",
+                    "properties": {
+                        "id":        {"type": "string", "format": "uuid"},
+                        "name":      {"type": "string"},
+                        "address":   {"type": "string"},
+                        "latitude":  {"type": "number", "format": "double"},
+                        "longitude": {"type": "number", "format": "double"}
+                    }
+                }
             }
         },
         "ReviewVisitRequest": {
             "type": "object",
             "required": ["status"],
             "properties": {
-                "status": {"type": "string", "enum": ["approved", "rejected", "revision"], "description": "approved и rejected — финальные (неизменяемые). revision — на доработку, сотрудник может дополнить визит."},
+                "status":         {"type": "string", "enum": ["approved", "rejected", "revision"], "description": "approved и rejected — финальные. revision — на доработку."},
                 "review_comment": {"type": "string"}
+            }
+        },
+        "CreateVisitsBulk": {
+            "type": "object",
+            "required": ["schedule_id", "staff_id", "lat", "lon"],
+            "properties": {
+                "schedule_id":       {"type": "string", "format": "uuid", "description": "ID расписания"},
+                "staff_id":          {"type": "string", "format": "uuid", "description": "ID сотрудника"},
+                "group_id":          {"type": "string", "format": "uuid", "description": "ID группы магазинов — все магазины группы подтягиваются автоматически"},
+                "store_ids":         {"type": "array", "items": {"type": "string", "format": "uuid"}, "description": "Явный список ID магазинов"},
+                "exclude_store_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}, "description": "Магазины, которые нужно исключить"},
+                "lat":               {"type": "number", "format": "double", "description": "Широта (обязательно)"},
+                "lon":               {"type": "number", "format": "double", "description": "Долгота (обязательно)"}
             }
         },
         "CreateSchedule": {
             "type": "object",
-            "required": ["staff_id", "store_id", "planned_date", "description", "window_open", "window_close", "created_by_admin_id"],
+            "required": ["store_id", "planned_date", "description", "window_open", "window_close"],
             "properties": {
-                "staff_id": {"type": "string", "format": "uuid"},
-                "store_id": {"type": "string", "format": "uuid"},
-                "planned_date": {"type": "string", "format": "date-time"},
-                "description": {"type": "string"},
-                "window_open": {"type": "string", "format": "date-time"},
-                "window_close": {"type": "string", "format": "date-time"},
-                "is_photo_required": {"type": "boolean"},
-                "is_selfie_required": {"type": "boolean"},
+                "staff_id":            {"type": "string", "format": "uuid"},
+                "store_id":            {"type": "string", "format": "uuid"},
+                "planned_date":        {"type": "string", "format": "date-time"},
+                "description":         {"type": "string"},
+                "window_open":         {"type": "string", "format": "date-time"},
+                "window_close":        {"type": "string", "format": "date-time"},
+                "is_photo_required":   {"type": "boolean"},
+                "is_selfie_required":  {"type": "boolean"},
                 "is_comment_required": {"type": "boolean"},
-                "created_by_admin_id": {"type": "string", "format": "uuid"}
+                "lat":                 {"type": "number", "format": "double"},
+                "lon":                 {"type": "number", "format": "double"}
             }
         },
-        "SystemSettings": {
+        "UpdateSchedule": {
             "type": "object",
             "properties": {
-                "id": {"type": "string", "format": "uuid"},
-                "key": {"type": "string"},
-                "value": {"type": "string"},
-                "description": {"type": "string"}
+                "staff_id":            {"type": "string", "format": "uuid"},
+                "store_id":            {"type": "string", "format": "uuid"},
+                "planned_date":        {"type": "string", "format": "date-time"},
+                "description":         {"type": "string"},
+                "window_open":         {"type": "string", "format": "date-time"},
+                "window_close":        {"type": "string", "format": "date-time"},
+                "is_photo_required":   {"type": "boolean"},
+                "is_selfie_required":  {"type": "boolean"},
+                "is_comment_required": {"type": "boolean"},
+                "status":              {"type": "string"},
+                "review_comment":      {"type": "string"}
             }
         },
-        "UpdateSystemSettings": {
+        "CreateSchedulesBulk": {
             "type": "object",
+            "required": ["staff_id", "planned_date", "description", "window_open", "window_close"],
             "properties": {
-                "key": {"type": "string"},
-                "value": {"type": "string"},
-                "description": {"type": "string"}
+                "staff_id":            {"type": "string", "format": "uuid", "description": "ID сотрудника"},
+                "group_id":            {"type": "string", "format": "uuid", "description": "ID группы (опционально, для выбора магазинов группы)"},
+                "store_ids":           {"type": "array", "items": {"type": "string", "format": "uuid"}, "description": "Список ID магазинов"},
+                "exclude_store_ids":   {"type": "array", "items": {"type": "string", "format": "uuid"}, "description": "Исключить магазины"},
+                "planned_date":        {"type": "string", "format": "date-time"},
+                "description":         {"type": "string"},
+                "window_open":         {"type": "string", "format": "date-time"},
+                "window_close":        {"type": "string", "format": "date-time"},
+                "is_photo_required":   {"type": "boolean"},
+                "is_selfie_required":  {"type": "boolean"},
+                "is_comment_required": {"type": "boolean"}
             }
         },
-        "AuditLog": {
+        "Schedule": {
             "type": "object",
             "properties": {
-                "id": {"type": "string", "format": "uuid"},
-                "actor_id": {"type": "string", "format": "uuid"},
-                "actor_type": {"type": "string"},
-                "action": {"type": "string"},
-                "target_table": {"type": "string"},
-                "target_id": {"type": "string", "format": "uuid"},
-                "old_value": {"type": "object"},
-                "new_value": {"type": "object"},
-                "ip_address": {"type": "string"},
-                "created_at": {"type": "string", "format": "date-time"}
+                "id":                  {"type": "string", "format": "uuid"},
+                "staff_id":            {"type": "string", "format": "uuid"},
+                "store_id":            {"type": "string", "format": "uuid"},
+                "store_name":          {"type": "string"},
+                "planned_date":        {"type": "string", "format": "date-time"},
+                "description":         {"type": "string"},
+                "window_open":         {"type": "string", "format": "date-time"},
+                "window_close":        {"type": "string", "format": "date-time"},
+                "is_photo_required":   {"type": "boolean"},
+                "is_selfie_required":  {"type": "boolean"},
+                "is_comment_required": {"type": "boolean"},
+                "status":              {"type": "string"},
+                "created_by_admin_id": {"type": "string", "format": "uuid"},
+                "review_comment":      {"type": "string"},
+                "is_deleted":          {"type": "boolean"},
+                "deleted_at":          {"type": "string", "format": "date-time"},
+                "visit_id":            {"type": "string", "format": "uuid"},
+                "is_unplanned":        {"type": "boolean"}
             }
         },
-        "SystemUser": {
+        "ScheduleDTO": {
             "type": "object",
+            "description": "Элемент расписания при создании сотрудника",
             "properties": {
-                "id": {"type": "string", "format": "uuid"},
-                "full_name": {"type": "string"},
-                "login": {"type": "string"},
-                "role": {"type": "string", "enum": ["admin", "supervisor"]},
-                "is_active": {"type": "boolean"},
-                "deactivated_at": {"type": "string", "format": "date-time"},
-                "deactivated_by_id": {"type": "integer"},
-                "deactivation_reason": {"type": "string"},
-                "created_at": {"type": "string", "format": "date-time"}
-            }
-        },
-        "CreateSystemUser": {
-            "type": "object",
-            "required": ["full_name", "login", "password", "confirm_password", "role"],
-            "properties": {
-                "full_name": {"type": "string"},
-                "login": {"type": "string"},
-                "password": {"type": "string", "minLength": 8, "maxLength": 20},
-                "confirm_password": {"type": "string", "minLength": 8, "maxLength": 20},
-                "role": {"type": "string", "enum": ["admin", "supervisor"]}
-            }
-        },
-        "UpdateSystemUser": {
-            "type": "object",
-            "properties": {
-                "full_name": {"type": "string"},
-                "is_active": {"type": "boolean"},
-                "deactivated_at": {"type": "string", "format": "date-time"},
-                "deactivated_by_id": {"type": "integer"},
-                "deactivation_reason": {"type": "string"}
+                "store_id":    {"type": "string", "format": "uuid"},
+                "planned_date": {"type": "string", "format": "date-time"}
             }
         },
         "StaffUserSchedule": {
             "type": "object",
             "properties": {
-                "id": {"type": "string", "format": "uuid"},
-                "staff_id": {"type": "string", "format": "uuid"},
-                "weekday": {"type": "integer", "description": "День недели (0 = воскресенье, 1 = понедельник, ..., 6 = суббота)"},
+                "id":         {"type": "string", "format": "uuid"},
+                "staff_id":   {"type": "string", "format": "uuid"},
+                "weekday":    {"type": "integer", "description": "День недели (0 = воскресенье, 1 = понедельник, ..., 6 = суббота)"},
                 "start_time": {"type": "string", "format": "date-time"},
-                "end_time": {"type": "string", "format": "date-time"},
+                "end_time":   {"type": "string", "format": "date-time"},
                 "created_at": {"type": "string", "format": "date-time"}
             }
         },
         "UpdateStaffSchedule": {
             "type": "object",
             "properties": {
-                "weekday": {"type": "integer", "description": "День недели (0-6)"},
+                "weekday":    {"type": "integer", "description": "День недели (0-6)"},
                 "start_time": {"type": "string", "format": "date-time"},
-                "end_time": {"type": "string", "format": "date-time"}
+                "end_time":   {"type": "string", "format": "date-time"}
             }
         },
-        "Schedule": {
+        "SystemSettings": {
             "type": "object",
             "properties": {
-                "id": {"type": "string", "format": "uuid"},
-                "staff_id": {"type": "string", "format": "uuid"},
-                "store_id": {"type": "string", "format": "uuid"},
-                "planned_date": {"type": "string", "format": "date-time"},
-                "description": {"type": "string"},
-                "window_open": {"type": "string", "format": "date-time"},
-                "window_close": {"type": "string", "format": "date-time"},
-                "is_photo_required": {"type": "boolean"},
-                "is_selfie_required": {"type": "boolean"},
-                "is_comment_required": {"type": "boolean"},
-                "status": {"type": "string"},
-                "created_by_admin_id": {"type": "string", "format": "uuid"}
+                "id":          {"type": "string", "format": "uuid"},
+                "key":         {"type": "string"},
+                "value":       {"type": "string"},
+                "description": {"type": "string"}
             }
         },
-        "VisitWithPhoto": {
+        "UpdateSystemSettings": {
             "type": "object",
             "properties": {
-                "visit": {"$ref": "#/definitions/Visit"},
-                "photos": {
-                    "type": "array",
-                    "items": {"$ref": "#/definitions/VisitPhotos"}
-                }
+                "key":         {"type": "string"},
+                "value":       {"type": "string"},
+                "description": {"type": "string"}
             }
         },
-        "VisitPhotos": {
+        "AuditLog": {
             "type": "object",
             "properties": {
-                "id": {"type": "string", "format": "uuid"},
-                "visit_id": {"type": "string", "format": "uuid"},
-                "photo_url": {"type": "string"},
-                "captured_at": {"type": "string", "format": "date-time"},
-                "original_name": {"type": "string"},
-                "photo_type": {"type": "string", "enum": ["selfie", "shelf"]}
+                "id":           {"type": "string", "format": "uuid"},
+                "actor_id":     {"type": "string", "format": "uuid"},
+                "actor_type":   {"type": "string"},
+                "action":       {"type": "string"},
+                "target_table": {"type": "string"},
+                "target_id":    {"type": "string", "format": "uuid"},
+                "old_value":    {"type": "object"},
+                "new_value":    {"type": "object"},
+                "ip_address":   {"type": "string"},
+                "created_at":   {"type": "string", "format": "date-time"}
             }
         },
-        "Pagination": {
+        "SystemUser": {
             "type": "object",
             "properties": {
-                "limit": {"type": "integer"},
-                "offset": {"type": "integer"},
-                "total": {"type": "integer"}
+                "id":                  {"type": "string", "format": "uuid"},
+                "full_name":           {"type": "string"},
+                "login":               {"type": "string"},
+                "role":                {"type": "string", "enum": ["admin", "supervisor"]},
+                "is_active":           {"type": "boolean"},
+                "deactivated_at":      {"type": "string", "format": "date-time"},
+                "deactivated_by_id":   {"type": "integer"},
+                "deactivation_reason": {"type": "string"},
+                "created_at":          {"type": "string", "format": "date-time"}
             }
         },
-        "ErrorResponse": {
+        "CreateSystemUser": {
+            "type": "object",
+            "required": ["full_name", "login", "password", "confirm_password", "role"],
+            "properties": {
+                "full_name":         {"type": "string"},
+                "login":             {"type": "string"},
+                "password":          {"type": "string", "minLength": 8, "maxLength": 20},
+                "confirm_password":  {"type": "string", "minLength": 8, "maxLength": 20},
+                "role":              {"type": "string", "enum": ["admin", "supervisor"]}
+            }
+        },
+        "UpdateSystemUser": {
             "type": "object",
             "properties": {
-                "error": {"type": "string"},
-                "status_code": {"type": "integer"},
-                "request_id": {"type": "string"}
+                "full_name":           {"type": "string"},
+                "is_active":           {"type": "boolean"},
+                "deactivated_at":      {"type": "string", "format": "date-time"},
+                "deactivated_by_id":   {"type": "integer"},
+                "deactivation_reason": {"type": "string"}
             }
         },
         "SystemNotification": {
@@ -1699,6 +2057,44 @@ const docTemplate = `{
                 "body":     {"type": "string"},
                 "type":     {"type": "string"},
                 "meta":     {"type": "object", "additionalProperties": true}
+            }
+        },
+        "VisitWithPhoto": {
+            "type": "object",
+            "properties": {
+                "visit":  {"$ref": "#/definitions/VisitResponse"},
+                "photos": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/VisitPhotos"}
+                },
+                "requirement": {"$ref": "#/definitions/Required"}
+            }
+        },
+        "VisitPhotos": {
+            "type": "object",
+            "properties": {
+                "id":            {"type": "string", "format": "uuid"},
+                "visit_id":      {"type": "string", "format": "uuid"},
+                "photo_url":     {"type": "string"},
+                "captured_at":   {"type": "string", "format": "date-time"},
+                "original_name": {"type": "string"},
+                "photo_type":    {"type": "string", "enum": ["selfie", "shelf"]}
+            }
+        },
+        "Required": {
+            "type": "object",
+            "properties": {
+                "is_photo_required":   {"type": "boolean"},
+                "is_comment_required": {"type": "boolean"},
+                "is_selfie_required":  {"type": "boolean"}
+            }
+        },
+        "ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error":      {"type": "string"},
+                "status_code":{"type": "integer"},
+                "request_id": {"type": "string"}
             }
         }
     }

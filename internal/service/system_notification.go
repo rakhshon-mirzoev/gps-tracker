@@ -19,6 +19,7 @@ type SystemNotification interface {
 	Dispatch(ctx context.Context, event events.NotificationEvent) ([]model.SystemNotification, error)
 	ListByRecipient(ctx context.Context, recipientID uuid.UUID, limit, offset int) ([]model.SystemNotification, int, error)
 	MarkRead(ctx context.Context, notificationID uuid.UUID, recipientID uuid.UUID) error
+	Create(ctx context.Context, n *model.SystemNotification) error
 }
 
 type systemNotificationService struct {
@@ -91,4 +92,8 @@ func (s *systemNotificationService) ListByRecipient(ctx context.Context, recipie
 
 func (s *systemNotificationService) MarkRead(ctx context.Context, notificationID uuid.UUID, recipientID uuid.UUID) error {
 	return s.repo.MarkRead(ctx, notificationID, recipientID)
+}
+
+func (s *systemNotificationService) Create(ctx context.Context, n *model.SystemNotification) error {
+	return s.repo.Create(ctx, n)
 }

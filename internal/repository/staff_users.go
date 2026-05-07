@@ -23,7 +23,7 @@ type StaffUsersRepository interface {
 	Update(ctx context.Context, id uuid.UUID, dto model.UpdateStaffUser) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Deactivate(ctx context.Context, id uuid.UUID, dReason model.DeactivateStaffUser) error
-	ListByGroupID(ctx context.Context, user_id *uuid.UUID) (staff []model.StaffUserLocation, err error)
+	ListByGroupID(ctx context.Context, groupID uuid.UUID) (staff []model.StaffUserLocation, err error)
 	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
 	GetByGroupID(ctx context.Context, group_id uuid.UUID) ([]model.StaffUser, error)
 }
@@ -403,19 +403,14 @@ func (s *staffUsers) Deactivate(ctx context.Context, id uuid.UUID, deactivate mo
 	return nil
 }
 
-func (s *staffUsers) ListByGroupID(ctx context.Context, supervisorID *uuid.UUID) ([]model.StaffUserLocation, error) {
-
-	var where string
-	var args []any
-
-	if supervisorID != nil {
-		where = "WHERE g.supervisor_id = $1 AND s.is_active = true"
-		args = append(args, *supervisorID)
-	} else {
-		where = "WHERE s.is_active = true"
+func (s *staffUsers) ListByGroupID(ctx context.Context, groupID uuid.UUID) ([]model.StaffUserLocation, error) {
+	// Get all group IDs in hierarchy
+	groupIDs, err := s.getGroupHierarchyIDs(ctx, groupID)
+	if err != nil {
+		return nil, fmt.Errorf("get group hierarchy: %w", err)
 	}
 
-	sql := fmt.Sprintf(`
+	sql := `
 		SELECT
 			s.id, s.full_name, s.login, s.inn, s.birthday, s.group_id, s.phone_number,
 			s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at,
@@ -441,10 +436,10 @@ func (s *staffUsers) ListByGroupID(ctx context.Context, supervisorID *uuid.UUID)
 			LIMIT 1
 		) l ON true
 
-		%s
-	`, where)
+		WHERE s.is_active = true AND s.group_id = ANY($1)
+	`
 
-	rows, err := s.DB.Pool.Query(ctx, sql, args...)
+	rows, err := s.DB.Pool.Query(ctx, sql, groupIDs)
 	if err != nil {
 		return nil, fmt.Errorf("list staff by group id: %w", err)
 	}
@@ -524,7 +519,7 @@ func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, e
 			s.id, s.full_name, s.login, s.inn, s.birthday, s.group_id, s.phone_number,
 			s.device_id, s.fcm_token, s.app_version, s.last_battery_level, s.last_seen_at,
 			s.start_at, s.end_at, s.day_started, g.name,
-			l.id, l.latitude, l.longitude, l.battery_level, l.captured_at, l.status
+			l.id, l.staff_id, l.latitude, l.longitude, l.battery_level, l.captured_at, l.status
 		FROM staff_users s
 		JOIN location_history l ON l.staff_id = s.id
 		JOIN groups g ON g.id = s.group_id
@@ -567,6 +562,7 @@ func (s *staffUsers) GetLocationByID(ctx context.Context, id uuid.UUID, begin, e
 			&staff.DayStarted,
 			&staff.GroupName,
 			&loc.ID,
+			&loc.StaffID,
 			&loc.Latitude,
 			&loc.Longitude,
 			&loc.BatteryLevel,
@@ -673,4 +669,32 @@ func derefUUID(v *uuid.UUID) uuid.UUID {
 		return uuid.Nil
 	}
 	return *v
+}
+func (s *staffUsers) getGroupHierarchyIDs(ctx context.Context, groupID uuid.UUID) ([]uuid.UUID, error) {
+	sql := `
+		WITH RECURSIVE group_tree AS (
+			SELECT id FROM groups WHERE id = $1
+			UNION ALL
+			SELECT g.id FROM groups g
+			INNER JOIN group_tree gt ON g.parent_id = gt.id
+		)
+		SELECT id FROM group_tree
+	`
+
+	rows, err := s.DB.Pool.Query(ctx, sql, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+
+	return ids, rows.Err()
 }

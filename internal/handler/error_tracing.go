@@ -80,9 +80,15 @@ func (h *Handler) handleError(c *gin.Context, operation string, err error, defau
 	case errs.ErrorInvalidINN:
 		status = http.StatusBadRequest
 		errorMsg = "INN is invalid"
+	case errs.ErrorInvalidInput:
+		status = http.StatusBadRequest
+		errorMsg = "invalid input"
 	case errs.ErrorNotCompletedVisit:
 		status = http.StatusBadRequest
 		errorMsg = "visit is not completed yet"
+	case errs.ErrorScheduleIsNotApproved:
+		status = http.StatusBadRequest
+		errorMsg = "schedule's not approved"
 	}
 
 	requestID := c.GetString(constants.RequestIDKey)

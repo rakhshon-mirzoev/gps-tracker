@@ -240,21 +240,20 @@ func (h *Handler) DeactivateStaffUser(c *gin.Context) {
 }
 
 func (h *Handler) ListStaffUsersLocationByGroupID(c *gin.Context) {
-	id, role, err := checkSystemUser(c)
+	_, _, err := checkSystemUser(c)
 	if err != nil {
 		h.handleError(c, "ListStaffUsersLocationByGroupID: check system user", err, http.StatusBadRequest)
 		return
 	}
 
-	var supervisorID *uuid.UUID
-
-	if role == "supervisor" {
-		supervisorID = &id
-	} else {
-		supervisorID = nil
+	groupIDStr := c.Param("group_id")
+	groupID, err := uuid.Parse(groupIDStr)
+	if err != nil {
+		h.handleFieldError(c, "ListStaffUsersLocationByGroupID: parse group_id", err)
+		return
 	}
 
-	staffUsers, err := h.s.StaffUser.ListByGroupID(c.Request.Context(), supervisorID)
+	staffUsers, err := h.s.StaffUser.ListByGroupID(c.Request.Context(), groupID)
 	if err != nil {
 		h.handleError(c, "ListStaffUsersLocationByGroupID: list", err, http.StatusBadRequest)
 		return
@@ -331,7 +330,7 @@ func (h *Handler) DayStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"day_started": started})
 }
 
-func (h *Handler) StartWork(c *gin.Context) {
+func (h *Handler) StartDay(c *gin.Context) {
 
 	user_id, err := checkStaffUser(c)
 	if err != nil {
@@ -351,10 +350,36 @@ func (h *Handler) StartWork(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (h *Handler) EndWork(c *gin.Context) {
+func (h *Handler) EndStaffDay(c *gin.Context) {
 	user_id, err := checkStaffUser(c)
 	if err != nil {
 		h.handleFieldError(c, "EndWork: check user", err)
+		return
+	}
+
+	schedules, err := h.s.StaffUser.EndWork(c.Request.Context(), user_id)
+	if err != nil {
+		if err == errs.ErrorNotFinishedDay {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "can't end date", "schedules_count": schedules})
+			return
+		}
+		h.handleError(c, "EndWork: update user", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (h *Handler) EndStaffDayAdmin(c *gin.Context) {
+	user_id, err := uuid.Parse(c.Param("staff_id"))
+	if err != nil {
+		h.handleFieldError(c, "EndWork: check user", err)
+		return
+	}
+
+	sysId, role, err := checkSystemUser(c)
+	if err != nil {
+		h.handleFieldError(c, "EndWorkAdmin", err)
 		return
 	}
 
@@ -362,8 +387,8 @@ func (h *Handler) EndWork(c *gin.Context) {
 
 	if err := h.s.StaffUser.Update(c.Request.Context(), user_id, model.UpdateStaffUser{
 		EndAt: &now,
-	}, uuid.Nil, "", "", "", ""); err != nil {
-		h.handleError(c, "EndWork: update user", err, http.StatusInternalServerError)
+	}, sysId, c.ClientIP(), role, constants.UserTypeStaff, "EndWorkAdmin"); err != nil {
+		h.handleError(c, "EndWorkAdmin: update user", err, http.StatusInternalServerError)
 		return
 	}
 

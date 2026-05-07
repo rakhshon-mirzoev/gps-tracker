@@ -60,6 +60,15 @@ func (s *visitsService) Create(ctx context.Context, vCreate model.CreateVisit, u
 		return nil, err
 	}
 
+	schedule, err := s.schedule.GetByID(ctx, scheduleID)
+	if err != nil {
+		return nil, err
+	}
+
+	if schedule.Status == "initialized" {
+		return nil, errs.ErrorScheduleIsNotApproved
+	}
+
 	store, err := s.store.GetByID(ctx, storeID)
 	if err != nil {
 		return nil, err
@@ -176,9 +185,9 @@ func (s *visitsService) GetByIDPhoto(ctx context.Context, id uuid.UUID) (*model.
 	}
 
 	requirement := model.Required{
-		IsPhotoRequired:   sch.IsPhotoRequired,
-		IsSelfieRequired:  sch.IsSelfieRequired,
-		IsCommentRequired: sch.IsCommentRequired,
+		IsPhotoRequired:   *sch.IsPhotoRequired,
+		IsSelfieRequired:  *sch.IsSelfieRequired,
+		IsCommentRequired: *sch.IsCommentRequired,
 	}
 
 	return &model.VisitWithPhoto{

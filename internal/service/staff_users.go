@@ -27,11 +27,12 @@ type StaffUsers interface {
 	List(ctx context.Context, limit, offset int, groupID *uuid.UUID, status string) ([]model.StaffUser, int, error)
 	Deactivate(ctx context.Context, id uuid.UUID, d model.DeactivateStaffUser, user_id uuid.UUID, ip, role, st, action string) error
 	GetProfile(ctx context.Context, id uuid.UUID, lim, off int) (*model.StaffUserProfile, error)
-	ListByGroupID(ctx context.Context, user_id *uuid.UUID) (staff []model.StaffUserLocation, err error)
+	ListByGroupID(ctx context.Context, groupID uuid.UUID) (staff []model.StaffUserLocation, err error)
 	GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error)
 	UpdateAvatar(ctx context.Context, userID uuid.UUID, file *multipart.FileHeader) error
 	GetWorkTimeStaff(ctx context.Context, id uuid.UUID) (float64, error)
 	DayStarted(ctx context.Context, id uuid.UUID) (bool, error)
+	EndWork(ctx context.Context, id uuid.UUID) (int, error)
 }
 type staffUserService struct {
 	r             repository.StaffUsersRepository
@@ -382,8 +383,8 @@ func (s *staffUserService) Deactivate(ctx context.Context, id uuid.UUID, d model
 	return nil
 }
 
-func (s *staffUserService) ListByGroupID(ctx context.Context, supervisorID *uuid.UUID) ([]model.StaffUserLocation, error) {
-	users, err := s.r.ListByGroupID(ctx, supervisorID)
+func (s *staffUserService) ListByGroupID(ctx context.Context, groupID uuid.UUID) ([]model.StaffUserLocation, error) {
+	users, err := s.r.ListByGroupID(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
@@ -403,4 +404,30 @@ func (s *staffUserService) ListByGroupID(ctx context.Context, supervisorID *uuid
 
 func (s *staffUserService) GetLocationByID(ctx context.Context, id uuid.UUID, begin, end time.Time) (*model.StaffUserLocationHistory, error) {
 	return s.r.GetLocationByID(ctx, id, begin, end)
+}
+
+func (s *staffUserService) EndWork(ctx context.Context, id uuid.UUID) (int, error) {
+
+	schedules, _, err := s.schedules.ListByStaffID(ctx, id, 0, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	result := 0
+	for i := range schedules {
+		if schedules[i].Status == "new" {
+			result++
+		}
+	}
+
+	if result > 0 {
+		return result, errs.ErrorNotFinishedDay
+	}
+
+	endTime := time.Now().In(timezone.Dushanbe)
+	dto := model.UpdateStaffUser{
+		EndAt: &endTime,
+	}
+
+	return 0, s.r.Update(ctx, id, dto)
 }

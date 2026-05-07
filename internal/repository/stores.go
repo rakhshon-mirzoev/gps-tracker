@@ -23,6 +23,8 @@ type StoreRepository interface {
 	Update(ctx context.Context, store model.UpdateStore, id uuid.UUID) error
 	Delete(ctx context.Context, id, user_id uuid.UUID) error
 	List(ctx context.Context, isActive, status, sortBy, sortOrder string, lim, off int) ([]model.Store, int, error)
+	ListByGroupID(ctx context.Context, groupID uuid.UUID) ([]model.Store, error)
+	ListByGroupIDs(ctx context.Context, groupIDs []uuid.UUID) ([]model.Store, error)
 	Deactivate(ctx context.Context, id, deactivatedBy uuid.UUID, reason string) error
 	IfExists(ctx context.Context, name string) (bool, error)
 	BeginTx(ctx context.Context) (pgx.Tx, error)
@@ -63,9 +65,10 @@ func (r *stores) CreateTx(ctx context.Context, tx pgx.Tx, st *model.Store) error
 			owner_phone,
 			additional_phone,
 			comment,
+			group_id,
 			created_by_staff_id
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id;
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id;
 	`
 	if err := r.DB.Pool.QueryRow(
 		ctx,
@@ -80,6 +83,7 @@ func (r *stores) CreateTx(ctx context.Context, tx pgx.Tx, st *model.Store) error
 		st.OwnerPhone,
 		st.AdditionalPhone,
 		st.Comment,
+		st.GroupID,
 		st.CreatedByStaffID,
 	).Scan(&st.ID); err != nil {
 		return fmt.Errorf("create store tx: %w", err)
@@ -100,9 +104,10 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 			owner_phone,
 			additional_phone,
 			comment,
+			group_id,
 			created_by_staff_id
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id;
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id;
 	`
 	err := r.DB.Pool.QueryRow(
 		ctx,
@@ -117,6 +122,7 @@ func (r *stores) Create(ctx context.Context, store *model.Store) error {
 		store.OwnerPhone,
 		store.AdditionalPhone,
 		store.Comment,
+		store.GroupID,
 		store.CreatedByStaffID,
 	).Scan(&store.ID)
 
@@ -132,16 +138,20 @@ func (r *stores) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error
 
 	sql := `
 		SELECT 
-			id, name, address, latitude, longitude,
-			owner_full_name, owner_inn, owner_passport,
-			owner_phone, additional_phone, comment,
-			status, rejection_comment,
-			created_by_staff_id,
-			is_active, is_frozen,
-			deactivated_at, deactivated_by_id, deactivation_reason,
-			created_at
-		FROM stores 
-		WHERE id = $1`
+			s.id, s.name, s.address, s.latitude, s.longitude,
+			s.owner_full_name, s.owner_inn, s.owner_passport,
+			s.owner_phone, s.additional_phone, s.comment,
+			s.status, s.rejection_comment,
+			s.created_by_staff_id,
+			s.is_active, s.is_frozen,
+			s.deactivated_at, s.deactivated_by_id, s.deactivation_reason,
+			s.created_at, s.group_id,
+			su.full_name, su.phone_number,
+			g.name
+		FROM stores s
+		LEFT JOIN groups g ON s.group_id = g.id
+		LEFT JOIN staff_users su ON s.created_by_staff_id = su.id
+		WHERE s.id = $1`
 
 	err := r.DB.Pool.QueryRow(ctx, sql, id).Scan(
 		&store.ID,
@@ -165,6 +175,10 @@ func (r *stores) GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error
 		&store.DeactivatedByID,
 		&store.DeactivationReason,
 		&store.CreatedAt,
+		&store.GroupID,
+		&store.StaffFullName,
+		&store.StaffPhoneNumber,
+		&store.GroupName,
 	)
 
 	if err != nil {
@@ -239,6 +253,16 @@ func (r *stores) Update(ctx context.Context, store model.UpdateStore, id uuid.UU
 	if store.Comment != nil {
 		updates = append(updates, fmt.Sprintf("comment = $%d", argNum))
 		args = append(args, *store.Comment)
+		argNum++
+	}
+
+	if store.GroupID != nil {
+		updates = append(updates, fmt.Sprintf("group_id = $%d", argNum))
+		if *store.GroupID == uuid.Nil {
+			args = append(args, nil)
+		} else {
+			args = append(args, *store.GroupID)
+		}
 		argNum++
 	}
 
@@ -412,13 +436,15 @@ func (r *stores) List(ctx context.Context, isActive, status, sortBy, sortOrder s
 		s.id, s.name, s.address, s.latitude, s.longitude,
 		s.owner_full_name, s.owner_inn, s.owner_passport,
 		s.owner_phone, s.additional_phone, s.comment,
+		s.group_id, g.name,
 		s.status, s.rejection_comment,
 		s.created_by_staff_id,
 		s.is_active, s.is_frozen,
 		s.created_at, s.deactivated_at, s.deactivated_by_id, s.deactivation_reason,
 		su.full_name, su.phone_number
 	FROM stores s
-	JOIN staff_users su ON su.id = s.created_by_staff_id
+		LEFT JOIN groups g ON s.group_id = g.id
+		LEFT JOIN staff_users su ON s.created_by_staff_id = su.id
 	%s
 	ORDER BY %s
 	LIMIT $%d OFFSET $%d`
@@ -449,6 +475,7 @@ func (r *stores) List(ctx context.Context, isActive, status, sortBy, sortOrder s
 			&s.ID, &s.Name, &s.Address, &s.Latitude, &s.Longitude,
 			&s.OwnerFullName, &s.OwnerINN, &s.OwnerPassport,
 			&s.OwnerPhone, &s.AdditionalPhone, &s.Comment,
+			&s.GroupID, &s.GroupName,
 			&s.Status, &s.RejectionComment,
 			&s.CreatedByStaffID,
 			&s.IsActive, &s.IsFrozen,
@@ -467,6 +494,120 @@ func (r *stores) List(ctx context.Context, isActive, status, sortBy, sortOrder s
 	return storesList, total, nil
 }
 
+func (r *stores) ListByGroupID(ctx context.Context, groupID uuid.UUID) ([]model.Store, error) {
+	// Get all group IDs in hierarchy
+	groupIDs, err := r.getGroupHierarchyIDs(ctx, groupID)
+	if err != nil {
+		return nil, fmt.Errorf("get group hierarchy: %w", err)
+	}
+
+	sql := `
+		SELECT 
+			s.id, s.name, s.address, s.latitude, s.longitude,
+			s.owner_full_name, s.owner_inn, s.owner_passport,
+			s.owner_phone, s.additional_phone, s.comment,
+			s.group_id, g.name as group_name,
+			s.status, s.rejection_comment,
+			s.created_by_staff_id,
+			s.is_active, s.is_frozen,
+			s.created_at, s.deactivated_at, s.deactivated_by_id, s.deactivation_reason,
+			su.full_name, su.phone_number
+		FROM stores s
+		LEFT JOIN groups g ON s.group_id = g.id
+		LEFT JOIN staff_users su ON s.created_by_staff_id = su.id
+		WHERE s.group_id = ANY($1) AND s.is_active = true
+		ORDER BY s.name
+	`
+
+	rows, err := r.DB.Pool.Query(ctx, sql, groupIDs)
+	if err != nil {
+		return nil, fmt.Errorf("list stores by group id: %w", err)
+	}
+	defer rows.Close()
+
+	var storesList = make([]model.Store, 0)
+
+	for rows.Next() {
+		s := model.Store{}
+		if err := rows.Scan(
+			&s.ID, &s.Name, &s.Address, &s.Latitude, &s.Longitude,
+			&s.OwnerFullName, &s.OwnerINN, &s.OwnerPassport,
+			&s.OwnerPhone, &s.AdditionalPhone, &s.Comment,
+			&s.GroupID, &s.GroupName,
+			&s.Status, &s.RejectionComment,
+			&s.CreatedByStaffID,
+			&s.IsActive, &s.IsFrozen,
+			&s.CreatedAt, &s.DeactivatedAt, &s.DeactivatedByID, &s.DeactivationReason,
+			&s.StaffFullName, &s.StaffPhoneNumber,
+		); err != nil {
+			return nil, fmt.Errorf("scan store: %w", err)
+		}
+		storesList = append(storesList, s)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	return storesList, nil
+}
+
+func (r *stores) ListByGroupIDs(ctx context.Context, groupIDs []uuid.UUID) ([]model.Store, error) {
+	if len(groupIDs) == 0 {
+		return []model.Store{}, nil
+	}
+
+	sql := `
+		SELECT 
+			s.id, s.name, s.address, s.latitude, s.longitude,
+				s.owner_full_name, s.owner_inn, s.owner_passport,
+				s.owner_phone, s.additional_phone, s.comment,
+				s.group_id, g.name as group_name,
+				s.status, s.rejection_comment,
+				s.created_by_staff_id,
+				s.is_active, s.is_frozen,
+				s.created_at, s.deactivated_at, s.deactivated_by_id, s.deactivation_reason,
+				su.full_name, su.phone_number
+		FROM stores s
+		LEFT JOIN groups g ON s.group_id = g.id
+		LEFT JOIN staff_users su ON s.created_by_staff_id = su.id
+		WHERE s.group_id = ANY($1) AND s.is_active = true
+		ORDER BY s.name
+	`
+
+	rows, err := r.DB.Pool.Query(ctx, sql, groupIDs)
+	if err != nil {
+		return nil, fmt.Errorf("list stores by group ids: %w", err)
+	}
+	defer rows.Close()
+
+	storesList := make([]model.Store, 0)
+
+	for rows.Next() {
+		s := model.Store{}
+		if err := rows.Scan(
+			&s.ID, &s.Name, &s.Address, &s.Latitude, &s.Longitude,
+			&s.OwnerFullName, &s.OwnerINN, &s.OwnerPassport,
+			&s.OwnerPhone, &s.AdditionalPhone, &s.Comment,
+			&s.GroupID, &s.GroupName,
+			&s.Status, &s.RejectionComment,
+			&s.CreatedByStaffID,
+			&s.IsActive, &s.IsFrozen,
+			&s.CreatedAt, &s.DeactivatedAt, &s.DeactivatedByID, &s.DeactivationReason,
+			&s.StaffFullName, &s.StaffPhoneNumber,
+		); err != nil {
+			return nil, fmt.Errorf("scan store: %w", err)
+		}
+		storesList = append(storesList, s)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	return storesList, nil
+}
+
 func (r *stores) IfExists(ctx context.Context, name string) (bool, error) {
 	var s model.Store
 
@@ -482,4 +623,33 @@ func (r *stores) IfExists(ctx context.Context, name string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (r *stores) getGroupHierarchyIDs(ctx context.Context, groupID uuid.UUID) ([]uuid.UUID, error) {
+	sql := `
+		WITH RECURSIVE group_tree AS (
+			SELECT id FROM groups WHERE id = $1
+			UNION ALL
+			SELECT g.id FROM groups g
+			INNER JOIN group_tree gt ON g.parent_id = gt.id
+		)
+		SELECT id FROM group_tree
+	`
+
+	rows, err := r.DB.Pool.Query(ctx, sql, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+
+	return ids, rows.Err()
 }

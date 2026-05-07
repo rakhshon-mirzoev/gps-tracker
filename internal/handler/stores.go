@@ -106,6 +106,82 @@ func (h *Handler) ListStores(c *gin.Context) {
 	c.JSON(http.StatusOK, model.NewPaginatedResponse(stores, lim, off, total))
 }
 
+func (h *Handler) ListStoresByGroupID(c *gin.Context) {
+	_, _, err := checkSystemUser(c)
+	if err != nil {
+		h.handleError(c, "ListStoresByGroupID: check system user", err, http.StatusBadRequest)
+		return
+	}
+
+	groupIDStr := c.Param("group_id")
+	groupID, err := uuid.Parse(groupIDStr)
+	if err != nil {
+		h.handleFieldError(c, "ListStoresByGroupID: parse group_id", err)
+		return
+	}
+
+	stores, err := h.s.Store.ListByGroupID(c.Request.Context(), groupID)
+	if err != nil {
+		h.handleError(c, "ListStoresByGroupID: list stores", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"stores": stores})
+}
+
+func (h *Handler) AssignStoreGroup(c *gin.Context) {
+	userID, role, err := checkSystemUser(c)
+	if err != nil {
+		h.handleError(c, "AssignStoreGroup: check system user", err, http.StatusBadRequest)
+		return
+	}
+
+	storeID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		h.handleFieldError(c, "AssignStoreGroup: parse store id", err)
+		return
+	}
+
+	var body struct {
+		GroupID uuid.UUID `json:"group_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		h.handleFieldError(c, "AssignStoreGroup", err)
+		return
+	}
+
+	dto := model.UpdateStore{GroupID: &body.GroupID}
+	if err := h.s.Store.Update(c.Request.Context(), dto, storeID, userID, c.ClientIP(), constants.Stores, role, "AssignStoreGroup"); err != nil {
+		h.handleError(c, "AssignStoreGroup", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "store group assigned"})
+}
+
+func (h *Handler) UnassignStoreGroup(c *gin.Context) {
+	userID, role, err := checkSystemUser(c)
+	if err != nil {
+		h.handleError(c, "UnassignStoreGroup: check system user", err, http.StatusBadRequest)
+		return
+	}
+
+	storeID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		h.handleFieldError(c, "UnassignStoreGroup: parse store id", err)
+		return
+	}
+
+	nilGroupID := uuid.Nil
+	dto := model.UpdateStore{GroupID: &nilGroupID}
+	if err := h.s.Store.Update(c.Request.Context(), dto, storeID, userID, c.ClientIP(), constants.Stores, role, "UnassignStoreGroup"); err != nil {
+		h.handleError(c, "UnassignStoreGroup", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "store group removed"})
+}
+
 func (h *Handler) ApproveStore(c *gin.Context) {
 	var s model.UpdateStore
 

@@ -17,6 +17,10 @@ CREATE TABLE stores
     exterior_photo TEXT,
     comment TEXT,
 
+    group_id UUID
+        REFERENCES groups(id)
+        ON DELETE RESTRICT,
+
     status   VARCHAR(40)         NOT NULL DEFAULT 'pending',
     rejection_comment  TEXT,
 

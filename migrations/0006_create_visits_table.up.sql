@@ -16,7 +16,7 @@ CREATE TABLE visits(
 
     distance_deviation  INTEGER   DEFAULT 0,
     comment   TEXT,
-    is_offline      BOOLEAN   NOT NULL DEFAULT FALSE,
+    is_offline       BOOLEAN   NOT NULL DEFAULT FALSE,
 
     review_status  VARCHAR(40)  NOT NULL DEFAULT 'new',
 

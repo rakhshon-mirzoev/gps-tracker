@@ -82,6 +82,29 @@ func (h *Handler) AssignSchedule(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"schedule": dto})
 }
 
+func (h *Handler) AssignScheduleBulk(c *gin.Context) {
+	var dto *model.CreateSchedulesBulk
+
+	adminID, role, err := checkSystemUser(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		h.handleFieldError(c, "AssignScheduleBulk", err)
+		return
+	}
+
+	count, err := h.s.Schedule.CreateBulk(c.Request.Context(), dto, adminID, c.ClientIP(), constants.Schedule, role)
+	if err != nil {
+		h.handleError(c, "AssignScheduleBulk: create schedules", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"status": "success", "count": count})
+}
+
 func (h *Handler) DeleteSchedule(c *gin.Context) {
 	uid, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -117,4 +140,29 @@ func (h *Handler) UpdateSchedule(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (h *Handler) InitSchedule(c *gin.Context) {
+	var dto model.CreateSchedule
+
+	staff_id, err := checkStaffUser(c)
+	if err != nil {
+		h.handleFieldError(c, "InitSchedule: check staff", err)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		h.handleFieldError(c, "InitSchedule: bind request", err)
+		return
+	}
+
+	dto.StaffID = staff_id
+
+	if err := h.s.Schedule.InitSchedule(c.Request.Context(), &dto); err != nil {
+		h.handleError(c, "InitSchedule: error to init", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "unplanned schedule created"})
+
 }

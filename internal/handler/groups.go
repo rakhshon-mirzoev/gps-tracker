@@ -88,6 +88,11 @@ func (h *Handler) ListGroups(c *gin.Context) {
 		return
 	}
 
+	groupType := c.Query("type")
+	if groupType == "" {
+		groupType = "staff" // default
+	}
+
 	var supervisorID *uuid.UUID
 
 	if role == "supervisor" {
@@ -96,7 +101,7 @@ func (h *Handler) ListGroups(c *gin.Context) {
 		supervisorID = nil
 	}
 
-	groups, total, err := h.s.Group.List(c.Request.Context(), supervisorID, lim, off)
+	groups, total, err := h.s.Group.List(c.Request.Context(), groupType, supervisorID, lim, off)
 	if err != nil {
 		h.handleError(c, "ListGroups: list", err, http.StatusInternalServerError)
 		return
@@ -104,6 +109,29 @@ func (h *Handler) ListGroups(c *gin.Context) {
 
 	c.JSON(http.StatusOK, model.NewPaginatedResponse(groups, lim, off, total))
 }
+
+func (h *Handler) GetGroupHierarchy(c *gin.Context) {
+	_, _, err := checkSystemUser(c)
+	if err != nil {
+		h.handleError(c, "GetGroupHierarchy: check system user", err, http.StatusBadRequest)
+		return
+	}
+
+	groupType := c.Param("type")
+	if groupType == "" {
+		h.handleFieldError(c, "GetGroupHierarchy: type required", errs.ErrorInvalidInput)
+		return
+	}
+
+	groups, err := h.s.Group.GetHierarchy(c.Request.Context(), groupType)
+	if err != nil {
+		h.handleError(c, "GetGroupHierarchy: get hierarchy", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"groups": groups})
+}
+
 func (h *Handler) UpdateGroup(c *gin.Context) {
 	user_id, _, err := checkSystemUser(c)
 	if err != nil {
@@ -136,4 +164,50 @@ func (h *Handler) UpdateGroup(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "update"})
+}
+
+func (h *Handler) GetGroupDescendants(c *gin.Context) {
+	uid, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		h.handleFieldError(c, "GetGroupDescendants: parse id", err)
+		return
+	}
+
+	groups, err := h.s.Group.GetDescendants(c.Request.Context(), uid)
+	if err != nil {
+		h.handleError(c, "GetGroupDescendants", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"groups": groups})
+}
+
+func (h *Handler) AssignParentGroup(c *gin.Context) {
+	id, role, err := checkSystemUser(c)
+	if err != nil {
+		h.handleFieldError(c, "AssignParentGroup: check user", err)
+		return
+	}
+
+	group_id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		h.handleFieldError(c, "AssignParentGroup: parse", err)
+		return
+	}
+
+	var parent struct {
+		ParentID uuid.UUID `json:"parent_id"`
+	}
+
+	if err := c.ShouldBindJSON(&parent); err != nil {
+		h.handleFieldError(c, "AssignParentGroup: bind request", err)
+		return
+	}
+
+	if err := h.s.Group.Update(c.Request.Context(), model.Group{ParentID: &parent.ParentID}, group_id, id, c.ClientIP(), "Groups", role, "AssignParentGroup"); err != nil {
+		h.handleError(c, "AssignParentGroup: update", err, http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }

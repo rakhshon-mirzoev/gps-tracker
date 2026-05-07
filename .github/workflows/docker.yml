@@ -1,0 +1,85 @@
+name: Build and Push Docker Image
+
+permissions:
+  contents: read
+  packages: write
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Detect changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            admin:
+              - 'cmd/admin/**'
+              - 'Dockerfile.admin'
+              - 'docs/admin/**'
+            mobile:
+              - 'cmd/mobile/**'
+              - 'Dockerfile.mobile'
+              - 'docs/admin/**'
+            shared:
+              - 'internal/**'
+              - 'pkg/**'
+              - 'config/**'
+              - 'migrations/**'
+              - 'go.mod'
+              - 'go.sum'
+
+      - name: Build and push image Admin
+        if: steps.changes.outputs.admin == 'true' || steps.changes.outputs.shared == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.admin
+          push: true
+          tags: ghcr.io/ikbolnazarov/gps-tracker-admin:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+
+      - name: Build and push image Mobile
+        if: steps.changes.outputs.mobile == 'true' || steps.changes.outputs.shared == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.mobile
+          push: true
+          tags: ghcr.io/ikbolnazarov/gps-tracker-mobile:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ~/projects/gps-tracker
+            docker pull ghcr.io/ikbolnazarov/gps-tracker-admin:latest
+            docker pull ghcr.io/ikbolnazarov/gps-tracker-mobile:latest
+            docker compose up -d admin
+            docker compose up -d mobile

@@ -22,6 +22,7 @@ type Stores interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Store, error)
 	GetByIDPhoto(ctx context.Context, id uuid.UUID) (*model.StoreWithPhoto, error)
 	List(ctx context.Context, isActive, status, sortBy, sortOrder string, lim, off int) ([]model.StoreWithPhoto, int, error)
+	ListByGroupID(ctx context.Context, groupID uuid.UUID) ([]model.StoreWithPhoto, error)
 	Update(ctx context.Context, s model.UpdateStore, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error
 	Delete(ctx context.Context, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error
 	IfExists(ctx context.Context, name string) (bool, error)
@@ -72,6 +73,7 @@ func (s *storesService) Create(ctx context.Context, store model.CreateStore, use
 		OwnerPhone:       &store.OwnerPhone,
 		AdditionalPhone:  store.AdditionalPhone,
 		Comment:          store.Comment,
+		GroupID:          store.GroupID,
 		CreatedByStaffID: userID,
 	}
 
@@ -226,6 +228,29 @@ func (s *storesService) List(ctx context.Context, isActive, status, sortBy, sort
 	}
 
 	return result, total, nil
+}
+
+func (s *storesService) ListByGroupID(ctx context.Context, groupID uuid.UUID) ([]model.StoreWithPhoto, error) {
+	stores, err := s.r.ListByGroupID(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]model.StoreWithPhoto, 0, len(stores))
+
+	for _, store := range stores {
+		photos, err := s.photos.List(ctx, store.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, model.StoreWithPhoto{
+			Store:       store,
+			StorePhotos: photos,
+		})
+	}
+
+	return result, nil
 }
 
 func (s *storesService) Update(ctx context.Context, store model.UpdateStore, id uuid.UUID, user_id uuid.UUID, ip, role, st, action string) error {

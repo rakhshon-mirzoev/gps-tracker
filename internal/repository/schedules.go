@@ -24,6 +24,8 @@ type ScheduleRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListByStaffID(ctx context.Context, staffID uuid.UUID, limit, offset int) ([]model.Schedule, int, error)
 	ListAll(ctx context.Context, staffID, storeID *uuid.UUID, dateFrom, dateTo string, limit, offset int) ([]model.Schedule, int, error)
+	CreateBulk(ctx context.Context, schedules []model.Schedule) error
+	InitSchedule(ctx context.Context, schedule *model.Schedule) error
 }
 
 func NewScheduleRepository(db *db.DB) ScheduleRepository {
@@ -66,6 +68,74 @@ func (r *schedules) Create(ctx context.Context, schedule *model.Schedule) error 
 		return fmt.Errorf("create schedule: %w", err)
 	}
 
+	return nil
+}
+
+func (r *schedules) InitSchedule(ctx context.Context, schedule *model.Schedule) error {
+	sql := `
+		INSERT INTO schedules (
+			staff_id,
+			store_id,
+			description,
+			planned_date,
+			window_open,
+			window_close,
+			status,
+			is_unplanned,
+			created_at_lat,
+			created_at_lon
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		RETURNING id `
+
+	err := r.DB.Pool.QueryRow(
+		ctx,
+		sql,
+		schedule.StaffID,
+		schedule.StoreID,
+		schedule.Description,
+		schedule.PlannedDate,
+		schedule.WindowOpen,
+		schedule.WindowClose,
+		schedule.Status,
+		schedule.IsUnplanned,
+		schedule.CreatedAtLat,
+		schedule.CreatedAtLon,
+	).Scan(&schedule.ID)
+
+	if err != nil {
+		return fmt.Errorf("init schedule: %w", err)
+	}
+
+	return nil
+}
+
+func (r *schedules) CreateBulk(ctx context.Context, schedules []model.Schedule) error {
+	batch := &pgx.Batch{}
+
+	sql := `
+		INSERT INTO schedules (
+			staff_id, store_id, planned_date, description, 
+			window_open, window_close, is_photo_required, 
+			is_selfie_required, is_comment_required, created_by_admin_id
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+
+	for _, s := range schedules {
+		batch.Queue(sql, s.StaffID, s.StoreID, s.PlannedDate, s.Description,
+			s.WindowOpen, s.WindowClose, s.IsPhotoRequired,
+			s.IsSelfieRequired, s.IsCommentRequired, s.CreatedByAdminID)
+	}
+
+	br := r.DB.Pool.SendBatch(ctx, batch)
+	defer br.Close()
+
+	for i := 0; i < len(schedules); i++ {
+		_, err := br.Exec()
+		if err != nil {
+			return fmt.Errorf("bulk insert error at index %d: %w", i, err)
+		}
+	}
 	return nil
 }
 

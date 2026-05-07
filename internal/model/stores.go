@@ -18,6 +18,8 @@ type Store struct {
 	OwnerPhone         *string    `json:"owner_phone,omitempty" db:"owner_phone"`
 	AdditionalPhone    *string    `json:"additional_phone,omitempty" db:"additional_phone"`
 	Comment            *string    `json:"comment,omitempty" db:"comment"`
+	GroupID            *uuid.UUID `json:"group_id,omitempty" db:"group_id"`
+	GroupName          *string    `json:"group_name,omitempty"`
 	Status             string     `json:"status" db:"status"`
 	RejectionComment   *string    `json:"rejection_comment,omitempty" db:"rejection_comment"`
 	CreatedByStaffID   uuid.UUID  `json:"created_by_staff_id" db:"created_by_staff_id"`
@@ -32,18 +34,19 @@ type Store struct {
 }
 
 type CreateStore struct {
-	Name            string   `json:"name" binding:"required"`
-	Address         string   `json:"address" binding:"required"`
-	Latitude        float64  `json:"latitude" binding:"required"`
-	Longitude       float64  `json:"longitude" binding:"required"`
-	OwnerFullName   string   `json:"owner_full_name" binding:"required"`
-	OwnerINN        string   `json:"owner_inn" binding:"required"`
-	OwnerPhone      string   `json:"owner_phone" binding:"required"`
-	OwnerPassport   *string  `json:"owner_passport"`
-	AdditionalPhone *string  `json:"additional_phone"`
-	Comment         *string  `json:"comment"`
-	InteriorPhotos  []string `json:"interior_photos"`
-	ExteriorPhotos  []string `json:"exterior_photos"`
+	Name            string     `json:"name" binding:"required"`
+	Address         string     `json:"address" binding:"required"`
+	Latitude        float64    `json:"latitude" binding:"required"`
+	Longitude       float64    `json:"longitude" binding:"required"`
+	OwnerFullName   string     `json:"owner_full_name" binding:"required"`
+	OwnerINN        string     `json:"owner_inn" binding:"required"`
+	OwnerPhone      string     `json:"owner_phone" binding:"required"`
+	OwnerPassport   *string    `json:"owner_passport"`
+	AdditionalPhone *string    `json:"additional_phone"`
+	Comment         *string    `json:"comment"`
+	GroupID         *uuid.UUID `json:"group_id,omitempty"`
+	InteriorPhotos  []string   `json:"interior_photos"`
+	ExteriorPhotos  []string   `json:"exterior_photos"`
 }
 
 type UpdateStore struct {
@@ -57,6 +60,7 @@ type UpdateStore struct {
 	OwnerPhone         *string    `json:"owner_phone"`
 	AdditionalPhone    *string    `json:"additional_phone"`
 	Comment            *string    `json:"comment"`
+	GroupID            *uuid.UUID `json:"group_id"`
 	CreatedByStaffID   *string    `json:"created_by_staff_id"`
 	Status             *string    `json:"status"`
 	RejectionComment   *string    `json:"rejection_comment"`

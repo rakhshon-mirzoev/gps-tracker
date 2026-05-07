@@ -14,6 +14,10 @@ CREATE TABLE schedules (
     window_open TIMESTAMP,
     window_close TIMESTAMP,
 
+    is_unplanned BOOLEAN DEFAULT false,
+    created_at_lat FLOAT,
+    created_at_lon FLOAT,
+
     is_photo_required BOOLEAN,
     is_selfie_required BOOLEAN,
     is_comment_required BOOLEAN,
@@ -26,4 +30,5 @@ CREATE TABLE schedules (
 );
 
 ALTER TABLE schedules
-    ADD CONSTRAINT schedules_status_check CHECK (status IN ('new','pending','approved','rejected'));
+    ADD CONSTRAINT schedules_status_check CHECK (status IN ('new','pending','approved','rejected', 'initialized'));
+CREATE INDEX idx_schedules_is_unplanned ON schedules(is_unplanned);

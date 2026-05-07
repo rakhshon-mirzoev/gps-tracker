@@ -64,13 +64,14 @@ func registerMobileRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Ha
 		mobi.GET("/notifications", h.ListNotifications)
 		mobi.PATCH("/notifications/:id/read", h.MarkNotificationRead)
 		mobi.GET("/schedule", h.ListShedules)
+		mobi.POST("/schedule", h.InitSchedule)
 		mobi.GET("/my-stores", h.ListStoresByStaffIdStaff)
 		mobi.POST("/location", h.Location)
 		mobi.POST("/stores/upload-photo", h.UploadStorePhoto)
 		mobi.POST("/stores/propose", h.CreateStore)
 		mobi.GET("/day-status", h.DayStatus)
-		mobi.PUT("/start-work", h.StartWork)
-		mobi.PUT("/end-work", h.EndWork)
+		mobi.PUT("/start-work", h.StartDay)
+		mobi.PUT("/end-work", h.EndStaffDay)
 	}
 
 	visit := mobi.Group(constants.VisitGroup)

@@ -103,34 +103,27 @@ func (s *systemUsers) Update(ctx context.Context, dto *model.UpdateSystemUser, i
 	args := make([]any, 0)
 	n := 1
 
+	// Вспомогательная функция для уменьшения дублирования
+	addSet := func(column string, value any) {
+		sets = append(sets, fmt.Sprintf("%s = $%d", column, n))
+		args = append(args, value)
+		n++
+	}
+
 	if dto.FullName != nil {
-		sets = append(sets, fmt.Sprintf("full_name = $%d", n))
-		args = append(args, *dto.FullName)
-		n++
+		addSet("full_name", *dto.FullName)
 	}
-
 	if dto.IsActive != nil {
-		sets = append(sets, fmt.Sprintf("is_active = $%d", n))
-		args = append(args, *dto.IsActive)
-		n++
+		addSet("is_active", *dto.IsActive)
 	}
-
 	if dto.DeactivatedAt != nil {
-		sets = append(sets, fmt.Sprintf("deactivated_at = $%d", n))
-		args = append(args, *dto.DeactivatedAt)
-		n++
+		addSet("deactivated_at", *dto.DeactivatedAt)
 	}
-
 	if dto.DeactivatedByID != nil {
-		sets = append(sets, fmt.Sprintf("deactivated_by_id = $%d", n))
-		args = append(args, *dto.DeactivatedByID)
-		n++
+		addSet("deactivated_by_id", *dto.DeactivatedByID)
 	}
-
 	if dto.DeactivationReason != nil {
-		sets = append(sets, fmt.Sprintf("deactivation_reason = $%d", n))
-		args = append(args, *dto.DeactivationReason)
-		n++
+		addSet("deactivation_reason", *dto.DeactivationReason)
 	}
 
 	if len(sets) == 0 {
@@ -142,12 +135,11 @@ func (s *systemUsers) Update(ctx context.Context, dto *model.UpdateSystemUser, i
 		strings.Join(sets, ", "),
 		n,
 	)
-
 	args = append(args, id)
 
 	_, err := s.DB.Pool.Exec(ctx, query, args...)
 	if err != nil {
-		return fmt.Errorf("update system user: %w", err)
+		return fmt.Errorf("update system user error: %w", err)
 	}
 
 	return nil

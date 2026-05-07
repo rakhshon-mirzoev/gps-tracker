@@ -53,10 +53,9 @@ func (r *visit) CreateTx(ctx context.Context, tx pgx.Tx, v *model.Visit) error {
 			check_in_lat,
 			check_in_lon,
 			distance_deviation,
-			is_offline,
 			reviewer_id
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9
+			$1, $2, $3, $4, $5, $6, $7, $8
 		)
 		RETURNING id, created_at
 	`
@@ -109,7 +108,8 @@ func (r *visit) Create(ctx context.Context, v model.Visit) error {
 
 func (r *visit) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error) {
 	sql := `
-        SELECT v.id, v.schedule_id, v.staff_id, v.store_id, v.check_in_at, v.check_out_at, 
+        SELECT v.id, v.schedule_id, v.staff_id, v.store_id, v.check_in_at, v.check_out_at,
+			   EXTRACT(EPOCH FROM (COALESCE(v.check_out_at, NOW()) - v.check_in_at))::BIGINT AS duration,
 			   v.check_in_lat, v.check_in_lon, v.distance_deviation, v.comment,
                v.is_offline, v.review_status, v.review_comment, v.reviewer_id,
                v.reviewed_at, v.created_at, s.name
@@ -120,7 +120,7 @@ func (r *visit) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 
 	var v model.Visit
 	err := r.DB.Pool.QueryRow(ctx, sql, id).Scan(
-		&v.ID, &v.ScheduleID, &v.StaffID, &v.StoreID, &v.CheckInAt, &v.CheckOutAt,
+		&v.ID, &v.ScheduleID, &v.StaffID, &v.StoreID, &v.CheckInAt, &v.CheckOutAt, &v.Duration,
 		&v.CheckInLat, &v.CheckInLon, &v.DistanceDeviation, &v.Comment,
 		&v.IsOffline, &v.ReviewStatus, &v.ReviewComment, &v.ReviewerID,
 		&v.ReviewedAt, &v.CreatedAt, &v.StoreName,
@@ -135,6 +135,7 @@ func (r *visit) GetByID(ctx context.Context, id uuid.UUID) (*model.Visit, error)
 func (r *visit) List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, error) {
 	sql := `
         SELECT id, schedule_id, staff_id, store_id, check_in_at, check_out_at,
+			   EXTRACT(EPOCH FROM (COALESCE(check_out_at, NOW()) - check_in_at))::BIGINT AS duration,
                check_in_lat, check_in_lon, distance_deviation, comment,
                is_offline, review_status, review_comment, reviewer_id,
                reviewed_at, created_at
@@ -152,7 +153,7 @@ func (r *visit) List(ctx context.Context, scheduleID uuid.UUID) ([]model.Visit, 
 		var v model.Visit
 
 		if err := rows.Scan(
-			&v.ID, &v.ScheduleID, &v.StaffID, &v.StoreID, &v.CheckInAt, &v.CheckOutAt,
+			&v.ID, &v.ScheduleID, &v.StaffID, &v.StoreID, &v.CheckInAt, &v.CheckOutAt, &v.Duration,
 			&v.CheckInLat, &v.CheckInLon, &v.DistanceDeviation, &v.Comment,
 			&v.IsOffline, &v.ReviewStatus, &v.ReviewComment, &v.ReviewerID,
 			&v.ReviewedAt, &v.CreatedAt,
@@ -316,6 +317,7 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 	// SELECT
 	sql := fmt.Sprintf(`
 		SELECT v.id, v.schedule_id, v.staff_id, v.store_id, v.check_in_at, v.check_out_at,
+			   EXTRACT(EPOCH FROM (COALESCE(v.check_out_at, NOW()) - v.check_in_at))::BIGINT AS duration,
 			   v.check_in_lat, v.check_in_lon, v.distance_deviation, v.comment,
 			   v.is_offline, v.review_status, v.review_comment, v.reviewer_id,
 			   v.reviewed_at, v.created_at,
@@ -346,6 +348,7 @@ func (r *visit) ListByReviewStatus(ctx context.Context, status string, limit, of
 
 		if err := rows.Scan(
 			&v.ID, &v.ScheduleID, &v.StaffID, &v.StoreID, &v.CheckInAt, &v.CheckOutAt,
+			&v.Duration,
 			&v.CheckInLat, &v.CheckInLon, &v.DistanceDeviation, &v.Comment,
 			&v.IsOffline, &v.ReviewStatus, &v.ReviewComment, &v.ReviewerID,
 			&v.ReviewedAt, &v.CreatedAt,
@@ -421,6 +424,7 @@ func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UU
 		v.id,
 		v.check_in_at,
 		v.check_out_at,
+		EXTRACT(EPOCH FROM (COALESCE(v.check_out_at, NOW()) - v.check_in_at))::BIGINT AS duration,
 		v.check_in_lat,
 		v.check_in_lon,
 		v.distance_deviation,
@@ -463,6 +467,7 @@ func (s *visit) GetDataForExcel(ctx context.Context, staff_id, store_id *uuid.UU
 			&v.ID,
 			&v.CheckInAt,
 			&v.CheckOutAt,
+			&v.Duration,
 			&v.CheckInLat,
 			&v.CheckInLon,
 			&v.DistanceDeviation,
@@ -515,6 +520,7 @@ func (s *visit) HasActiveVisit(ctx context.Context, staffID uuid.UUID) (bool, er
 func (s *visit) GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, staffID uuid.UUID) (*model.Visit, error) {
 	sql := `
 		SELECT id, check_in_at, check_out_at,
+			   EXTRACT(EPOCH FROM (COALESCE(check_out_at, NOW()) - check_in_at))::BIGINT AS duration,	
 			   check_in_lat, check_in_lon, distance_deviation, comment,
 			   is_offline, review_status, review_comment, reviewer_id,
 			   reviewed_at, created_at
@@ -528,6 +534,7 @@ func (s *visit) GetByStoreScheduleId(ctx context.Context, storeID, scheduleID, s
 		&v.ID,
 		&v.CheckInAt,
 		&v.CheckOutAt,
+		&v.Duration,
 		&v.CheckInLat,
 		&v.CheckInLon,
 		&v.DistanceDeviation,
@@ -562,6 +569,7 @@ func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off 
 
 	sql := `
 		SELECT v.id, v.schedule_id, v.staff_id, v.store_id, s.name, v.check_in_at, v.check_out_at,
+		       EXTRACT(EPOCH FROM (COALESCE(v.check_out_at, NOW()) - v.check_in_at))::BIGINT AS duration,
 			   v.check_in_lat, v.check_in_lon, v.distance_deviation, v.comment,
 			   v.is_offline, v.review_status, v.review_comment, v.reviewer_id,
 			   v.reviewed_at, v.created_at
@@ -587,6 +595,7 @@ func (s *visit) ListByStaffID(ctx context.Context, staff_id uuid.UUID, lim, off 
 			&visit.StoreName,
 			&visit.CheckInAt,
 			&visit.CheckOutAt,
+			&visit.Duration,
 			&visit.CheckInLat,
 			&visit.CheckInLon,
 			&visit.DistanceDeviation,

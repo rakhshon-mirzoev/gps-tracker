@@ -24,6 +24,7 @@ type Visit struct {
 	ReviewerID        *uuid.UUID `json:"reviewer_id" db:"reviewer_id"`
 	ReviewedAt        *time.Time `json:"reviewed_at" db:"reviewed_at"`
 	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
+	Duration          int64      `json:"duration"`
 }
 
 type UpdateVisit struct {
@@ -76,6 +77,7 @@ type VisitResponse struct {
 	CreatedAt         time.Time        `json:"created_at"`
 	Staff             *VisitStaffBrief `json:"staff,omitempty"`
 	Store             *VisitStoreBrief `json:"store,omitempty"`
+	Duration          int64            `json:"duration"`
 }
 
 type CreateVisit struct {
@@ -101,6 +103,7 @@ type VisitExcel struct {
 	Reviewer          *SystemUser `json:"reviewer"`
 	ReviewedAt        *time.Time  `json:"reviewed_at"`
 	CreatedAt         time.Time   `json:"created_at"`
+	Duration          int64       `json:"duration"`
 }
 
 type VisitWithPhoto struct {

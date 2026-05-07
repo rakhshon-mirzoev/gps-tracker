@@ -379,14 +379,46 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "schedules": {
+                                "data": {
                                     "type": "array",
                                     "items": {"$ref": "#/definitions/Schedule"}
                                 },
-                                "total": {"type": "integer"}
+                                "total": {"type": "integer"},
+                                "limit": {"type": "integer"},
+                                "offset": {"type": "integer"}
                             }
                         }
                     },
+                    "403": {"description": "Нет доступа"},
+                    "500": {"description": "Internal Server Error"}
+                }
+            },
+            "post": {
+                "tags": ["Schedule"],
+                "summary": "Создать незапланированный визит (init schedule)",
+                "description": "Сотрудник самостоятельно инициирует неплановый визит в магазин. staff_id проставляется автоматически из токена.",
+                "security": [{"BearerAuth": []}],
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {"$ref": "#/definitions/CreateSchedule"}
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Расписание создано",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {"type": "string", "example": "unplanned schedule created"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Ошибка валидации"},
                     "403": {"description": "Нет доступа"},
                     "500": {"description": "Internal Server Error"}
                 }
@@ -458,11 +490,21 @@ const docTemplate = `{
             "put": {
                 "tags": ["Work Tracking"],
                 "summary": "Завершить рабочий день",
+                "description": "Завершает рабочий день сотрудника. Если есть незавершённые визиты — возвращает 400 с количеством таких визитов.",
                 "security": [{"BearerAuth": []}],
                 "produces": ["application/json"],
                 "responses": {
-                    "204": {"description": "Рабочий день завершён"},
-                    "400": {"description": "Ошибка"},
+                    "200": {"description": "Рабочий день завершён"},
+                    "400": {
+                        "description": "Есть незавершённые визиты или другая ошибка",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {"type": "string", "example": "can't end date"},
+                                "schedules_count": {"type": "integer", "description": "Количество незавершённых визитов"}
+                            }
+                        }
+                    },
                     "500": {"description": "Internal Server Error"}
                 }
             }
@@ -831,6 +873,7 @@ const docTemplate = `{
                 "id": {"type": "string", "format": "uuid"},
                 "staff_id": {"type": "string", "format": "uuid"},
                 "store_id": {"type": "string", "format": "uuid"},
+                "store_name": {"type": "string"},
                 "planned_date": {"type": "string", "format": "date-time"},
                 "description": {"type": "string"},
                 "window_open": {"type": "string", "format": "date-time"},
@@ -839,7 +882,28 @@ const docTemplate = `{
                 "is_selfie_required": {"type": "boolean"},
                 "is_comment_required": {"type": "boolean"},
                 "status": {"type": "string"},
-                "created_by_admin_id": {"type": "string", "format": "uuid"}
+                "review_comment": {"type": "string"},
+                "created_by_admin_id": {"type": "string", "format": "uuid"},
+                "visit_id": {"type": "string", "format": "uuid"},
+                "is_unplanned": {"type": "boolean"},
+                "created_at_lat": {"type": "number", "format": "double"},
+                "created_at_lon": {"type": "number", "format": "double"}
+            }
+        },
+        "CreateSchedule": {
+            "type": "object",
+            "required": ["store_id", "planned_date", "description", "window_open", "window_close"],
+            "properties": {
+                "store_id": {"type": "string", "format": "uuid"},
+                "planned_date": {"type": "string", "format": "date-time"},
+                "description": {"type": "string"},
+                "window_open": {"type": "string", "format": "date-time"},
+                "window_close": {"type": "string", "format": "date-time"},
+                "is_photo_required": {"type": "boolean"},
+                "is_selfie_required": {"type": "boolean"},
+                "is_comment_required": {"type": "boolean"},
+                "lat": {"type": "number", "format": "double", "description": "Широта (опционально)"},
+                "lon": {"type": "number", "format": "double", "description": "Долгота (опционально)"}
             }
         },
         "Store": {

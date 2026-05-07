@@ -77,6 +77,8 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			staff.PATCH("/:id/deactivate", h.DeactivateStaffUser)
 			staff.GET("/schedules", h.ListSchedulesAdmin)
 			staff.POST("/schedules/assign", h.AssignSchedule)
+			staff.POST("/schedule/assign-many", h.AssignScheduleBulk)
+			staff.PATCH("/end-work/:staff_id", h.EndStaffDayAdmin)
 			staff.PUT("/schedules/:id", h.UpdateSchedule)
 			staff.DELETE("/schedules/:id", h.DeleteSchedule)
 			staff.GET("/:id", h.GetStaffUserByID)
@@ -94,7 +96,7 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 
 		monitoring := staff.Group(constants.Monitoring)
 		{
-			monitoring.GET("/real-time", h.ListStaffUsersLocationByGroupID)
+			monitoring.GET("/real-time/:group_id", h.ListStaffUsersLocationByGroupID)
 			monitoring.GET("/track/:staff_id", h.ListStaffUserLocationByDate)
 		}
 
@@ -104,6 +106,9 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			store.GET("/:id", h.GetStoreByID)
 			store.PATCH("/:id/approve", h.ApproveStore)
 			store.DELETE("/:id", h.DeleteStore)
+			store.PATCH("/:id/group", h.AssignStoreGroup)
+			store.DELETE("/:id/group", h.UnassignStoreGroup)
+			store.GET("/by-group/:group_id", h.ListStoresByGroupID)
 		}
 
 		group := admin.Group(constants.Group)
@@ -113,6 +118,8 @@ func registerAdminRoutes(r *gin.Engine, mw middleware.Middleware, h *handler.Han
 			group.GET("/:id", h.GetByIdGroup)
 			group.GET("", h.ListGroups)
 			group.PUT("/:id", h.UpdateGroup)
+			group.GET("/hierarchy/:type", h.GetGroupHierarchy)
+			group.GET("/:id/descendants", h.GetGroupDescendants)
 		}
 
 		staff_mapping := admin.Group(constants.StaffMapping)

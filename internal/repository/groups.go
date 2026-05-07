@@ -19,11 +19,14 @@ type groupsRepository struct {
 
 type GroupsRepository interface {
 	Create(context.Context, *model.Group) error
-	List(ctx context.Context, supervisorID *uuid.UUID, limit, offset int) ([]model.Group, int, error)
+	List(ctx context.Context, groupType string, supervisorID *uuid.UUID, limit, offset int) ([]model.Group, int, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Group, error)
 	Update(ctx context.Context, gr model.Group, id uuid.UUID) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetGroupIDForSupervisor(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
+	GetHierarchy(ctx context.Context, groupType string) ([]model.Group, error)
+	GetDescendantIDs(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
+	GetDescendants(ctx context.Context, id uuid.UUID) ([]model.Group, error)
 }
 
 func NewGroupsRepository(db *db.DB) GroupsRepository {
@@ -35,12 +38,17 @@ func (g *groupsRepository) Create(ctx context.Context, group *model.Group) error
 		INSERT INTO groups
 		(
 			name,
-			supervisor_id
+			type,
+			parent_id,
+			supervisor_id,
+			color,
+			layer,
+			cluster
 		)
-		VALUES ($1, $2)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id;
 	`
-	err := g.DB.Pool.QueryRow(ctx, sql, group.Name, group.SupervisorID).Scan(&group.ID)
+	err := g.DB.Pool.QueryRow(ctx, sql, group.Name, group.Type, group.ParentID, group.SupervisorID, group.Color, group.Layer, group.Cluster).Scan(&group.ID)
 	if err != nil {
 		return fmt.Errorf("create group: %w", err)
 	}
@@ -48,7 +56,7 @@ func (g *groupsRepository) Create(ctx context.Context, group *model.Group) error
 	return nil
 }
 
-func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID, limit, offset int) ([]model.Group, int, error) {
+func (g *groupsRepository) List(ctx context.Context, groupType string, supervisorID *uuid.UUID, limit, offset int) ([]model.Group, int, error) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -60,6 +68,11 @@ func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID, li
 	var args []any
 
 	conditions = append(conditions, "g.is_deleted = false")
+
+	if groupType != "" {
+		conditions = append(conditions, fmt.Sprintf("g.type = $%d", len(args)+1))
+		args = append(args, groupType)
+	}
 
 	if supervisorID != nil {
 		conditions = append(conditions, fmt.Sprintf("g.supervisor_id = $%d", len(args)+1))
@@ -80,17 +93,24 @@ func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID, li
 	query := fmt.Sprintf(`
 		SELECT 
 			g.id, 
-			g.name, 
+			g.name,
+			g.type,
+			g.parent_id,
+			p.name as parent_name,
 			g.supervisor_id, 
 			u.full_name as supervisor_name,
 			u.id as sup_id,
 			u.full_name as sup_full_name,
 			u.login as sup_login,
 			u.role as sup_role,
+			g.color,
+			g.layer,
+			g.cluster,
 			g.created_at,
 			g.is_deleted,
 			g.deleted_at
 		FROM groups g
+		LEFT JOIN groups p ON g.parent_id = p.id
 		LEFT JOIN system_users u ON g.supervisor_id = u.id
 		%s
 		ORDER BY g.id
@@ -114,12 +134,18 @@ func (g *groupsRepository) List(ctx context.Context, supervisorID *uuid.UUID, li
 		err := rows.Scan(
 			&g.ID,
 			&g.Name,
+			&g.Type,
+			&g.ParentID,
+			&g.ParentName,
 			&g.SupervisorID,
 			&g.SupervisorName,
 			&supID,
 			&supFullName,
 			&supLogin,
 			&supRole,
+			&g.Color,
+			&g.Layer,
+			&g.Cluster,
 			&g.CreatedAt,
 			&g.IsDeleted,
 			&g.DeletedAt,
@@ -152,12 +178,17 @@ func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Gr
 		SELECT 
 			g.id,
 			g.name,
+			g.type,
 			g.supervisor_id,
-			s.full_name as supervisor_name,
-			s.id as sup_id,
-			s.full_name as sup_full_name,
-			s.login as sup_login,
-			s.role as sup_role,
+			g.parent_id,
+			COALESCE(s.full_name, '') as supervisor_name,
+			COALESCE(s.id, '00000000-0000-0000-0000-000000000000'::uuid) as sup_id,
+			COALESCE(s.full_name, '') as sup_full_name,
+			COALESCE(s.login, '') as sup_login,
+			COALESCE(s.role, '') as sup_role,
+			g.color,
+			g.layer,
+			g.cluster,
 			g.created_at,
 			g.is_deleted,
 			g.deleted_at
@@ -167,18 +198,23 @@ func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Gr
 	`
 
 	var gr model.Group
-	var supID *uuid.UUID
-	var supFullName, supLogin, supRole *string
+	var supFullName, supLogin, supRole string
+	var supIDVal uuid.UUID
 
 	err := g.DB.Pool.QueryRow(ctx, sql, id).Scan(
 		&gr.ID,
 		&gr.Name,
+		&gr.Type,
 		&gr.SupervisorID,
+		&gr.ParentID,
 		&gr.SupervisorName,
-		&supID,
+		&supIDVal,
 		&supFullName,
 		&supLogin,
 		&supRole,
+		&gr.Color,
+		&gr.Layer,
+		&gr.Cluster,
 		&gr.CreatedAt,
 		&gr.IsDeleted,
 		&gr.DeletedAt,
@@ -190,12 +226,14 @@ func (g *groupsRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Gr
 		return nil, err
 	}
 
-	if supID != nil {
+	// Check if supervisor exists (not the default zero UUID)
+	zeroUUID := uuid.UUID{}
+	if supIDVal != zeroUUID {
 		gr.Supervisor = &model.GroupSupervisor{
-			ID:       *supID,
-			FullName: *supFullName,
-			Login:    *supLogin,
-			Role:     *supRole,
+			ID:       supIDVal,
+			FullName: supFullName,
+			Login:    supLogin,
+			Role:     supRole,
 		}
 	}
 
@@ -211,9 +249,34 @@ func (g *groupsRepository) Update(ctx context.Context, gr model.Group, id uuid.U
 		setClauses = append(setClauses, fmt.Sprintf("name = $%d", len(args)))
 	}
 
+	if gr.Type != "" {
+		args = append(args, gr.Type)
+		setClauses = append(setClauses, fmt.Sprintf("type = $%d", len(args)))
+	}
+
+	if gr.ParentID != nil {
+		args = append(args, gr.ParentID)
+		setClauses = append(setClauses, fmt.Sprintf("parent_id = $%d", len(args)))
+	}
+
 	if gr.SupervisorID != nil {
 		args = append(args, gr.SupervisorID)
 		setClauses = append(setClauses, fmt.Sprintf("supervisor_id = $%d", len(args)))
+	}
+
+	if gr.Color != "" {
+		args = append(args, gr.Color)
+		setClauses = append(setClauses, fmt.Sprintf("color = $%d", len(args)))
+	}
+
+	if gr.Layer != 0 {
+		args = append(args, gr.Layer)
+		setClauses = append(setClauses, fmt.Sprintf("layer = $%d", len(args)))
+	}
+
+	if gr.Cluster != "" {
+		args = append(args, gr.Cluster)
+		setClauses = append(setClauses, fmt.Sprintf("cluster = $%d", len(args)))
 	}
 
 	if len(setClauses) == 0 {
@@ -267,4 +330,187 @@ func (g *groupsRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (g *groupsRepository) GetHierarchy(ctx context.Context, groupType string) ([]model.Group, error) {
+	sql := `
+		WITH RECURSIVE group_tree AS (
+			SELECT 
+				g.id, g.name, g.type, g.parent_id, g.supervisor_id, g.color, g.layer, g.cluster, g.created_at, g.is_deleted, g.deleted_at,
+				s.full_name as supervisor_name
+			FROM groups g
+			LEFT JOIN system_users s ON g.supervisor_id = s.id
+			WHERE g.parent_id IS NULL AND g.type = $1 AND g.is_deleted = false
+			
+			UNION ALL
+			
+			SELECT 
+				g.id, g.name, g.type, g.parent_id, g.supervisor_id, g.color, g.layer, g.cluster, g.created_at, g.is_deleted, g.deleted_at,
+				s.full_name as supervisor_name
+			FROM groups g
+			LEFT JOIN system_users s ON g.supervisor_id = s.id
+			INNER JOIN group_tree gt ON g.parent_id = gt.id
+			WHERE g.is_deleted = false
+		)
+		SELECT * FROM group_tree ORDER BY parent_id NULLS FIRST, name
+	`
+
+	rows, err := g.DB.Pool.Query(ctx, sql, groupType)
+	if err != nil {
+		return nil, fmt.Errorf("get hierarchy: %w", err)
+	}
+	defer rows.Close()
+
+	groupMap := make(map[uuid.UUID]*model.Group)
+
+	for rows.Next() {
+		gr := &model.Group{}
+		var supervisorName *string
+		err := rows.Scan(&gr.ID, &gr.Name, &gr.Type, &gr.ParentID, &gr.SupervisorID, &gr.Color, &gr.Layer, &gr.Cluster, &gr.CreatedAt, &gr.IsDeleted, &gr.DeletedAt, &supervisorName)
+		if err != nil {
+			return nil, fmt.Errorf("scan hierarchy: %w", err)
+		}
+		if supervisorName != nil {
+			gr.SupervisorName = supervisorName
+		}
+		groupMap[gr.ID] = gr
+	}
+
+	for _, gr := range groupMap {
+		if gr.ParentID != nil {
+			if parent, exists := groupMap[*gr.ParentID]; exists {
+				parent.Groups = append(parent.Groups, *gr)
+			}
+		}
+	}
+
+	var roots []model.Group
+	for _, gr := range groupMap {
+		if gr.ParentID == nil {
+			roots = append(roots, *gr)
+		}
+	}
+
+	return roots, nil
+}
+
+func (g *groupsRepository) GetDescendants(ctx context.Context, id uuid.UUID) ([]model.Group, error) {
+	sql := `
+		WITH RECURSIVE group_tree AS (
+			SELECT id FROM groups WHERE id = $1 AND is_deleted = false
+			UNION ALL
+			SELECT g.id FROM groups g
+			INNER JOIN group_tree gt ON g.parent_id = gt.id
+			WHERE g.is_deleted = false
+		)
+		SELECT
+			g.id,
+			g.name,
+			g.type,
+			g.parent_id,
+			p.name as parent_name,
+			g.supervisor_id,
+			u.full_name as supervisor_name,
+			u.id as sup_id,
+			u.full_name as sup_full_name,
+			u.login as sup_login,
+			u.role as sup_role,
+			g.color,
+			g.layer,
+			g.cluster,
+			g.created_at,
+			g.is_deleted,
+			g.deleted_at
+		FROM group_tree gt
+		JOIN groups g ON g.id = gt.id
+		LEFT JOIN groups p ON g.parent_id = p.id
+		LEFT JOIN system_users u ON g.supervisor_id = u.id
+		ORDER BY g.id
+	`
+
+	rows, err := g.DB.Pool.Query(ctx, sql, id)
+	if err != nil {
+		return nil, fmt.Errorf("get descendants: %w", err)
+	}
+	defer rows.Close()
+
+	var groups []model.Group
+	for rows.Next() {
+		var gr model.Group
+		var supID *uuid.UUID
+		var supFullName, supLogin, supRole *string
+
+		if err := rows.Scan(
+			&gr.ID,
+			&gr.Name,
+			&gr.Type,
+			&gr.ParentID,
+			&gr.ParentName,
+			&gr.SupervisorID,
+			&gr.SupervisorName,
+			&supID,
+			&supFullName,
+			&supLogin,
+			&supRole,
+			&gr.Color,
+			&gr.Layer,
+			&gr.Cluster,
+			&gr.CreatedAt,
+			&gr.IsDeleted,
+			&gr.DeletedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan descendant: %w", err)
+		}
+
+		if supID != nil {
+			gr.Supervisor = &model.GroupSupervisor{
+				ID:       *supID,
+				FullName: *supFullName,
+				Login:    *supLogin,
+				Role:     *supRole,
+			}
+		}
+
+		groups = append(groups, gr)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows descendants: %w", err)
+	}
+
+	return groups, nil
+}
+
+func (g *groupsRepository) GetDescendantIDs(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error) {
+	sql := `
+		WITH RECURSIVE group_tree AS (
+			SELECT id FROM groups WHERE id = $1 AND is_deleted = false
+			UNION ALL
+			SELECT g.id FROM groups g
+			INNER JOIN group_tree gt ON g.parent_id = gt.id
+			WHERE g.is_deleted = false
+		)
+		SELECT id FROM group_tree;
+	`
+
+	rows, err := g.DB.Pool.Query(ctx, sql, id)
+	if err != nil {
+		return nil, fmt.Errorf("get descendant ids: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var grID uuid.UUID
+		if err := rows.Scan(&grID); err != nil {
+			return nil, fmt.Errorf("scan descendant id: %w", err)
+		}
+		ids = append(ids, grID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows descendant ids: %w", err)
+	}
+
+	return ids, nil
 }
